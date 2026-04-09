@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
 
 :root {
@@ -94,8 +98,15 @@ button:active {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade {
@@ -103,10 +114,25 @@ button:active {
 }
 
 /* Option Colors */
-.option-A { background: #e74c3c; color: white; }
-.option-B { background: #3498db; color: white; }
-.option-C { background: #f1c40f; color: black; }
-.option-D { background: #2ecc71; color: white; }
+.option-A {
+  background: #e74c3c;
+  color: white;
+}
+
+.option-B {
+  background: #3498db;
+  color: white;
+}
+
+.option-C {
+  background: #f1c40f;
+  color: black;
+}
+
+.option-D {
+  background: #2ecc71;
+  color: white;
+}
 
 .option-card {
   display: flex;
@@ -118,7 +144,7 @@ button:active {
   min-height: 120px;
   border-radius: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s, filter 0.2s;
 }
 
@@ -146,6 +172,11 @@ button:active {
 }
 
 @keyframes popIn {
-  0% { transform: scale(0); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }

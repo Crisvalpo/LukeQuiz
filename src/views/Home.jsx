@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { PlusCircle, Play, Settings } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
+import { toast } from 'sonner'
+import Modal from '../components/Modal'
 
 export default function Home() {
     const [quizzes, setQuizzes] = useState([])
     const [loading, setLoading] = useState(true)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [newQuizTitle, setNewQuizTitle] = useState('')
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -14,48 +18,62 @@ export default function Home() {
     }, [])
 
     const fetchQuizzes = async () => {
-        const { data } = await supabase.from('quizzes').select('*').order('created_at', { ascending: false })
-        if (data) setQuizzes(data)
+        const { data, error } = await supabase.from('quizzes').select('*').order('created_at', { ascending: false })
+        if (error) {
+            toast.error('Error al cargar quizzes')
+        } else {
+            setQuizzes(data || [])
+        }
         setLoading(false)
     }
 
     const startNewGame = async (quizId) => {
-        const code = generateJoinCode()
-        const { data: game, error } = await supabase
-            .from('games')
-            .insert({
-                quiz_id: quizId,
-                join_code: code,
-                status: 'waiting',
-                current_question_index: 0
-            })
+        const promise = new Promise(async (resolve, reject) => {
+            const code = generateJoinCode()
+            const { data: game, error } = await supabase
+                .from('games')
+                .insert({
+                    quiz_id: quizId,
+                    join_code: code,
+                    status: 'waiting',
+                    current_question_index: 0
+                })
+                .select()
+                .single()
+
+            if (error) reject(error)
+            else resolve(game)
+        })
+
+        toast.promise(promise, {
+            loading: 'Iniciando partida...',
+            success: (game) => {
+                window.open(`/screen/${game.id}`, '_blank')
+                navigate(`/host/${game.id}`)
+                return '¡Partida iniciada!'
+            },
+            error: 'No se pudo iniciar la partida'
+        })
+    }
+
+    const handleCreateQuiz = async (e) => {
+        e.preventDefault()
+        if (!newQuizTitle.trim()) return
+
+        const { data, error } = await supabase
+            .from('quizzes')
+            .insert({ title: newQuizTitle, description: '' })
             .select()
             .single()
 
         if (error) {
-            alert('Error al iniciar partida')
-            return
-        }
-
-        // Open screen in new tab, keep host here
-        window.open(`/screen/${game.id}`, '_blank')
-        navigate(`/host/${game.id}`)
-    }
-
-    const createQuiz = async () => {
-        const title = prompt('Título del Quiz:')
-        if (!title) return
-
-        const { data, error } = await supabase
-            .from('quizzes')
-            .insert({ title, description: '' })
-            .select()
-            .single()
-
-        if (data) {
+            toast.error('Error al crear el quiz')
+        } else {
+            toast.success('¡Quiz creado!')
+            setIsModalOpen(false)
+            setNewQuizTitle('')
             fetchQuizzes()
-            // Logic to add questions could go here or a separate view
-            alert('Quiz creado. Ahora agrega preguntas en la base de datos o en una futura vista de edición.')
+            navigate(`/edit/${data.id}`)
         }
     }
 
@@ -63,19 +81,21 @@ export default function Home() {
         <div className="container py-12">
             <div className="flex justify-between items-center mb-12">
                 <h1 className="text-5xl font-black">Mis <span className="text-primary">Quizzes</span></h1>
-                <button onClick={createQuiz} className="btn-primary">
+                <button onClick={() => setIsModalOpen(true)} className="btn-primary">
                     <PlusCircle size={20} /> Crear Nuevo
                 </button>
             </div>
 
             {loading ? (
-                <div className="text-center text-gray-500">Cargando...</div>
+                <div className="flex flex-col gap-4">
+                    {[1, 2, 3].map(i => <div key={i} className="h-40 glass-card animate-pulse bg-white/5" />)}
+                </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {quizzes.map(q => (
-                        <div key={q.id} className="glass-card hover:border-primary transition-all group">
+                        <div key={q.id} className="glass-card hover:border-primary transition-all group relative overflow-hidden">
                             <h3 className="text-2xl font-bold mb-2">{q.title}</h3>
-                            <p className="text-gray-400 mb-6">{q.description || 'Sin descripción'}</p>
+                            <p className="text-gray-400 mb-6 line-clamp-2">{q.description || 'Sin descripción'}</p>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => startNewGame(q.id)}
@@ -93,12 +113,35 @@ export default function Home() {
                         </div>
                     ))}
                     {quizzes.length === 0 && (
-                        <div className="col-span-full text-center py-12 border-2 border-dashed border-gray-700 rounded-3xl">
-                            <p className="text-gray-500">No tienes quizzes aún. ¡Crea el primero!</p>
+                        <div className="col-span-full text-center py-20 border-2 border-dashed border-gray-700 rounded-3xl">
+                            <p className="text-gray-500 text-xl font-semibold">No tienes quizzes aún. ¡Crea el primero!</p>
                         </div>
                     )}
                 </div>
             )}
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Crear Nuevo Quiz"
+            >
+                <form onSubmit={handleCreateQuiz} className="space-y-4">
+                    <div>
+                        <label className="text-sm font-semibold text-gray-400">TÍTULO DEL QUIZ</label>
+                        <input
+                            className="input-field mt-2"
+                            placeholder="Ej: Trivia de Cine"
+                            value={newQuizTitle}
+                            onChange={(e) => setNewQuizTitle(e.target.value)}
+                            autoFocus
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-4">
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-glass py-3 rounded-xl font-bold">Cancelar</button>
+                        <button type="submit" className="flex-1 btn-primary py-3">Crear</button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     )
 }

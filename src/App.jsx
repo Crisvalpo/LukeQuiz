@@ -5,11 +5,13 @@ import Join from './views/Join'
 import Host from './views/Host'
 import Screen from './views/Screen'
 import EditQuiz from './views/EditQuiz'
+import { Toaster } from 'sonner'
 import './index.css'
 
 function App() {
   return (
     <Router>
+      <Toaster position="top-center" richColors />
       <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<Home />} />
