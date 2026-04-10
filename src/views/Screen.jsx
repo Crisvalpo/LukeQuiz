@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { QRCodeSVG } from 'qrcode.react'
-import { Users, Trophy, Loader2, PlayCircle, Activity } from 'lucide-react'
+import { Users, Trophy, Loader2, Activity } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { useGameRoom } from '../hooks/useGameRoom'
 
@@ -14,7 +14,9 @@ export default function Screen() {
     const [timeLeft, setTimeLeft] = useState(0)
     const [isUpdating, setIsUpdating] = useState(false)
     const [questions, setQuestions] = useState([])
-    const [isAutoPilot, setIsAutoPilot] = useState(false)
+    const [isAutoPilot, setIsAutoPilot] = useState(true)
+
+    const PLACEHOLDER_URL = 'https://i.postimg.cc/MH9RSFJ5/Sin-titulo.png';
 
     useEffect(() => {
         if (!game) return
@@ -23,7 +25,7 @@ export default function Screen() {
         } else if (game.status === 'finished') {
             confetti({ particleCount: 200, spread: 100, origin: { y: 0.7 }, colors: ['#8ff5ff', '#ac89ff', '#ff59e3'] })
         }
-        if (game.quiz_id && !questions.length) {
+        if (game.quiz_id && questions.length === 0) {
             fetchQuestions(game.quiz_id)
         }
     }, [game?.status, game?.current_question_index, game?.quiz_id])
@@ -77,10 +79,8 @@ export default function Screen() {
         return () => clearInterval(interval)
     }, [game?.status, game?.question_started_at, currentQuestion])
 
-    // Auto-Pilot Logic for Screen
     useEffect(() => {
         if (!isAutoPilot || !game || !questions.length) return
-
         let timer
         if (game.status === 'question' && answers.length > 0 && answers.length === players.length) {
             timer = setTimeout(() => handleNext(), 1500)
@@ -98,13 +98,11 @@ export default function Screen() {
                 p_question_id: currentQuestion.id
             })
         }
-
         const updates = {
             status,
             current_question_index: (game.current_question_index + indexOffset),
             question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
         }
-
         await supabase.from('games').update(updates).eq('id', gameId)
         setIsUpdating(false)
     }
@@ -126,10 +124,8 @@ export default function Screen() {
     if (loading) {
         return (
             <div className="min-h-screen bg-surface flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="animate-spin text-primary mb-4 mx-auto" size={64} />
-                    <p className="font-display tracking-widest text-on-surface-variant uppercase text-sm">Cargando Juego...</p>
-                </div>
+                <Loader2 className="animate-spin text-primary mr-4" size={48} />
+                <p className="font-display tracking-[0.2em] uppercase text-white">Preparando Transmisión...</p>
             </div>
         )
     }
@@ -137,104 +133,90 @@ export default function Screen() {
     const joinUrl = `${window.location.origin}/join?code=${game?.join_code}`
 
     return (
-        <div className="min-h-screen bg-surface flex flex-col font-body text-on-surface selection:bg-primary/30">
-            {/* Background Decorative Glows */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary rounded-full blur-[150px] animate-pulse-slow" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary rounded-full blur-[150px] animate-pulse-slow" />
+        <div className="h-screen bg-surface flex flex-col font-body text-on-surface relative overflow-hidden">
+            {/* Background Glows */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-20">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary blur-[150px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary blur-[150px] animate-pulse" style={{ animationDelay: '2s' }} />
             </div>
 
-            {/* Header HUD */}
-            <header className="px-10 py-4 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface/30 backdrop-blur-sm">
-                <div className="flex items-center gap-10">
-                    <div>
-                        <h1 className="text-4xl font-display font-black tracking-tighter leading-none mb-1">
-                            LUKE<span className="text-primary">QUIZ</span>
-                        </h1>
-                    </div>
-
-                    <div className="flex items-center gap-6">
+            {/* HUD Header */}
+            <header className="px-12 py-6 flex justify-between items-center relative z-20 bg-surface/40 backdrop-blur-md">
+                <div className="flex items-center gap-12">
+                    <h1 className="text-3xl font-display font-black tracking-tighter italic uppercase text-white">
+                        Luke<span className="text-primary">QUIZ</span>
+                    </h1>
+                    <div className="flex items-center gap-8 border-l border-white/10 pl-8">
                         <div className="flex items-center gap-3">
-                            <Users size={16} className="text-secondary" />
-                            <p className="text-xl font-display font-bold leading-none">{players.length}</p>
+                            <Users size={20} className="text-primary" />
+                            <p className="text-2xl font-display font-black">{players.length}</p>
                         </div>
-                        {game?.join_code && (
-                            <div className="bg-primary/20 border border-primary/20 px-6 py-2 rounded-xl text-primary font-display font-black text-2xl tracking-widest">
-                                {game.join_code}
+                        {game?.status === 'waiting' && (
+                            <div className="bg-primary/10 border border-primary/20 px-8 py-2 rounded-2xl text-primary font-display font-black text-3xl tracking-[0.2em]">
+                                {game?.join_code}
                             </div>
                         )}
                     </div>
                 </div>
-
-                <div className="text-right hidden md:block opacity-40">
-                    <p className="text-[8px] font-display font-bold uppercase tracking-[0.4em]">Interactividad en Vivo</p>
+                <div className="text-right opacity-30">
+                    <p className="text-[10px] font-display font-black uppercase tracking-[0.6em]">Interactividad en Vivo</p>
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 overflow-hidden">
+            <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
                 {game?.status === 'waiting' && (
-                    <div className="w-full max-w-6xl relative h-full flex items-center">
-                        {/* Background Floating Bubbles Container */}
-                        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                    <div className="flex-1 flex items-center justify-center p-12 relative overflow-hidden">
+                        {/* Bubbles strictly in main */}
+                        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-40">
                             {players.map((p, i) => {
-                                // Deterministic random-like values based on index
-                                const randomX = (i * 137.5) % 80; // Spread across 80% width
-                                const randomY = (i * 123.4) % 70; // Spread across 70% height
-                                const duration = 15 + (i % 10);
-                                const delay = -(i * 2.5);
-
-                                // Simple logic to push bubbles away from QR zone (bottom left area)
-                                // If X < 30 and Y > 40 (QR area), push X further right
-                                const finalX = (randomX < 35 && randomY > 40) ? randomX + 45 : randomX;
-
+                                const randomX = (i * 137.5) % 85;
+                                const randomY = (i * 123.4) % 75;
+                                const duration = 20 + (i % 15);
+                                const delay = -(i * 3);
                                 return (
                                     <div
                                         key={p.id}
-                                        className="absolute transition-all duration-1000 animate-float-bubble glass px-6 py-4 rounded-3xl flex items-center gap-4 border-2 border-white/20 shadow-2xl"
+                                        className="absolute transition-all duration-1000 animate-float-bubble glass px-10 py-6 rounded-[2.5rem] flex items-center gap-5 border border-white/20 shadow-2xl bg-surface-high/60 backdrop-blur-xl"
                                         style={{
-                                            left: `${finalX}%`,
+                                            left: `${randomX}%`,
                                             top: `${randomY}%`,
                                             animationDuration: `${duration}s`,
                                             animationDelay: `${delay}s`,
-                                            opacity: 0.8,
-                                            transform: `scale(${0.9 + (i % 5) * 0.1})`,
+                                            transform: `scale(${0.9 + (i % 3) * 0.1})`,
                                             zIndex: 5
                                         }}
                                     >
-                                        <span className="text-4xl">{p.emoji}</span>
-                                        <span className="text-2xl font-display font-black tracking-tight text-white">{p.nickname}</span>
+                                        <span className="text-5xl drop-shadow-md">{p.emoji}</span>
+                                        <span className="text-2xl font-display font-black italic uppercase text-white">{p.nickname}</span>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center w-full relative z-10">
-                            <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-                                <h2 className="text-8xl font-display font-black mb-8 leading-[0.9] uppercase italic">
+                        <div className="grid grid-cols-2 gap-20 items-center w-full max-w-7xl relative z-10">
+                            <div className="text-left">
+                                <h1 className="text-7xl font-display font-black mb-10 leading-[1.1] uppercase italic text-white">
                                     ¡Únete a la <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-tertiary">Partida!</span>
-                                </h2>
-                                <p className="text-2xl text-on-surface-variant font-display font-bold leading-tight mb-12 max-w-md opacity-80 uppercase tracking-widest">
-                                    Escanea para participar <br /> y conviértete en el campeón.
+                                    <span className="text-primary">Partida!</span>
+                                </h1>
+                                <p className="text-xl text-on-surface-variant font-display font-medium mb-16 uppercase tracking-[0.2em] opacity-70">
+                                    Escanea para participar <br /> y demuestra tu conocimiento.
                                 </p>
-                                <div className="glass p-6 rounded-[3rem] inline-block neon-glow-primary border-4 border-primary/20 bg-black/40 shadow-[0_0_50px_rgba(143,245,255,0.2)]">
-                                    <QRCodeSVG value={joinUrl} size={280} bgColor="transparent" fgColor="#8ff5ff" includeMargin={true} />
+                                <div className="glass p-12 rounded-[4.5rem] inline-block neon-glow-primary border-2 border-primary/30 bg-black/60 shadow-2xl hover:scale-105 transition-all duration-700">
+                                    <QRCodeSVG value={joinUrl} size={300} bgColor="transparent" fgColor="#8ff5ff" includeMargin={true} />
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-center p-12">
-                                <div className="glass p-12 rounded-[4rem] text-center border-white/5 relative overflow-hidden backdrop-blur-2xl">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" />
-                                    <div className="relative z-10">
-                                        <p className="text-sm font-display font-black text-secondary tracking-[0.4em] uppercase mb-4">Jugadores Listos</p>
-                                        <div className="text-[10rem] font-display font-black leading-none text-white tracking-tighter drop-shadow-2xl">
-                                            {players.length}
-                                        </div>
-                                        <div className="flex justify-center gap-2 mt-8">
-                                            {[...Array(3)].map((_, i) => (
-                                                <div key={i} className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
-                                            ))}
-                                        </div>
+                            <div className="flex justify-center">
+                                <div className="glass p-16 rounded-[4rem] text-center border-2 border-white/5 backdrop-blur-3xl min-w-[400px]">
+                                    <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase mb-6 opacity-60 italic">Jugadores Conectados</p>
+                                    <div className="text-[10rem] font-display font-black leading-none text-white tracking-tighter drop-shadow-[0_0_50px_rgba(143,245,255,0.3)]">
+                                        {players.length}
+                                    </div>
+                                    <div className="flex justify-center gap-3 mt-12">
+                                        {[...Array(3)].map((_, i) => (
+                                            <div key={i} className="w-2 h-2 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: `${i * 300}ms` }} />
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -243,169 +225,176 @@ export default function Screen() {
                 )}
 
                 {(game?.status === 'question' || game?.status === 'results') && currentQuestion && (
-                    <div className="w-full max-w-[90vw] h-full flex flex-col justify-between py-4">
-                        {/* Area Superior: Contador y Pregunta */}
-                        <div className="flex flex-col items-center">
-                            <div className="flex items-center gap-12 mb-6">
-                                <div className="relative">
-                                    <div className={`w-24 h-24 rounded-full border-2 flex items-center justify-center relative glass transition-all duration-500 ${timeLeft < 5 ? 'border-danger scale-110 shadow-[0_0_20px_rgba(255,83,83,0.4)]' : 'border-primary/40'}`}>
-                                        <div className="text-center">
-                                            <p className={`text-5xl font-display font-black leading-none ${timeLeft < 5 ? 'text-danger' : 'text-on-surface'}`}>{timeLeft}</p>
+                    <div className="flex-1 flex overflow-hidden">
+                        {/* Sidebar */}
+                        <aside className="w-1/4 bg-surface-dark/40 backdrop-blur-xl flex flex-col h-full p-12">
+                            <div className="flex items-center gap-3 mt-8">
+                                <Trophy size={18} className="text-secondary" />
+                                <p className="text-[11px] font-display font-black text-secondary tracking-[0.5em] uppercase italic">Posiciones</p>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto py-12 custom-scrollbar">
+                                <div className="space-y-6">
+                                    {players.sort((a, b) => b.score - a.score).map((p, i) => (
+                                        <div
+                                            key={p.id}
+                                            className={`flex items-center gap-4 p-5 rounded-3xl transition-all duration-500 border-l-4 ${i === 0 ? 'bg-primary/10 border-primary' : 'bg-white/5 border-transparent'}`}
+                                        >
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-display font-black text-xs bg-black/40 text-white">
+                                                {i + 1}
+                                            </div>
+                                            <span className="text-3xl">{p.emoji}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-display font-black truncate uppercase text-white mb-0.5">{p.nickname}</p>
+                                                <p className="text-xs text-primary font-black uppercase tracking-widest">{p.score.toLocaleString()} <span className="opacity-40">PTS</span></p>
+                                            </div>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 mb-4 text-left">
+                                <p className="text-[10px] font-display font-black text-white/40 uppercase tracking-widest italic">Respuestas</p>
+                                <p className="text-4xl font-display font-black text-primary leading-none">{answers.length} / {players.length}</p>
+                            </div>
+                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-primary transition-all duration-1000 shadow-[0_0_15px_rgba(143,245,255,0.5)]"
+                                    style={{ width: `${(answers.length / (players.length || 1)) * 100}%` }}
+                                />
+                            </div>
+                        </aside>
+
+                        {/* Main Interaction Area */}
+                        <div className="w-3/4 flex flex-col p-12 h-full gap-12">
+                            <div className="flex items-start gap-12">
+                                <div className="relative flex-shrink-0">
+                                    <div className={`w-32 h-32 rounded-full border-4 flex items-center justify-center relative glass transition-all duration-500 ${timeLeft < 5 ? 'border-danger animate-pulse shadow-[0_0_40px_rgba(255,83,83,0.4)]' : 'border-primary/20'}`}>
+                                        <p className={`text-5xl font-display font-black ${timeLeft < 5 ? 'text-danger' : 'text-white'}`}>{timeLeft}</p>
                                     </div>
                                 </div>
-                                <h2 className="text-4xl lg:text-6xl font-display font-bold text-center leading-tight max-w-5xl tracking-tight">
-                                    {currentQuestion.text}
+                                <div className="flex-1">
+                                    <h2 className="text-5xl font-display font-black leading-[1.2] tracking-tighter text-white uppercase italic">
+                                        {currentQuestion.text}
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 flex flex-col gap-10 min-h-0">
+                                <div className="flex-1 flex justify-center items-center min-h-0 py-2">
+                                    <div className="h-full max-h-[42vh] w-fit glass rounded-[3rem] overflow-hidden border-2 border-white/10 shadow-2xl relative bg-black/40 group mx-auto">
+                                        <img
+                                            src={currentQuestion.image_url || PLACEHOLDER_URL}
+                                            alt="Pregunta"
+                                            className="w-full h-full object-contain transition-all duration-700 group-hover:scale-105"
+                                            onError={(e) => {
+                                                if (!e.target.src.includes('postimg.cc')) {
+                                                    e.target.src = PLACEHOLDER_URL;
+                                                }
+                                            }}
+                                        />
+                                        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6 pb-10">
+                                    {[
+                                        { id: 'A', icon: '▲', label: currentQuestion.option_a },
+                                        { id: 'B', icon: '◆', label: currentQuestion.option_b },
+                                        { id: 'C', icon: '●', label: currentQuestion.option_c },
+                                        { id: 'D', icon: '■', label: currentQuestion.option_d }
+                                    ].map(opt => {
+                                        const isCorrect = opt.id === currentQuestion.correct_option
+                                        const showResults = game?.status === 'results'
+                                        return (
+                                            <div
+                                                key={opt.id}
+                                                className={`option-card-premium option-${opt.id} px-10 rounded-[2rem] transition-all duration-500 flex items-center h-full min-h-[110px] ${showResults ? (isCorrect ? 'scale-[1.02] border-4 border-success neon-glow-success shadow-[0_0_40px_rgba(128,255,128,0.3)]' : 'opacity-10 grayscale blur-[1px]') : ''}`}
+                                            >
+                                                <div className="flex items-center gap-8 w-full">
+                                                    <div className="w-14 h-14 flex-shrink-0 glass rounded-2xl flex items-center justify-center text-3xl font-black">{opt.icon}</div>
+                                                    <p className={`text-2xl font-display font-black uppercase tracking-tight truncate ${opt.id === 'C' && !showResults ? 'text-surface' : 'text-white'}`}>{opt.label}</p>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+                }
+
+                {
+                    game?.status === 'finished' && (
+                        <div className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative">
+                            <div className="mb-16 text-center z-10">
+                                <Trophy size={100} className="text-primary mx-auto mb-8 drop-shadow-[0_0_50px_rgba(143,245,255,0.5)] animate-bounce" />
+                                <h2 className="text-[8rem] font-display font-black italic tracking-tighter leading-[0.85] uppercase text-white">
+                                    JUEGO <br />
+                                    <span className="text-primary">FINALIZADO</span>
                                 </h2>
                             </div>
 
-                            {currentQuestion.image_url && (
-                                <div className="w-full max-w-2xl h-[280px] mb-8 glass rounded-[2rem] overflow-hidden border border-white/10 relative shadow-2xl">
-                                    <img
-                                        src={currentQuestion.image_url}
-                                        alt="Pregunta"
-                                        className="w-full h-full object-cover opacity-95"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-surface/40 to-transparent" />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Area Central: Opciones */}
-                        <div className="grid grid-cols-2 gap-4 w-full">
-                            {[
-                                { id: 'A', icon: '▲', label: currentQuestion.option_a },
-                                { id: 'B', icon: '◆', label: currentQuestion.option_b },
-                                { id: 'C', icon: '●', label: currentQuestion.option_c },
-                                { id: 'D', icon: '■', label: currentQuestion.option_d }
-                            ].map(opt => {
-                                const isCorrect = opt.id === currentQuestion.correct_option
-                                const showResults = game?.status === 'results'
-                                return (
-                                    <div
-                                        key={opt.id}
-                                        className={`option-card-premium option-${opt.id} px-8 py-6 rounded-2xl transition-all duration-500 flex items-center ${showResults ? (isCorrect ? 'scale-[1.03] border-4 border-success neon-glow-success shadow-[0_0_30px_rgba(46,213,115,0.4)]' : 'opacity-10 grayscale scale-95 blur-[1px]') : ''
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-6 w-full">
-                                            <div className="w-14 h-14 glass rounded-xl flex items-center justify-center text-2xl font-black">{opt.icon}</div>
-                                            <p className={`text-2xl lg:text-3xl font-display font-bold truncate ${opt.id === 'C' && !showResults ? 'text-surface' : ''}`}>{opt.label}</p>
+                            <div className="flex items-end justify-center gap-12 h-[350px] z-10 w-full">
+                                {/* P2 */}
+                                {players[1] && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-5xl mb-6 animate-float" style={{ animationDelay: '0.5s' }}>{players[1].emoji}</span>
+                                        <div className="bg-surface-high/60 backdrop-blur-xl w-48 h-[180px] rounded-t-[3rem] border-t-2 border-white/10 flex flex-col items-center p-8 shadow-2xl">
+                                            <span className="font-display font-black truncate w-full text-xl uppercase text-white/90">{players[1].nickname}</span>
+                                            <p className="text-[10px] text-on-surface-variant font-black mt-4 uppercase tracking-[0.4em] italic opacity-60">Segundo</p>
                                         </div>
                                     </div>
-                                )
-                            })}
-                        </div>
-
-                        {/* Area Inferior: Estadisticas y Posiciones */}
-                        <div className="mt-8 flex flex-col items-center">
-                            <div className="flex items-center gap-8 mb-6">
-                                <div className="glass px-8 py-2 rounded-full border border-white/5 flex items-center gap-4">
-                                    <p className="text-[10px] font-display font-black uppercase tracking-widest text-on-surface-variant">Respuestas</p>
-                                    <p className="text-2xl font-display font-black text-primary">{answers.length}</p>
-                                </div>
-                                {game.status === 'results' && (
-                                    <div className="flex items-center gap-2 animate-bounce">
-                                        <Sparkles className="text-secondary" size={20} />
-                                        <p className="text-sm font-display font-black text-secondary tracking-widest uppercase italic">Ranking Provisorio</p>
+                                )}
+                                {/* P1 */}
+                                {players[0] && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-8xl mb-10 animate-float">{players[0].emoji}</span>
+                                        <div className="bg-gradient-to-b from-primary/30 to-surface-high/60 backdrop-blur-2xl w-60 h-[300px] rounded-t-[3.5rem] border-t-4 border-primary/50 flex flex-col items-center p-10 shadow-[0_0_100px_rgba(143,245,255,0.2)]">
+                                            <span className="font-display font-black truncate w-full text-3xl uppercase text-primary">{players[0].nickname}</span>
+                                            <p className="text-xs text-on-surface font-black mt-6 uppercase tracking-[0.5em] bg-primary/20 px-6 py-2 rounded-full border border-primary/30">Ganador</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* P3 */}
+                                {players[2] && (
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-5xl mb-6 animate-float" style={{ animationDelay: '1s' }}>{players[2].emoji}</span>
+                                        <div className="bg-surface-high/60 backdrop-blur-xl w-48 h-[140px] rounded-t-[3rem] border-t-2 border-white/10 flex flex-col items-center p-8 shadow-2xl">
+                                            <span className="font-display font-black truncate w-full text-xl uppercase text-white/90">{players[2].nickname}</span>
+                                            <p className="text-[10px] text-on-surface-variant font-black mt-4 uppercase tracking-[0.4em] italic opacity-60">Tercero</p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
-
-                            <div className="flex gap-4 w-full justify-center">
-                                {players.sort((a, b) => b.score - a.score).slice(0, 5).map((p, i) => (
-                                    <div
-                                        key={p.id}
-                                        className={`glass-light p-4 rounded-3xl border-l-[6px] flex items-center gap-4 transition-all duration-700 animate-in slide-in-from-bottom-8`}
-                                        style={{
-                                            borderColor: i === 0 ? '#ffae00' : i === 1 ? '#e0e0e0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.1)',
-                                            animationDelay: `${i * 150}ms`
-                                        }}
-                                    >
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center font-display font-black text-xs" style={{ background: i === 0 ? 'rgba(255,174,0,0.2)' : 'rgba(255,255,255,0.05)' }}>
-                                            {i + 1}
-                                        </div>
-                                        <span className="text-3xl">{p.emoji}</span>
-                                        <div className="min-w-[100px]">
-                                            <p className="text-sm font-display font-black leading-none truncate uppercase tracking-tight">{p.nickname}</p>
-                                            <p className="text-base text-primary font-black mt-1 leading-none">{p.score.toLocaleString()} <span className="text-[8px] opacity-40">PTS</span></p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
+            </main >
 
-                {game?.status === 'finished' && (
-                    <div className="w-full max-w-6xl text-center">
-                        <div className="mb-20">
-                            <Trophy size={120} className="text-primary mx-auto mb-6 drop-shadow-[0_0_30px_rgba(143,245,255,0.6)] animate-bounce" />
-                            <h2 className="text-[9rem] font-display font-black italic tracking-tighter leading-[0.8] uppercase">
-                                Juego <br />
-                                <span className="text-primary">Finalizado</span>
-                            </h2>
-                        </div>
-                        <div className="flex items-end justify-center gap-8 h-[400px]">
-                            {/* P2 */}
-                            {players[1] && (
-                                <div className="flex flex-col items-center">
-                                    <span className="text-5xl mb-6 animate-float" style={{ animationDelay: '0.5s' }}>{players[1].emoji}</span>
-                                    <div className="bg-surface-high w-48 h-[220px] rounded-t-3xl border-t border-white/10 flex flex-col items-center p-8 relative">
-                                        <div className="absolute top-[-2px] left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                                        <span className="font-display font-bold truncate w-full text-xl uppercase">{players[1].nickname}</span>
-                                        <p className="text-xs text-on-surface-variant font-bold mt-2 uppercase tracking-widest italic">Segundo Lugar</p>
-                                    </div>
-                                </div>
-                            )}
-                            {/* P1 */}
-                            {players[0] && (
-                                <div className="flex flex-col items-center">
-                                    <span className="text-7xl mb-8 animate-float">{players[0].emoji}</span>
-                                    <div className="bg-gradient-to-b from-primary/20 to-surface-high w-56 h-[320px] rounded-t-3xl border-t-2 border-primary/40 flex flex-col items-center p-10 relative neon-glow-primary">
-                                        <span className="font-display font-black truncate w-full text-3xl uppercase text-primary">{players[0].nickname}</span>
-                                        <p className="text-sm text-on-surface font-black mt-4 uppercase tracking-[0.2em] bg-primary/20 px-4 py-1 rounded-full">Ganador</p>
-                                    </div>
-                                </div>
-                            )}
-                            {/* P3 */}
-                            {players[2] && (
-                                <div className="flex flex-col items-center">
-                                    <span className="text-5xl mb-6 animate-float" style={{ animationDelay: '1s' }}>{players[2].emoji}</span>
-                                    <div className="bg-surface-high w-48 h-[160px] rounded-t-3xl border-t border-white/5 flex flex-col items-center p-8">
-                                        <span className="font-display font-bold truncate w-full text-xl uppercase">{players[2].nickname}</span>
-                                        <p className="text-xs text-on-surface-variant font-bold mt-2 uppercase tracking-widest italic">Tercer Lugar</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </main>
-
-            <footer className="p-8 text-center text-on-surface-variant/30 text-[10px] font-display tracking-[0.5em] uppercase pointer-events-none relative z-10">
-                Estado: Sincronizado | Conexión en tiempo real
+            <footer className="px-12 py-8 text-center text-on-surface-variant/20 text-[10px] font-display font-black tracking-[0.6em] uppercase relative z-20 border-t border-white/5 bg-black/20">
+                Estado: Sincronizado | Conexión en tiempo real | LukeQuiz v2.0
             </footer>
 
-            {/* Floating Admin Controls (Subtle) */}
-            <div className="fixed bottom-8 right-8 z-[100] group">
-                <div className="flex items-center gap-3 bg-surface-highest/80 backdrop-blur-md p-2 rounded-2xl border border-white/5 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
+            {/* Admin HUD */}
+            <div className="fixed bottom-12 right-12 z-[100] group">
+                <div className="flex items-center gap-4 bg-surface-highest/80 backdrop-blur-2xl p-4 rounded-[2rem] border border-white/10 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
                     <button
                         onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`p-2 rounded-xl transition-all ${isAutoPilot ? 'bg-primary/20 text-primary' : 'bg-white/5 text-on-surface-variant'}`}
+                        className={`p-4 rounded-2xl transition-all ${isAutoPilot ? 'bg-primary/20 text-primary' : 'bg-white/5 text-on-surface-variant'}`}
                         title="Auto-Piloto"
                     >
-                        <Activity size={18} />
+                        <Activity size={24} />
                     </button>
-                    <div className="px-4 py-2 border-r border-white/10 hidden md:block">
-                        <p className="text-[8px] font-display font-black text-on-surface-variant uppercase tracking-widest">Panel de Control</p>
-                    </div>
+                    <div className="h-10 w-[1px] bg-white/10 mx-2" />
                     <button
                         onClick={handleNext}
                         disabled={isUpdating || game?.status === 'finished'}
-                        className="bg-primary/20 hover:bg-primary/40 text-primary px-6 py-2 rounded-xl font-display font-black text-xs uppercase tracking-tighter transition-all disabled:opacity-50"
+                        className="bg-primary hover:bg-primary/80 text-surface px-10 py-4 rounded-2xl font-display font-black text-sm uppercase tracking-widest transition-all disabled:opacity-50 shadow-xl shadow-primary/20"
                     >
-                        {isUpdating ? 'Actualizando...' : (
-                            game?.status === 'waiting' ? 'Iniciar Juego' :
+                        {isUpdating ? 'Wait...' : (
+                            game?.status === 'waiting' ? 'Iniciar' :
                                 game?.status === 'question' ? 'Ver Resultados' : 'Siguiente'
                         )}
                     </button>

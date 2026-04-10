@@ -7,7 +7,7 @@ export const generateJoinCode = () => {
     return result
 }
 
-export const EMOJIS = ['🔥', '😎', '🚀', '🐸', '🐧', '👾', '🦊', '🐵', '🐼', '🦁']
+export const EMOJIS = ['🔥', '😎', '🚀', '🐸', '🐧', '👾', '🦊', '🐵', '🐼', '🦁', '🦄', '💃', '👩‍🎤', '🧜‍♀️', '👸', '👩‍🚀', '🦋', '🌸', '💖', '⭐']
 
 export const calculateScore = (timeLeft, totalTime, isCorrect) => {
     if (!isCorrect) return 0
