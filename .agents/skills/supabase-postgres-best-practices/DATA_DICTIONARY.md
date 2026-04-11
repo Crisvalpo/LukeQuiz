@@ -1,0 +1,97 @@
+# Diccionario de Datos - LukeQUIZ
+
+Este documento detalla la estructura de la base de datos Supabase para el proyecto LukeQUIZ. Sirve como referencia técnica para el desarrollo y auditoría de datos.
+
+## 📊 Tablas del Sistema
+
+### 1. `quizzes`
+Almacena la configuración principal de cada cuestionario.
+- **id** (uuid, PK): Identificador único del cuestionario.
+- **title** (text): Título del quiz comercial o educativo.
+- **description** (text, nullable): Descripción detallada del contenido.
+- **background_music_url** (text, nullable): Enlace al audio ambiental durante el juego.
+- **created_at** (timestamptz): Fecha de creación del registro.
+
+### 2. `questions`
+| column | type | description |
+| :--- | :--- | :--- |
+| id | uuid | PK auto |
+| quiz_id | uuid | FK a quizzes.id |
+| text | text | Enunciado de la pregunta. |
+| option_a | text | Respuesta Opción A. |
+| option_b | text | Respuesta Opción B. |
+| option_c | text | Respuesta Opción C. |
+| option_d | text | Respuesta Opción D. |
+| correct_option | text | Letra (A,B,C,D) de la respuesta correcta. |
+| time_limit | int | Segundos para responder (Default: 10). |
+| order_index | int | Posición en la secuencia del quiz. |
+| image_url | text | URL de la imagen (Unsplash, Google o manual). |
+| audio_url | text | URL del archivo .mp3 generado por TTS. |
+| last_tts_text | text | Último texto usado para generar el audio (Sincronización Engine 2.0). |
+| is_cover | bool | Si es `true`, esta imagen será la portada del quiz. |
+| created_at | timestamptz | Fecha de creación. |
+
+> [!NOTE]
+> La columna `media_url` ha sido eliminada por obsolescencia en la versión TTS Engine 2.0.
+
+### 3. `games`
+Controla el estado de una partida en tiempo real.
+- **id** (uuid, PK): Identificador único de la sesión de juego.
+- **quiz_id** (uuid, FK): Referencia al quiz utilizado.
+- **join_code** (text, unique): Código de 6 caracteres para que los jugadores se unan.
+- **status** (text): Estado actual ('waiting', 'question', 'results', 'finished').
+- **current_question_index** (int): Índice de la pregunta que se está mostrando.
+- **question_started_at** (timestamptz): Timestamp para sincronización del timer.
+- **settings** (jsonb): Configuraciones de la partida (ej: tempo).
+- **created_at** (timestamptz): Fecha de inicio.
+
+### 4. `players`
+Jugadores conectados a una partida específica.
+- **id** (uuid, PK): Identificador único del jugador.
+- **game_id** (uuid, FK): Sesión de juego activa.
+- **nickname** (text): Alias elegido por el usuario.
+- **emoji** (text): Icono visual asociado.
+- **score** (int): Puntaje acumulado en la sesión.
+- **created_at** (timestamptz): Fecha de ingreso.
+
+### 5. `answers`
+Registro de las respuestas enviadas por los jugadores.
+- **id** (uuid, PK): Identificador de la respuesta.
+- **player_id** (uuid, FK): Jugador que respondió.
+- **question_id** (uuid, FK): Pregunta asociada.
+- **selected_option** (text): Opción elegida (A, B, C, D).
+- **answered_at** (timestamptz): Fecha exacta de la respuesta.
+- **created_at** (timestamptz).
+
+### 6. `tts_usage_logs`
+**[NUEVA]** Historial detallado de consumo de la API de Google Cloud TTS.
+| column | type | description |
+| :--- | :--- | :--- |
+| id | uuid | PK auto |
+| quiz_id | uuid | FK a quizzes.id (Opcional). |
+| question_id | uuid | FK a questions.id (Opcional). |
+| chars_count | int | Número de caracteres procesados en este evento. |
+| created_at | timestamptz | Fecha y hora de la generación. |
+
+---
+
+### Mantenimiento y Auditoría
+- **Consumo Mensual**: Se monitorea en `system_usage`.
+- **Auditoría Detallada**: Cada llamada a la API genera un registro en `tts_usage_logs`.
+
+### 7. `system_usage`
+Control de cuotas y costos de servicios externos (TTS).
+- **id** (text, PK): Identificador del periodo o servicio (ej: '2026-04').
+- **characters_used** (bigint): Total de caracteres procesados por Google Cloud TTS.
+- **updated_at** (timestamptz): Última actualización de la cuota.
+
+---
+
+## 🔍 Hallazgos de Auditoría (Hallazgos Raros)
+
+1. **`questions.media_url`**: No existe ninguna referencia en el código de la aplicación (`src/` ni `supabase/functions/`). Se sugiere su **borrado** para simplificar el esquema y evitar confusiones con `image_url`.
+2. **`questions.media_type`**: Se actualiza en el editor pero no tiene un uso funcional crítico en la pantalla de visualización, la cual se basa directamente en la presencia de `image_url`. Se recomienda mantenerla por ahora para facilitar futuras inclusiones de video, pero documentar su subuso actual.
+
+## 🛠️ Plan de Limpieza Sugerido
+- Ejecutar un script de migración para eliminar `media_url`.
+- Consolidar `media_type` como un ENUM estricto para evitar inconsistencias de texto manual.

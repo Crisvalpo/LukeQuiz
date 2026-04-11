@@ -33,7 +33,8 @@ serve(async (req) => {
         const currentUsage = usageData?.characters_used || 0
         if (currentUsage + text.length > LIMIT) {
             return new Response(JSON.stringify({
-                error: 'SWITCH_KILLER: Se ha alcanzado el 80% de la cuota gratuita mensual de Google TTS.',
+                error_code: 'LIMIT_EXCEEDED',
+                message: 'Se ha alcanzado el 80% de la cuota gratuita mensual (Switch Killer activo).',
                 usage: currentUsage
             }), {
                 status: 403,
@@ -57,7 +58,14 @@ serve(async (req) => {
 
         if (!ttsResponse.ok) {
             const errorData = await ttsResponse.json()
-            throw new Error(`Google TTS Error: ${JSON.stringify(errorData)}`)
+            return new Response(JSON.stringify({
+                error_code: 'EXTERNAL_ERROR',
+                message: 'Error en el servicio de Google TTS.',
+                details: errorData
+            }), {
+                status: 502,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
         }
 
         const { audioContent } = await ttsResponse.json()
@@ -77,7 +85,9 @@ serve(async (req) => {
         // 4. Actualizar Contador y Retornar URL
         await supabase.rpc('increment_tts_usage', {
             month_id: currentMonth,
-            char_count: text.length
+            char_count: text.length,
+            q_id: questionId,
+            qz_id: quizId
         })
 
         const { data: { publicUrl } } = supabase.storage
@@ -89,7 +99,10 @@ serve(async (req) => {
         })
 
     } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({
+            error_code: 'INTERNAL_ERROR',
+            message: error.message
+        }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })

@@ -3,7 +3,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
@@ -13,16 +13,14 @@ Deno.serve(async (req) => {
 
         if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY no encontrada');
 
-        // Prompt ultra-estricto para evitar saludos
         const prompt = `ACTÚA COMO UN API DE DATOS. 
-        GENERAR QUIZ SOBRE: "${topic}". 
-        CANTIDAD: ${count}. 
+        GENERAR CUESTIONARIO SOBRE: "${topic}". 
+        CANTIDAD DE PREGUNTAS: ${count}. 
         IDIOMA: ESPAÑOL.
         REGLA CRÍTICA: RESPONDE ÚNICAMENTE CON UN ARRAY JSON. SIN SALUDOS, SIN COMENTARIOS.
-        CAMPO image_url: https://loremflickr.com/800/600/${topic.replace(/\s+/g, '')},{keyword_en_ingles},popculture
-        FORMATO: [{"text": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_option": "A", "image_url": "...", "keyword": "..."}]`;
+        FORMATO: [{"text": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_option": "A", "image_url": "", "keyword": "..."}]`;
 
-        const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
         let lastError = "";
 
         for (const modelName of models) {
@@ -34,7 +32,6 @@ Deno.serve(async (req) => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
-                            // Forzamos modo JSON en la API de Google si el modelo lo permite
                             generationConfig: {
                                 response_mime_type: "application/json"
                             }
@@ -46,8 +43,6 @@ Deno.serve(async (req) => {
 
                 if (response.ok) {
                     let content = result.candidates[0].content.parts[0].text;
-
-                    // Limpieza agresiva de cualquier texto extra antes o después del JSON
                     const jsonMatch = content.match(/\[[\s\S]*\]/);
                     if (!jsonMatch) throw new Error("No se encontró un array JSON en la respuesta");
 
@@ -57,14 +52,14 @@ Deno.serve(async (req) => {
                 } else {
                     lastError = result.error?.message || "Error API";
                 }
-            } catch (e) {
+            } catch (e: any) {
                 lastError = e.message;
             }
         }
 
-        throw new Error(`Fallo total: ${lastError}`);
+        throw new Error(`Fallo total de modelos: ${lastError}`);
 
-    } catch (error) {
+    } catch (error: any) {
         return new Response(JSON.stringify({ error: error.message }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

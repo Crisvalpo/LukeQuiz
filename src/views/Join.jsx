@@ -162,20 +162,20 @@ export default function Join() {
                 <div className="relative z-10 flex-1 flex flex-col max-w-lg mx-auto w-full pt-12">
                     {(!game || game.status === 'waiting') && (
                         <div className="flex-1 flex flex-col items-center justify-center pb-20">
-                            <div className="glass p-12 rounded-sm border border-white/10 text-center relative overflow-hidden group">
+                            <div className="glass p-12 rounded-xl border border-white/10 text-center relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-full h-[2px] bg-secondary scan-line opacity-50" />
                                 <div className="text-[7rem] mb-8 animate-float drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">{player?.emoji}</div>
 
-                                <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] uppercase mb-2 opacity-50">USUARIO_AUTORIZADO</p>
+                                <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] uppercase mb-2 opacity-50">JUGADOR_CONECTADO</p>
                                 <h2 className="text-5xl font-display font-black tracking-tighter mb-8 uppercase text-white truncate">{player?.nickname}</h2>
 
-                                <div className="bg-surface-lowest/50 border border-white/5 p-6 rounded-sm mb-6">
+                                <div className="bg-surface-lowest/50 border border-white/5 p-6 rounded-lg mb-6">
                                     <p className="text-on-surface-variant font-display font-bold uppercase tracking-[0.2em] text-[10px] animate-pulse">
-                                        Estado: En espera de protocolo de inicio...
+                                        Estado: Esperando al anfitrión...
                                     </p>
                                 </div>
                                 <div className="text-[9px] font-mono text-white/20 uppercase tracking-widest">
-                                    ID_CONEXION: {player?.id.split('-')[0]}
+                                    PLAYER_ID: {player?.id.split('-')[0]}
                                 </div>
                             </div>
                         </div>
@@ -184,11 +184,11 @@ export default function Join() {
                     {game?.status === 'question' && (
                         <div className="flex-1 flex flex-col pt-6">
                             <div className="mb-12">
-                                <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase mb-1">Estado: TRANSMISION_ACTIVA</p>
-                                <h2 className="text-5xl font-display font-black tracking-tighter uppercase text-white">Consola de Respuesta</h2>
+                                <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase mb-1">Estado: JUGANDO</p>
+                                <h2 className="text-5xl font-display font-black tracking-tighter uppercase text-white">Tu Respuesta</h2>
                                 {hasAnswered && (
                                     <div className="mt-4 inline-flex items-center gap-2 bg-success/10 text-success px-6 py-2 rounded-sm font-display font-black text-[10px] uppercase tracking-widest border border-success/20 animate-fade">
-                                        <CheckCircle2 size={12} /> Paquete de datos enviado
+                                        <CheckCircle2 size={12} /> Respuesta enviada con éxito
                                     </div>
                                 )}
                             </div>
@@ -204,7 +204,7 @@ export default function Join() {
                                         key={opt.id}
                                         onClick={() => submitAnswer(opt.id)}
                                         disabled={hasAnswered}
-                                        className={`relative h-full min-h-[120px] rounded-sm flex items-center justify-between px-10 transition-all duration-300 border-2 overflow-hidden
+                                        className={`relative h-full min-h-[120px] rounded-lg flex items-center justify-between px-10 transition-all duration-300 border-2 overflow-hidden
                                             ${opt.color} ${hasAnswered
                                                 ? (playerAnswer === opt.id ? 'opacity-100 scale-100 border-white' : 'opacity-20 grayscale scale-95 border-transparent')
                                                 : 'hover:scale-[1.02] active:scale-95 border-white/10'}`}
@@ -222,7 +222,7 @@ export default function Join() {
                         <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 animate-fade ${!hasAnswered ? 'bg-surface' : (currentQuestion?.correct_option === playerAnswer ? 'bg-success' : 'bg-red-600')}`}>
                             <div className="v-grid absolute inset-0 opacity-20" />
                             <div className="text-center space-y-10 w-full max-w-sm relative z-10">
-                                <div className="w-40 h-40 rounded-sm bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
+                                <div className="w-40 h-40 rounded-xl bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
                                     {!hasAnswered ? (
                                         <Loader2 className="animate-spin text-white" size={64} />
                                     ) : (
@@ -233,7 +233,7 @@ export default function Join() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-display font-black text-white/50 tracking-[0.5em] uppercase">VALIDACION_RESULTADOS</p>
+                                    <p className="text-[10px] font-display font-black text-white/50 tracking-[0.5em] uppercase">RESULTADOS</p>
                                     <h2 className="text-6xl font-display font-black tracking-tighter text-white uppercase leading-none">
                                         {!hasAnswered
                                             ? 'SIN DATOS'
@@ -242,7 +242,7 @@ export default function Join() {
                                     <div className="h-1 w-20 bg-white/30 mx-auto" />
                                 </div>
 
-                                <div className="bg-black/30 backdrop-blur-md p-10 rounded-sm border border-white/10 w-full shadow-2xl">
+                                <div className="bg-black/30 backdrop-blur-md p-10 rounded-xl border border-white/10 w-full shadow-2xl">
                                     <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2">Puntuación Total</p>
                                     <p className="text-6xl font-display font-black text-white tabular-nums tracking-tighter">{player?.score?.toLocaleString()}</p>
                                 </div>
@@ -252,7 +252,7 @@ export default function Join() {
                                         onClick={() => { localStorage.removeItem('kahoot_player'); window.location.reload(); }}
                                         className="w-full bg-white text-background py-6 rounded-sm font-display font-black text-sm uppercase tracking-[0.3em] hover:bg-on-surface transition-colors active:scale-95"
                                     >
-                                        REINICIAR SISTEMA
+                                        REINICIAR JUEGO
                                     </button>
                                 )}
                             </div>
@@ -287,13 +287,13 @@ export default function Join() {
                 <div className="w-full max-w-sm space-y-16">
                     <div className="text-center space-y-4">
                         <div className="inline-block glass px-4 py-1 rounded-sm border border-primary/20 mb-4">
-                            <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase">LukeQUIZ_Control_SY</p>
+                            <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase">LukeQUIZ</p>
                         </div>
                         <h1 className="text-7xl font-display font-black tracking-tighter text-white uppercase leading-none">
                             Luke<span className="text-primary">QUIZ</span>
                         </h1>
                         <p className="text-[9px] font-display font-bold tracking-[0.4em] text-on-surface-variant uppercase opacity-40">
-                            Protocolo de Acceso a Trivia
+                            Acceso al Juego de Trivia
                         </p>
                     </div>
 
@@ -305,7 +305,7 @@ export default function Join() {
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-sm p-8 text-white font-display font-black text-6xl text-center focus:border-primary focus:bg-primary/5 focus:outline-none transition-all uppercase tracking-[0.3em] placeholder:opacity-5"
+                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-lg p-8 text-white font-display font-black text-6xl text-center focus:border-primary focus:bg-primary/5 focus:outline-none transition-all uppercase tracking-[0.3em] placeholder:opacity-5"
                                     placeholder="000000"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -320,8 +320,8 @@ export default function Join() {
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-sm p-6 text-white font-display font-black text-2xl focus:border-secondary focus:bg-secondary/5 focus:outline-none transition-all text-center uppercase tracking-widest"
-                                    placeholder="Identificador..."
+                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-lg p-6 text-white font-display font-black text-2xl focus:border-secondary focus:bg-secondary/5 focus:outline-none transition-all text-center uppercase tracking-widest"
+                                    placeholder="Tu apodo..."
                                     value={nickname}
                                     onChange={(e) => setNickname(e.target.value)}
                                     required
@@ -330,14 +330,14 @@ export default function Join() {
                             </div>
 
                             <div className="space-y-4">
-                                <label className="text-[10px] font-display font-black text-white/30 tracking-[0.3em] uppercase ml-1">Avatar_Designator</label>
+                                <label className="text-[10px] font-display font-black text-white/30 tracking-[0.3em] uppercase ml-1">Selecciona tu Avatar</label>
                                 <div className="grid grid-cols-5 gap-3">
                                     {EMOJIS.map((emoji) => (
                                         <button
                                             key={emoji}
                                             type="button"
                                             onClick={() => setSelectedEmoji(emoji)}
-                                            className={`text-3xl p-4 rounded-sm border-2 transition-all transform active:scale-90 flex items-center justify-center ${selectedEmoji === emoji
+                                            className={`text-3xl p-4 rounded-lg border-2 transition-all transform active:scale-90 flex items-center justify-center ${selectedEmoji === emoji
                                                 ? 'bg-primary/20 border-primary scale-105 shadow-[0_0_20px_rgba(236,72,153,0.2)]'
                                                 : 'bg-surface-lowest border-white/5 hover:border-white/20'
                                                 }`}
@@ -358,7 +358,7 @@ export default function Join() {
                             {loading ? (
                                 <Loader2 className="animate-spin" />
                             ) : (
-                                <span className="relative z-10">INICIAR_SESION</span>
+                                <span className="relative z-10">ENTRAR AL JUEGO</span>
                             )}
                         </button>
                     </form>
@@ -366,7 +366,7 @@ export default function Join() {
             </main>
 
             <footer className="h-20 flex items-center justify-center relative z-10 border-t border-white/5 opacity-30">
-                <p className="text-[9px] font-display font-black tracking-[0.6em] uppercase">LukeQuiz 3.0 // System_Access_Point</p>
+                <p className="text-[9px] font-display font-black tracking-[0.6em] uppercase">LukeQuiz 3.0 // Ingreso</p>
             </footer>
         </div>
     )

@@ -197,20 +197,18 @@ export default function Host() {
                     <div className="text-left space-y-2">
                         <div className="flex items-center gap-3 text-primary terminal-text">
                             <Activity size={14} className="animate-pulse" />
-                            <span className="text-[10px] font-black opacity-60">Sistema de Control // Transmisión Activa</span>
+                            <span className="text-[10px] font-black opacity-60">Panel del Anfitrión // Juego en Vivo</span>
                         </div>
                         <h2 className="text-4xl md:text-5xl font-display font-black leading-tight italic tracking-tighter text-white drop-shadow-2xl">
                             {game?.quizzes?.title || 'Sistema_Listo'}
                         </h2>
                         <div className="flex gap-4 text-[9px] font-mono text-on-surface-variant opacity-30">
-                            <span>ID_SESION: {gameId.slice(0, 8)}</span>
+                            <span>ID_PARTIDA: {gameId.slice(0, 8)}</span>
                             <span>|</span>
-                            <span>ENCRIPTACION: AES-256</span>
-                            <span>|</span>
-                            <span>ESTADO: CALIBRADO</span>
+                            <span>ESTADO: CONECTADO</span>
                         </div>
                     </div>
-                    <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/40 p-6 rounded-sm border border-white/5 backdrop-blur-sm">
+                    <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/40 p-6 rounded-lg border border-white/5 backdrop-blur-sm">
                         <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.5em] opacity-40">Clave de Acceso</p>
                         <div className="text-primary font-display font-black text-5xl tracking-[0.2em] neon-glow-primary">
                             {game?.join_code}
@@ -219,7 +217,7 @@ export default function Host() {
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-4">
-                    <div className="btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 group">
+                    <div className="btn-command p-12 rounded-xl flex flex-col items-center justify-center gap-6 group">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
                             <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] opacity-70">Audiencia Activa</p>
@@ -235,24 +233,24 @@ export default function Host() {
 
                     <button
                         onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(236,72,153,0.15)] scale-105' : 'border-white/5 opacity-50 grayscale'}`}
+                        className={`btn-command p-12 rounded-xl flex flex-col items-center justify-center gap-6 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(236,72,153,0.15)] scale-105' : 'border-white/5 opacity-50 grayscale'}`}
                     >
                         <div className="flex items-center gap-2 mb-2">
                             <div className={`w-3 h-3 rounded-full ${isAutoPilot ? 'bg-primary animate-ping' : 'bg-white/20'}`} />
                             <p className={`text-[10px] font-display font-black tracking-[0.4em] ${isAutoPilot ? 'text-primary' : 'text-on-surface-variant'}`}>
-                                {isAutoPilot ? 'AUTOPILOTO_ACTIVO' : 'MODO_MANUAL'}
+                                {isAutoPilot ? 'PILOTO_AUTOMÁTICO_ON' : 'MODO_MANUAL'}
                             </p>
                         </div>
                         <p className={`text-6xl font-display font-black tracking-tighter ${isAutoPilot ? 'text-white' : 'text-on-surface-variant opacity-20'}`}>
                             {isAutoPilot ? 'ON' : 'OFF'}
                         </p>
                         <span className={`text-[9px] font-mono opacity-40 tracking-[0.3em] ${isAutoPilot ? 'text-primary' : ''}`}>
-                            {isAutoPilot ? 'CONTROL_IA_EN_VIVO' : 'ESPERANDO_COMANDO'}
+                            {isAutoPilot ? 'SISTEMA IA ACTIVO' : 'ESPERANDO ACCIÓN'}
                         </span>
                     </button>
                 </div>
 
-                <div className="bg-surface-lowest/50 p-12 md:p-16 rounded-sm border border-white/5 relative overflow-hidden shadow-2xl backdrop-blur-xl">
+                <div className="bg-surface-lowest/50 p-12 md:p-16 rounded-xl border border-white/5 relative overflow-hidden shadow-2xl backdrop-blur-xl">
                     <div className="scan-line absolute top-0 left-0 animate-scan" />
 
                     <div className="relative z-10">
@@ -260,7 +258,7 @@ export default function Host() {
                             <div className="space-y-16 animate-fade">
                                 <div className="space-y-8">
                                     <div className="flex items-center justify-start gap-4 mb-2 opacity-40">
-                                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em]">Calibración // Tempo</p>
+                                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em]">Ajustes // Tiempo</p>
                                         <div className="h-[1px] flex-1 bg-white/10" />
                                     </div>
                                     <div className="grid grid-cols-3 gap-6">
@@ -272,7 +270,7 @@ export default function Host() {
                                             <button
                                                 key={t.val}
                                                 onClick={() => setSelectedTempo(t.val)}
-                                                className={`p-10 rounded-sm border flex flex-col items-center gap-2 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40 hover:opacity-100 hover:bg-white/5'}`}
+                                                className={`p-10 rounded-lg border flex flex-col items-center gap-2 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40 hover:opacity-100 hover:bg-white/5'}`}
                                             >
                                                 <span className="text-[10px] font-display font-black tracking-[0.4em]">{t.label}</span>
                                                 <span className="text-3xl font-display font-black">{t.desc}</span>
@@ -282,10 +280,10 @@ export default function Host() {
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-primary py-10 rounded-sm text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-8 group italic"
+                                    className="w-full bg-primary py-10 rounded-lg text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-8 group italic"
                                 >
                                     <Play size={40} fill="currentColor" />
-                                    <span>Iniciar Operación</span>
+                                    <span>Iniciar Juego</span>
                                 </button>
                             </div>
                         )}
@@ -312,7 +310,7 @@ export default function Host() {
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-surface-highest border border-primary/40 py-12 rounded-sm text-3xl font-display font-black text-primary tracking-[0.3em] shadow-2xl transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-8"
+                                    className="w-full bg-surface-highest border border-primary/40 py-12 rounded-lg text-3xl font-display font-black text-primary tracking-[0.3em] shadow-2xl transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-8"
                                 >
                                     <SkipForward size={48} fill="currentColor" />
                                     <span>{game.current_question_index < questions.length - 1 ? 'Cargar Siguiente Pregunta' : 'Ver Podio Final'}</span>
@@ -326,13 +324,13 @@ export default function Host() {
                                     <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
                                     <Trophy size={120} className="text-primary relative z-10 animate-bounce" />
                                 </div>
-                                <h3 className="text-5xl font-display font-black tracking-[0.4em] mb-4 italic">Misión Completada</h3>
-                                <p className="text-on-surface-variant font-mono text-[10px] mb-12 opacity-40 tracking-[0.2em]">La sesión de control ha concluido satisfactoriamente // Datos guardados</p>
+                                <h3 className="text-5xl font-display font-black tracking-[0.4em] mb-4 italic">Juego Finalizado</h3>
+                                <p className="text-on-surface-variant font-mono text-[10px] mb-12 opacity-40 tracking-[0.2em]">La partida ha concluido satisfactoriamente // Resultados Listos</p>
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="bg-white/5 hover:bg-white/10 px-16 py-6 rounded-sm text-on-surface font-display font-black text-xs uppercase tracking-[0.4em] transition-all border border-white/10"
+                                    className="bg-white/5 hover:bg-white/10 px-16 py-6 rounded-xl text-on-surface font-display font-black text-xs uppercase tracking-[0.4em] transition-all border border-white/10"
                                 >
-                                    Desconectar Sistema
+                                    Finalizar Sesión
                                 </button>
                             </div>
                         )}
@@ -342,7 +340,7 @@ export default function Host() {
                 <footer className="pt-8 flex flex-col items-center gap-4 opacity-30">
                     <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                     <p className="text-[10px] font-display font-black tracking-[0.5em] uppercase text-center">
-                        LukeQuiz V2.0 Control System | Secure Session
+                        LukeQuiz // Partida en Vivo
                     </p>
                 </footer>
             </div>
