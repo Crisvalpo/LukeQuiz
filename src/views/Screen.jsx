@@ -197,7 +197,7 @@ export default function Screen() {
                     </div>
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] font-display font-black uppercase tracking-[0.6em] text-primary animate-pulse">Transmisión_En_Vivo // Activa</p>
+                    <p className="text-[10px] font-display font-black tracking-[0.6em] text-primary animate-pulse">TRANSMISIÓN_EN_VIVO // ACTIVA</p>
                 </div>
             </header>
 
@@ -213,15 +213,15 @@ export default function Screen() {
                         <div className="grid grid-cols-2 gap-20 items-center w-full max-w-7xl relative z-10">
                             <div className="text-left space-y-8">
                                 <div className="space-y-2">
-                                    <p className="text-xs font-display font-bold text-primary tracking-[0.8em] uppercase italic opacity-60">Interfaz_de_Despliegue</p>
-                                    <p className="text-[9px] font-display font-black tracking-[0.6em] uppercase">LukeQuiz 3.0 // System_Access_Point</p>
-                                    <h1 className="text-8xl font-display font-black leading-[0.85] uppercase italic text-white tracking-tighter">
-                                        ENTRAR A LA<br />
-                                        <span className="text-primary">SIMULACIÓN</span>
+                                    <p className="text-xs font-display font-bold text-primary tracking-[0.8em] italic opacity-60">Interfaz de Despliegue</p>
+                                    <p className="text-[9px] font-display font-black tracking-[0.6em]">LukeQuiz 3.0 // System Access Point</p>
+                                    <h1 className="text-8xl font-display font-black leading-[0.85] italic text-white tracking-tighter">
+                                        Entrar a la<br />
+                                        <span className="text-primary">Simulación</span>
                                     </h1>
                                 </div>
-                                <p className="text-xl text-on-surface-variant font-mono font-medium uppercase tracking-[0.2em] opacity-40">
-                                    ESTABLECIENDO_ENLACE... <br /> ESCANEAR_MÓDULO_PARA_AUTORIZAR
+                                <p className="text-xl text-on-surface-variant font-mono font-medium tracking-[0.2em] opacity-40">
+                                    Estableciendo enlace... <br /> Escanear módulo para autorizar
                                 </p>
                                 <div className="bg-white/[0.03] p-10 rounded-sm border border-white/10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
                                     <div className="absolute top-0 left-0 w-full h-[1px] bg-primary/40 scan-line animate-scan" />
@@ -231,13 +231,13 @@ export default function Screen() {
 
                             <div className="flex flex-col gap-8">
                                 <div className="bg-surface-lowest/80 p-16 rounded-sm text-center border border-white/10 backdrop-blur-3xl relative">
-                                    <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase mb-8 opacity-60">Clientes_Conectados</p>
+                                    <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] mb-8 opacity-60">Clientes Conectados</p>
                                     <div className="text-[12rem] font-display font-black leading-none text-white tracking-tighter neon-glow-primary">
                                         {players.length}
                                     </div>
                                     <div className="mt-12 flex flex-wrap justify-center gap-3">
                                         {players.map(p => (
-                                            <div key={p.id} className="bg-white/5 border border-white/10 px-4 py-2 rounded-sm text-xs font-display font-black text-white uppercase italic flex items-center gap-2">
+                                            <div key={p.id} className="bg-white/5 border border-white/10 px-4 py-2 rounded-sm text-xs font-display font-black text-white italic flex items-center gap-2">
                                                 <span className="text-lg">{p.emoji}</span>
                                                 <span>{p.nickname}</span>
                                             </div>
@@ -298,7 +298,7 @@ export default function Screen() {
                             <div className="flex items-start gap-12 relative z-10 w-full">
                                 <div className="flex-1 space-y-2">
                                     <p className="text-[10px] font-display font-black text-secondary tracking-[0.8em] uppercase italic opacity-40">Comando_del_Sistema // Sector_Actual</p>
-                                    <h2 className="text-6xl font-display font-black leading-[0.95] tracking-tighter text-white uppercase italic drop-shadow-2xl">
+                                    <h2 className="text-6xl font-display font-black leading-[0.95] tracking-tighter text-white italic drop-shadow-2xl">
                                         {currentQuestion.text}
                                     </h2>
                                 </div>

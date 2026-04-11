@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Plus, Trash2, Save, ArrowLeft, Terminal, Layout, FileText, ImageIcon, Sparkles, Wand2, Loader2, Volume2, ShieldAlert } from 'lucide-react'
+import { Plus, Trash2, Save, ArrowLeft, Terminal, Layout, FileText, ImageIcon, Sparkles, Wand2, Loader2, Volume2, ShieldAlert, Search, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function EditQuiz() {
@@ -16,6 +16,7 @@ export default function EditQuiz() {
     const [isGenerating, setIsGenerating] = useState(false)
     const [ttsEnabled, setTtsEnabled] = useState(false)
     const [isGeneratingTts, setIsGeneratingTts] = useState(false)
+    const [audiosToDelete, setAudiosToDelete] = useState([])
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -152,44 +153,85 @@ export default function EditQuiz() {
 
     const updateQuestion = (index, field, value) => {
         const updated = [...questions]
+
+        // Si editamos el texto, invalidamos el audio para forzar regeneración
+        // Y guardamos el viejo para borrarlo al final
+        if (field === 'text' && updated[index].text !== value && updated[index].audio_url) {
+            const fileName = updated[index].audio_url.split('/quiz-audio/').pop()
+            if (fileName) setAudiosToDelete(prev => [...prev, fileName])
+            updated[index].audio_url = null
+        }
+
         updated[index][field] = value
         setQuestions(updated)
     }
 
     const removeQuestion = (index) => {
+        const q = questions[index]
+        if (q.audio_url) {
+            const fileName = q.audio_url.split('/quiz-audio/').pop()
+            if (fileName) setAudiosToDelete(prev => [...prev, fileName])
+        }
         const updated = questions.filter((_, i) => i !== index)
         setQuestions(updated)
     }
 
     const saveAll = async () => {
         setLoading(true)
+        const toastId = toast.loading('Sincronizando protocolos...')
 
-        // Sanitizar datos minuciosamente
-        const sanitizedQuestions = questions.map(q => {
-            const cleanQ = {
-                quiz_id: q.quiz_id,
-                text: q.text,
-                option_a: q.option_a,
-                option_b: q.option_b,
-                option_c: q.option_c,
-                option_d: q.option_d,
-                correct_option: q.correct_option,
-                image_url: q.image_url || '',
-                order_index: q.order_index
+        try {
+            // 1. Generar audios faltantes si TTS está habilitado
+            if (ttsEnabled) {
+                toast.loading('Generando voces neuronales pendientes...', { id: toastId })
+                for (let i = 0; i < questions.length; i++) {
+                    if (!questions[i].audio_url) {
+                        try {
+                            const url = await handleGenerateTTS(questions[i], i)
+                            questions[i].audio_url = url
+                        } catch (e) {
+                            console.error(`Error TTS en guardado, pregunta ${i}:`, e)
+                        }
+                    }
+                }
             }
-            // Solo incluir ID si ya existe (para que Supabase haga UPDATE en lugar de INSERT)
-            if (q.id) cleanQ.id = q.id
-            return cleanQ
-        })
 
-        const { error } = await supabase.from('questions').upsert(sanitizedQuestions)
-        if (error) {
-            toast.error('Error: No se pudieron guardar los cambios')
-        } else {
-            toast.success('Juego Guardado con Éxito')
-            fetchQuiz()
+            // Sanitizar datos minuciosamente
+            const sanitizedQuestions = questions.map(q => {
+                const cleanQ = {
+                    quiz_id: q.quiz_id,
+                    text: q.text,
+                    option_a: q.option_a,
+                    option_b: q.option_b,
+                    option_c: q.option_c,
+                    option_d: q.option_d,
+                    correct_option: q.correct_option,
+                    image_url: q.image_url || '',
+                    audio_url: q.audio_url || '',
+                    order_index: q.order_index
+                }
+                // Solo incluir ID si ya existe (para que Supabase haga UPDATE en lugar de INSERT)
+                if (q.id) cleanQ.id = q.id
+                return cleanQ
+            })
+
+            const { error } = await supabase.from('questions').upsert(sanitizedQuestions)
+            if (error) throw error
+
+            // Limpiar audios obsoletos del Storage físico
+            if (audiosToDelete.length > 0) {
+                await supabase.storage.from('quiz-audio').remove(audiosToDelete)
+                setAudiosToDelete([])
+            }
+
+            toast.success('Protocolo de Guardado Completado', { id: toastId })
+            await fetchQuiz()
+        } catch (e) {
+            console.error(e)
+            toast.error('Error en la matriz: No se pudieron guardar los cambios', { id: toastId })
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     const copyPrompt = () => {
@@ -431,34 +473,53 @@ REGLAS CRÍTICAS:
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                    <ImageIcon size={10} /> URL de la Imagen (Opcional)
+                                <label className="text-[10px] font-display font-black text-primary tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                                    <ImageIcon size={12} /> CONTENIDO_VISUAL_DE_LA_PREGUNTA
                                 </label>
-                                <input
-                                    className="w-full bg-surface-lowest border-2 border-white/5 rounded-sm p-4 text-on-surface font-display text-sm focus:border-primary focus:outline-none transition-colors"
-                                    value={q.image_url || ''}
-                                    onChange={(e) => updateQuestion(idx, 'image_url', e.target.value)}
-                                    placeholder="https://ejemplo.com/imagen.jpg"
-                                />
-                                {q.image_url && (
-                                    <div className="mt-4 rounded-sm overflow-hidden h-40 border border-white/5">
-                                        <img src={q.image_url} alt="Vista previa" className="w-full h-full object-cover opacity-50" />
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    <div className="md:col-span-3 space-y-4">
+                                        <input
+                                            className="w-full bg-surface-lowest border-2 border-white/10 rounded-sm p-4 text-on-surface font-display text-sm focus:border-primary focus:outline-none transition-all placeholder:opacity-20 shadow-inner"
+                                            value={q.image_url || ''}
+                                            onChange={(e) => updateQuestion(idx, 'image_url', e.target.value)}
+                                            placeholder="Pegue aquí el link de la imagen pública (Unsplash, Pinterest, etc)..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => window.open(`https://unsplash.com/s/photos/${topic}`, '_blank')}
+                                                className="text-[9px] font-display font-black text-white/40 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-sm border border-white/5"
+                                            >
+                                                <Search size={10} /> BUSCAR_EN_UNSPLASH
+                                            </button>
+                                        </div>
                                     </div>
-                                )}
+                                    <div className="md:col-span-1 h-32 md:h-full bg-black/40 rounded-sm border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden group relative">
+                                        {q.image_url ? (
+                                            <>
+                                                <img src={q.image_url} alt="Vista previa" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <ExternalLink size={16} className="text-white" />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <ImageIcon size={24} className="text-white/10" />
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="flex flex-col md:flex-row gap-8 pt-4">
                                 <div className="flex-1 space-y-2">
-                                    <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.2em] uppercase ml-1">Respuesta Correcta</label>
+                                    <label className="text-[10px] font-display font-black text-secondary tracking-[0.2em] uppercase ml-1">Veredicto_Correcto</label>
                                     <select
-                                        className="w-full bg-surface-container border-2 border-white/5 rounded-sm p-5 text-on-surface font-display font-black text-xl focus:border-primary focus:outline-none appearance-none cursor-pointer"
+                                        className="w-full bg-surface-container border-2 border-white/10 rounded-sm p-5 text-on-surface font-display font-black text-xl focus:border-primary focus:outline-none appearance-none cursor-pointer hover:bg-white/5 transition-colors"
                                         value={q.correct_option}
                                         onChange={(e) => updateQuestion(idx, 'correct_option', e.target.value)}
                                     >
-                                        <option value="A">OPCIÓN A</option>
-                                        <option value="B">OPCIÓN B</option>
-                                        <option value="C">OPCIÓN C</option>
-                                        <option value="D">OPCIÓN D</option>
+                                        <option value="A">CANAL_A (RESPUESTA_ALFA)</option>
+                                        <option value="B">CANAL_B (RESPUESTA_BETA)</option>
+                                        <option value="C">CANAL_C (RESPUESTA_GAMMA)</option>
+                                        <option value="D">CANAL_D (RESPUESTA_DELTA)</option>
                                     </select>
                                 </div>
                             </div>

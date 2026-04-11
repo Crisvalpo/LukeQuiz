@@ -6,11 +6,13 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
     try {
+        console.log("INVOCACIÓN RECIBIDA: generate-quiz");
         const { topic, count } = await req.json()
         const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 
@@ -18,14 +20,22 @@ serve(async (req) => {
             throw new Error('Missing GEMINI_API_KEY')
         }
 
-        const prompt = `Genera un quiz de cultura pop DIVERTIDO sobre "${topic}". 
-    Reglas Estrictas:
-    1. Idioma: Español.
-    2. Longitud Pregunta: Entre 6 y 9 palabras máximo (Formato Mixto: Mayúsculas/Minúsculas normal).
-    3. Cantidad: Exactamente ${count} preguntas. No omitas ninguna.
-    4. Formato: JSON puro (array de objetos con: text, option_a, option_b, option_c, option_d, correct_option (A/B/C/D), image_url, keyword).
-    5. Imágenes: Para image_url, usa exactamente este formato: https://loremflickr.com/800/600/${topic.replace(/\s+/g, '')},{keyword_en_ingles},popculture
-    6. Asegúrate de cerrar el JSON correctamente al final.`
+        const prompt = `Genera un quiz técnico y profesional sobre "${topic}". 
+    Reglas:
+    1. Genera exactamente ${count} preguntas.
+    2. Las respuestas deben ser variadas y desafiantes.
+    3. Para cada pregunta, identifica una palabra clave corta en inglés para buscar una imagen relacionada.
+    4. Formato de respuesta: Un arreglo JSON de objetos.
+    5. Cada objeto debe tener estas llaves:
+       - text: La pregunta en español.
+       - option_a: Opción A.
+       - option_b: Opción B.
+       - option_c: Opción C.
+       - option_d: Opción D.
+       - correct_option: Solo la letra (A, B, C o D).
+       - image_url: Usa este formato exacto: https://image.pollinations.ai/prompt/{keyword_in_english}?width=800&height=600&nologo=true`
+
+        console.log(`Generating quiz for topic: ${topic}, count: ${count}`);
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -35,7 +45,10 @@ serve(async (req) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
                 }),
             }
         )
@@ -49,6 +62,9 @@ serve(async (req) => {
         }
 
         if (!response.ok) {
+            console.error('Gemini API Error Status:', response.status);
+            console.error('Gemini API Error Body:', responseText);
+
             return new Response(JSON.stringify({
                 error: 'Gemini API Error',
                 status: response.status,
@@ -60,14 +76,15 @@ serve(async (req) => {
         }
 
         if (!result.candidates || result.candidates.length === 0) {
+            console.error('No candidates returned from Gemini:', result);
             return new Response(JSON.stringify({ error: 'No se generó contenido. Verifica los filtros de seguridad del tema.' }), {
                 status: 400,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
 
-        let content = result.candidates[0].content.parts[0].text
-        content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+        const content = result.candidates[0].content.parts[0].text
+        console.log('Gemini raw response:', content);
 
         const quizData = JSON.parse(content)
 

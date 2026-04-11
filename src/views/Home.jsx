@@ -86,33 +86,43 @@ export default function Home() {
 
         const promise = new Promise(async (resolve, reject) => {
             try {
-                // 1. Obtener IDs relacionados
-                const { data: qs } = await supabase.from('questions').select('id').eq('quiz_id', id)
+                // 1. Obtener IDs relacionados y enlaces de audio para limpieza
+                const { data: qs } = await supabase.from('questions').select('id, audio_url').eq('quiz_id', id)
                 const qIds = qs?.map(q => q.id) || []
+
+                const audioFilesToDelete = qs
+                    ?.map(q => q.audio_url)
+                    .filter(url => url && url.includes('/quiz-audio/'))
+                    .map(url => url.split('/quiz-audio/').pop()) || []
 
                 const { data: gms } = await supabase.from('games').select('id').eq('quiz_id', id)
                 const gIds = gms?.map(g => g.id) || []
 
-                // 2. Borrar respuestas (dependen de preguntas)
+                // 2. Borrar archivos físicos del Storage
+                if (audioFilesToDelete.length > 0) {
+                    await supabase.storage.from('quiz-audio').remove(audioFilesToDelete)
+                }
+
+                // 3. Borrar respuestas (dependen de preguntas)
                 if (qIds.length > 0) {
                     const { error: err1 } = await supabase.from('answers').delete().in('question_id', qIds)
                     if (err1) throw err1
                 }
 
-                // 3. Borrar jugadores (dependen de juegos)
+                // 4. Borrar jugadores (dependen de juegos)
                 if (gIds.length > 0) {
                     const { error: err2 } = await supabase.from('players').delete().in('game_id', gIds)
                     if (err2) throw err2
                 }
 
-                // 4. Borrar juegos y preguntas
+                // 5. Borrar juegos y preguntas
                 const { error: err3 } = await supabase.from('games').delete().eq('quiz_id', id)
                 if (err3) throw err3
 
                 const { error: err4 } = await supabase.from('questions').delete().eq('quiz_id', id)
                 if (err4) throw err4
 
-                // 5. Finalmente borrar la trivia
+                // 6. Finalmente borrar la trivia
                 const { error: err5 } = await supabase.from('quizzes').delete().eq('id', id)
                 if (err5) throw err5
                 resolve()
@@ -153,7 +163,7 @@ export default function Home() {
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <div className="h-1 w-12 bg-gradient-to-r from-primary to-secondary rounded-full" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/40">Base de Conocimiento</span>
+                                <span className="text-[10px] font-black tracking-[0.5em] text-primary/40">Base de Conocimiento</span>
                             </div>
                             <div>
                                 <h1 className="text-5xl font-black tracking-tighter text-white italic leading-none">
@@ -168,7 +178,7 @@ export default function Home() {
                             className="btn-vibrant px-10 py-4 rounded flex items-center gap-4 active:scale-95 group shadow-2xl shadow-primary/20 shrink-0"
                         >
                             <PlusCircle size={20} className="group-hover:rotate-90 transition-transform" />
-                            <span className="font-black text-xs tracking-[0.2em] uppercase">Diseñar Nueva</span>
+                            <span className="font-black text-xs tracking-[0.2em]">Diseñar Nueva</span>
                         </button>
                     </header>
 
@@ -188,7 +198,7 @@ export default function Home() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-4 opacity-40">
                                                 <Terminal size={10} className="text-primary" />
-                                                <span className="text-[9px] font-black uppercase tracking-[0.3em]">ID_MODULO: {q.id.split('-')[0]}</span>
+                                                <span className="text-[9px] font-black tracking-[0.3em]">ID MÓDULO: {q.id.split('-')[0]}</span>
                                             </div>
                                             <h3 className="text-3xl font-black mb-3 tracking-tight text-white group-hover:text-primary transition-colors leading-tight truncate">
                                                 {q.title}
@@ -218,7 +228,7 @@ export default function Home() {
                                     <div className="mt-10 pt-8 border-t border-white/5">
                                         <button
                                             onClick={() => startNewGame(q.id)}
-                                            className="w-full btn-vibrant py-4 rounded-sm flex items-center justify-center gap-4 active:scale-95 text-[10px] font-black tracking-[0.4em] uppercase shadow-lg"
+                                            className="w-full btn-vibrant py-4 rounded-sm flex items-center justify-center gap-4 active:scale-95 text-[10px] font-black tracking-[0.4em] shadow-lg"
                                         >
                                             <Play size={16} fill="currentColor" /> Iniciar Experiencia
                                         </button>

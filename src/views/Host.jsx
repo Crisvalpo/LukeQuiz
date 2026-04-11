@@ -11,7 +11,7 @@ export default function Host() {
     const { game, setGame, players, loading } = useGameRoom(gameId)
     const [questions, setQuestions] = useState([])
     const [answerCount, setAnswerCount] = useState(0)
-    const [isAutoPilot, setIsAutoPilot] = useState(false)
+    const [isAutoPilot, setIsAutoPilot] = useState(true)
     const [selectedTempo, setSelectedTempo] = useState(10) // 5, 10, 20
     const navigate = useNavigate()
 
@@ -197,9 +197,9 @@ export default function Host() {
                     <div className="text-left space-y-2">
                         <div className="flex items-center gap-3 text-primary terminal-text">
                             <Activity size={14} className="animate-pulse" />
-                            <span className="text-[10px] font-black opacity-60">Sistema de Control // Transmisión_Activa</span>
+                            <span className="text-[10px] font-black opacity-60">Sistema de Control // Transmisión Activa</span>
                         </div>
-                        <h2 className="text-5xl md:text-6xl font-display font-black leading-tight uppercase italic tracking-tighter text-white drop-shadow-2xl">
+                        <h2 className="text-4xl md:text-5xl font-display font-black leading-tight italic tracking-tighter text-white drop-shadow-2xl">
                             {game?.quizzes?.title || 'Sistema_Listo'}
                         </h2>
                         <div className="flex gap-4 text-[9px] font-mono text-on-surface-variant opacity-30">
@@ -211,7 +211,7 @@ export default function Host() {
                         </div>
                     </div>
                     <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/40 p-6 rounded-sm border border-white/5 backdrop-blur-sm">
-                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.5em] uppercase opacity-40">Clave_Acceso</p>
+                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.5em] opacity-40">Clave de Acceso</p>
                         <div className="text-primary font-display font-black text-5xl tracking-[0.2em] neon-glow-primary">
                             {game?.join_code}
                         </div>
@@ -222,7 +222,7 @@ export default function Host() {
                     <div className="btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 group">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                            <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] uppercase opacity-70">Audiencia_Activa</p>
+                            <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] opacity-70">Audiencia Activa</p>
                         </div>
                         <p className="text-9xl font-display font-black text-white leading-none tracking-tighter border-b-2 border-white/5 pb-4">
                             {players.length}
@@ -235,16 +235,20 @@ export default function Host() {
 
                     <button
                         onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 transition-all group ${isAutoPilot ? 'border-primary/40' : ''}`}
+                        className={`btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(236,72,153,0.15)] scale-105' : 'border-white/5 opacity-50 grayscale'}`}
                     >
                         <div className="flex items-center gap-2 mb-2">
-                            <div className={`w-2 h-2 rounded-full ${isAutoPilot ? 'bg-primary animate-pulse' : 'bg-white/10'}`} />
-                            <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.4em] uppercase opacity-50">Protocolo_Piloto_Auto</p>
+                            <div className={`w-3 h-3 rounded-full ${isAutoPilot ? 'bg-primary animate-ping' : 'bg-white/20'}`} />
+                            <p className={`text-[10px] font-display font-black tracking-[0.4em] ${isAutoPilot ? 'text-primary' : 'text-on-surface-variant'}`}>
+                                {isAutoPilot ? 'AUTOPILOTO_ACTIVO' : 'MODO_MANUAL'}
+                            </p>
                         </div>
-                        <p className={`text-5xl font-display font-black uppercase tracking-tight ${isAutoPilot ? 'text-primary drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]' : 'text-on-surface-variant opacity-20'}`}>
-                            {isAutoPilot ? 'Activado' : 'En_Espera'}
+                        <p className={`text-6xl font-display font-black tracking-tighter ${isAutoPilot ? 'text-white' : 'text-on-surface-variant opacity-20'}`}>
+                            {isAutoPilot ? 'ON' : 'OFF'}
                         </p>
-                        <span className="text-[10px] font-mono opacity-20 uppercase tracking-widest">{isAutoPilot ? 'Control_IA_On' : 'Anulación_Manual'}</span>
+                        <span className={`text-[9px] font-mono opacity-40 tracking-[0.3em] ${isAutoPilot ? 'text-primary' : ''}`}>
+                            {isAutoPilot ? 'CONTROL_IA_EN_VIVO' : 'ESPERANDO_COMANDO'}
+                        </span>
                     </button>
                 </div>
 
@@ -278,10 +282,10 @@ export default function Host() {
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-primary py-12 rounded-sm text-4xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-8 group italic"
+                                    className="w-full bg-primary py-10 rounded-sm text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-8 group italic"
                                 >
-                                    <Play size={48} fill="currentColor" />
-                                    <span>INICIAR_OPERACION</span>
+                                    <Play size={40} fill="currentColor" />
+                                    <span>Iniciar Operación</span>
                                 </button>
                             </div>
                         )}
@@ -295,7 +299,7 @@ export default function Host() {
                                     onClick={handleNext}
                                     className="w-full bg-secondary py-12 rounded-sm text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-secondary flex items-center justify-center gap-6"
                                 >
-                                    FINALIZAR_FEED_PREGUNTA
+                                    <span>Finalizar Pregunta</span>
                                 </button>
                                 <p className="text-[10px] font-display font-bold text-on-surface-variant uppercase tracking-[0.5em] opacity-40 pt-4">Sincronización de red activa // Latencia optimizada</p>
                             </div>
@@ -311,7 +315,7 @@ export default function Host() {
                                     className="w-full bg-surface-highest border border-primary/40 py-12 rounded-sm text-3xl font-display font-black text-primary tracking-[0.3em] shadow-2xl transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-8"
                                 >
                                     <SkipForward size={48} fill="currentColor" />
-                                    <span>{game.current_question_index < questions.length - 1 ? 'CARGAR_SIG_SECTOR' : 'VER_PODIO_FINAL'}</span>
+                                    <span>{game.current_question_index < questions.length - 1 ? 'Cargar Siguiente Pregunta' : 'Ver Podio Final'}</span>
                                 </button>
                             </div>
                         )}
