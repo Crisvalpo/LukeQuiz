@@ -230,14 +230,14 @@ export default function Home() {
                 onClose={() => setIsModalOpen(false)}
                 title="CREAR NUEVA TRIVIA"
             >
-                <form onSubmit={handleCreateQuiz} className="space-y-12">
-                    <div className="space-y-10">
-                        <div className="space-y-4">
-                            <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.3em] uppercase ml-1 flex items-center gap-2">
-                                <Layout size={10} className="text-primary" /> Nombre de la Trivia
+                <form onSubmit={handleCreateQuiz} className="space-y-6">
+                    <div className="space-y-5">
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block">
+                                Nombre de la Trivia <span className="text-primary">*</span>
                             </label>
                             <input
-                                className="w-full bg-surface-lowest border-2 border-white/5 rounded-3xl p-8 text-on-surface font-display text-4xl focus:border-primary focus:neon-glow-primary focus:outline-none transition-all placeholder:opacity-20 shadow-inner"
+                                className="w-full bg-surface-high border border-white/8 rounded-lg px-4 py-3 text-white text-base focus:border-primary/50 focus:outline-none transition-all placeholder:text-white/20"
                                 placeholder="Ej: Conocimientos Generales"
                                 value={newQuizTitle}
                                 onChange={(e) => setNewQuizTitle(e.target.value)}
@@ -246,28 +246,28 @@ export default function Home() {
                             />
                         </div>
 
-                        <div className="space-y-4">
-                            <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.3em] uppercase ml-1">Descripción</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block">Descripción</label>
                             <textarea
-                                className="w-full bg-surface-lowest border-2 border-white/5 rounded-3xl p-6 text-on-surface-variant font-body text-base focus:border-primary/40 focus:outline-none transition-all placeholder:opacity-20 min-h-[140px] resize-none"
-                                placeholder="Indica de qué trata esta trivia..."
+                                className="w-full bg-surface-high border border-white/8 rounded-lg px-4 py-3 text-white/70 text-sm focus:border-primary/40 focus:outline-none transition-all placeholder:text-white/20 min-h-[100px] resize-none"
+                                placeholder="¿De qué trata esta trivia?"
                                 value={newQuizDesc}
                                 onChange={(e) => setNewQuizDesc(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="flex gap-6 pt-6">
+                    <div className="flex gap-3 pt-2">
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            className="flex-1 bg-surface-high/50 border border-white/5 py-4 rounded-2xl font-display font-black uppercase tracking-widest text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-all"
+                            className="flex-1 border border-white/10 py-2.5 rounded-lg text-sm font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            className="flex-[2] bg-primary py-4 rounded-2xl font-display font-black uppercase tracking-[0.2em] text-surface neon-glow-primary active:scale-95 transition-all shadow-2xl hover:brightness-110"
+                            className="flex-[2] bg-primary py-2.5 rounded-lg text-sm font-semibold text-surface active:scale-95 transition-all hover:brightness-110"
                         >
                             Crear Trivia
                         </button>
