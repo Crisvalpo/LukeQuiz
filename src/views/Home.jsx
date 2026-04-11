@@ -181,7 +181,7 @@ export default function Home() {
                                         <div className="h-[1px] w-8 bg-current" />
                                         <span className="text-[10px] font-display font-black uppercase tracking-[0.3em]">Módulo {q.id.slice(0, 4)}</span>
                                     </div>
-                                    <h3 className="text-4xl font-display font-black mb-6 tracking-tighter leading-[1.1] text-white group-hover:text-primary transition-colors uppercase italic">
+                                    <h3 className="text-2xl font-display font-black mb-4 tracking-tighter leading-tight text-white group-hover:text-primary transition-colors uppercase italic">
                                         {q.title}
                                     </h3>
                                     <p className="text-on-surface-variant font-medium text-sm mb-8 line-clamp-2 opacity-60 leading-relaxed">
