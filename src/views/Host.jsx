@@ -32,7 +32,7 @@ export default function Host() {
 
     // Auto-Pilot Logic
     useEffect(() => {
-        if (!isAutoPilot || !game || !questions.length) return
+        if (!game || !questions.length) return
 
         let timer
 
@@ -43,7 +43,7 @@ export default function Host() {
                 const elapsed = (now - start) / 1000
                 const tempo = game.settings?.tempo || 10
 
-                // Si todos respondieron O se acabó el tiempo
+                // Obligatorio: Si todos respondieron O se acabó el tiempo
                 if ((answerCount > 0 && answerCount === players.length) || elapsed >= tempo) {
                     handleNext()
                     return true
@@ -54,7 +54,7 @@ export default function Host() {
             if (!checkTime()) {
                 timer = setInterval(checkTime, 1000)
             }
-        } else if (game.status === 'results') {
+        } else if (isAutoPilot && game.status === 'results') {
             timer = setTimeout(() => handleNext(), 8000)
         }
 
@@ -178,139 +178,157 @@ export default function Host() {
     )
 
     return (
-        <div className="min-h-screen bg-surface p-8 md:p-16 font-body text-on-surface selection:bg-primary/30 flex items-center justify-center">
-            {/* Ambient Background */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] animate-pulse-slow" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[120px] animate-pulse-slow" />
+        <div className="min-h-screen bg-surface flex flex-col items-center py-20 px-12 relative overflow-hidden font-body text-on-surface">
+            {/* Ambient Technical Background */}
+            <div className="fixed inset-0 v-grid opacity-20 pointer-events-none" />
+
+            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
+                <div className="absolute top-[20%] left-[10%] w-[30%] h-[30%] bg-primary rounded-full blur-[120px]" />
+                <div className="absolute bottom-[20%] right-[10%] w-[30%] h-[30%] bg-secondary rounded-full blur-[120px]" />
             </div>
 
-            <div className="w-full max-w-5xl space-y-12 relative z-10">
-                <header className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
-                    <div className="text-center md:text-left">
-                        <div className="flex items-center justify-center md:justify-start gap-3 text-primary mb-3">
-                            <Activity size={18} className="animate-pulse" />
-                            <span className="text-xs font-display font-black tracking-[0.5em] uppercase opacity-60">Centro de Operaciones</span>
+            {/* System Status Bar */}
+            <div className="fixed top-0 left-0 w-full h-1 bg-white/5 z-[100]">
+                <div className="h-full bg-primary animate-pulse w-1/3" />
+            </div>
+
+            <div className="w-full max-w-6xl space-y-16 relative z-10 pb-20">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 mb-8 px-4 border-b border-white/5 pb-12">
+                    <div className="text-left space-y-2">
+                        <div className="flex items-center gap-3 text-primary terminal-text">
+                            <Activity size={14} className="animate-pulse" />
+                            <span className="text-[10px] font-black opacity-60">Sistema de Control // Transmisión_Activa</span>
                         </div>
-                        <h2 className="text-5xl md:text-6xl font-display font-black leading-none uppercase italic tracking-tighter">
-                            {game?.quizzes?.title || 'Partida Activa'}
+                        <h2 className="text-5xl md:text-6xl font-display font-black leading-tight uppercase italic tracking-tighter text-white drop-shadow-2xl">
+                            {game?.quizzes?.title || 'Sistema_Listo'}
                         </h2>
+                        <div className="flex gap-4 text-[9px] font-mono text-on-surface-variant opacity-30">
+                            <span>ID_SESION: {gameId.slice(0, 8)}</span>
+                            <span>|</span>
+                            <span>ENCRIPTACION: AES-256</span>
+                            <span>|</span>
+                            <span>ESTADO: CALIBRADO</span>
+                        </div>
                     </div>
-                    <div className="flex flex-col items-center gap-2">
-                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.4em] uppercase">Código de Acceso</p>
-                        <div className="bg-surface-highest px-12 py-6 rounded-[2rem] text-primary font-display font-black text-5xl border border-primary/30 neon-glow-primary tracking-[0.2em] shadow-2xl">
+                    <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/40 p-6 rounded-sm border border-white/5 backdrop-blur-sm">
+                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.5em] uppercase opacity-40">Clave_Acceso</p>
+                        <div className="text-primary font-display font-black text-5xl tracking-[0.2em] neon-glow-primary">
                             {game?.join_code}
                         </div>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="glass p-12 rounded-[3.5rem] flex flex-col items-center justify-center gap-4 border-white/5 transition-all hover:bg-white/5 group">
-                        <div className="p-6 rounded-full bg-secondary/10 text-secondary mb-2 group-hover:scale-110 transition-transform">
-                            <Users size={40} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-4">
+                    <div className="btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 group">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+                            <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] uppercase opacity-70">Audiencia_Activa</p>
                         </div>
-                        <div className="text-center">
-                            <p className="text-xs font-display font-black text-on-surface-variant tracking-[0.3em] uppercase mb-1">Jugadores</p>
-                            <p className="text-7xl font-display font-black text-white">{players.length}</p>
+                        <p className="text-9xl font-display font-black text-white leading-none tracking-tighter border-b-2 border-white/5 pb-4">
+                            {players.length}
+                        </p>
+                        <div className="flex gap-4 opacity-20 text-[9px] font-mono">
+                            <span>UP_TIME: 00:14:22</span>
+                            <span>LATENCY: 12ms</span>
                         </div>
                     </div>
 
                     <button
                         onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`glass p-12 rounded-[3.5rem] flex flex-col items-center justify-center gap-4 border-2 transition-all group ${isAutoPilot ? 'border-primary neon-glow-primary bg-primary/5' : 'border-white/5 hover:bg-white/5'}`}
+                        className={`btn-command p-12 rounded-sm flex flex-col items-center justify-center gap-6 transition-all group ${isAutoPilot ? 'border-primary/40' : ''}`}
                     >
-                        <div className={`p-6 rounded-full mb-2 group-hover:scale-110 transition-transform ${isAutoPilot ? 'bg-primary/20 text-primary animate-pulse' : 'bg-white/5 text-on-surface-variant opacity-40'}`}>
-                            <Activity size={40} />
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className={`w-2 h-2 rounded-full ${isAutoPilot ? 'bg-primary animate-pulse' : 'bg-white/10'}`} />
+                            <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.4em] uppercase opacity-50">Protocolo_Piloto_Auto</p>
                         </div>
-                        <div className="text-center">
-                            <p className="text-xs font-display font-black tracking-[0.3em] uppercase mb-1">Piloto Automático</p>
-                            <p className={`text-4xl font-display font-black uppercase ${isAutoPilot ? 'text-primary' : 'text-on-surface-variant opacity-30'}`}>
-                                {isAutoPilot ? 'ACTIVO' : 'INACTIVO'}
-                            </p>
-                        </div>
+                        <p className={`text-5xl font-display font-black uppercase tracking-tight ${isAutoPilot ? 'text-primary drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]' : 'text-on-surface-variant opacity-20'}`}>
+                            {isAutoPilot ? 'Activado' : 'En_Espera'}
+                        </p>
+                        <span className="text-[10px] font-mono opacity-20 uppercase tracking-widest">{isAutoPilot ? 'Control_IA_On' : 'Anulación_Manual'}</span>
                     </button>
                 </div>
 
-                <div className="glass p-12 md:p-16 rounded-[4rem] border-white/5 relative overflow-hidden shadow-2xl">
+                <div className="bg-surface-lowest/50 p-12 md:p-16 rounded-sm border border-white/5 relative overflow-hidden shadow-2xl backdrop-blur-xl">
+                    <div className="scan-line absolute top-0 left-0 animate-scan" />
+
                     <div className="relative z-10">
                         {game?.status === 'waiting' && (
-                            <div className="space-y-12 animate-fade">
-                                <div className="space-y-6">
-                                    <div className="flex items-center justify-center gap-4 mb-2">
-                                        <div className="h-[1px] w-12 bg-white/10" />
-                                        <p className="text-xs font-display font-black text-on-surface-variant tracking-[0.4em] uppercase">Velocidad del Juego</p>
-                                        <div className="h-[1px] w-12 bg-white/10" />
+                            <div className="space-y-16 animate-fade">
+                                <div className="space-y-8">
+                                    <div className="flex items-center justify-start gap-4 mb-2 opacity-40">
+                                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em] uppercase">Calibración // Tempo</p>
+                                        <div className="h-[1px] flex-1 bg-white/10" />
                                     </div>
                                     <div className="grid grid-cols-3 gap-6">
                                         {[
-                                            { val: 5, label: 'Turbo', desc: '5s' },
+                                            { val: 5, label: 'Turbo', desc: '05s' },
                                             { val: 10, label: 'Normal', desc: '10s' },
                                             { val: 20, label: 'Relax', desc: '20s' }
                                         ].map(t => (
                                             <button
                                                 key={t.val}
                                                 onClick={() => setSelectedTempo(t.val)}
-                                                className={`p-8 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40 hover:opacity-100 hover:bg-white/5'}`}
+                                                className={`p-10 rounded-sm border flex flex-col items-center gap-2 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40 hover:opacity-100 hover:bg-white/5'}`}
                                             >
-                                                <span className="text-sm font-display font-black tracking-widest uppercase">{t.label}</span>
-                                                <span className="text-xl font-display font-black opacity-60">{t.desc}</span>
+                                                <span className="text-[10px] font-display font-black tracking-[0.4em] uppercase">{t.label}</span>
+                                                <span className="text-3xl font-display font-black">{t.desc}</span>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-primary py-10 rounded-[2.5rem] text-4xl font-display font-black text-surface tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 neon-glow-primary flex items-center justify-center gap-6 group"
+                                    className="w-full bg-primary py-12 rounded-sm text-4xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-8 group italic"
                                 >
-                                    <Play size={48} fill="currentColor" className="group-hover:translate-x-1 transition-transform" />
-                                    <span>INICIAR</span>
+                                    <Play size={48} fill="currentColor" />
+                                    <span>INICIAR_OPERACION</span>
                                 </button>
                             </div>
                         )}
 
                         {game?.status === 'question' && (
-                            <div className="space-y-8 animate-fade text-center">
+                            <div className="space-y-12 animate-fade text-center">
                                 <div className="text-primary/40 animate-pulse mb-8 flex justify-center">
-                                    <BarChart2 size={80} />
+                                    <BarChart2 size={100} />
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-secondary py-10 rounded-[2.5rem] text-3xl font-display font-black text-surface tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 neon-glow-secondary flex items-center justify-center gap-6"
+                                    className="w-full bg-secondary py-12 rounded-sm text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-secondary flex items-center justify-center gap-6"
                                 >
-                                    FINALIZAR PREGUNTA
+                                    FINALIZAR_FEED_PREGUNTA
                                 </button>
-                                <p className="text-xs font-display font-bold text-on-surface-variant uppercase tracking-[0.4em] opacity-40 pt-4">Sincronizado con todos los jugadores</p>
+                                <p className="text-[10px] font-display font-bold text-on-surface-variant uppercase tracking-[0.5em] opacity-40 pt-4">Sincronización de red activa // Latencia optimizada</p>
                             </div>
                         )}
 
                         {game?.status === 'results' && (
-                            <div className="space-y-8 animate-fade text-center">
+                            <div className="space-y-12 animate-fade text-center">
                                 <div className="text-primary/40 mb-8 flex justify-center">
-                                    <Trophy size={80} />
+                                    <Trophy size={100} />
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-surface-highest border-2 border-primary/40 py-10 rounded-[2.5rem] text-3xl font-display font-black text-primary tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-6"
+                                    className="w-full bg-surface-highest border border-primary/40 py-12 rounded-sm text-3xl font-display font-black text-primary tracking-[0.3em] shadow-2xl transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-8"
                                 >
                                     <SkipForward size={48} fill="currentColor" />
-                                    {game.current_question_index < questions.length - 1 ? 'SIGUIENTE' : 'VER PODIO'}
+                                    <span>{game.current_question_index < questions.length - 1 ? 'CARGAR_SIG_SECTOR' : 'VER_PODIO_FINAL'}</span>
                                 </button>
                             </div>
                         )}
 
                         {game?.status === 'finished' && (
-                            <div className="text-center py-12 flex flex-col items-center animate-fade">
+                            <div className="text-center py-16 flex flex-col items-center animate-fade">
                                 <div className="relative mb-12">
                                     <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
-                                    <Trophy size={100} className="text-primary relative z-10 animate-bounce" />
+                                    <Trophy size={120} className="text-primary relative z-10 animate-bounce" />
                                 </div>
-                                <h3 className="text-4xl font-display font-black uppercase tracking-[0.3em] mb-4">Misión Cumplida</h3>
-                                <p className="text-on-surface-variant font-medium mb-12 opacity-60">La sesión de juego ha concluido satisfactoriamente.</p>
+                                <h3 className="text-5xl font-display font-black uppercase tracking-[0.4em] mb-4 italic">Misión_Completada</h3>
+                                <p className="text-on-surface-variant font-mono text-[10px] mb-12 opacity-40 uppercase tracking-[0.2em]">La sesión de control ha concluido satisfactoriamente // Datos guardados</p>
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="bg-white/5 hover:bg-white/10 px-12 py-5 rounded-[2rem] text-on-surface font-display font-black text-sm uppercase tracking-widest transition-all border border-white/10"
+                                    className="bg-white/5 hover:bg-white/10 px-16 py-6 rounded-sm text-on-surface font-display font-black text-xs uppercase tracking-[0.4em] transition-all border border-white/10"
                                 >
-                                    Finalizar y Salir
+                                    Desconectar Sistema
                                 </button>
                             </div>
                         )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Plus, Trash2, Save, ArrowLeft, Terminal, Layout, FileText, ImageIcon, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Save, ArrowLeft, Terminal, Layout, FileText, ImageIcon, Sparkles, Wand2, Loader2, Volume2, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function EditQuiz() {
@@ -11,6 +11,11 @@ export default function EditQuiz() {
     const [loading, setLoading] = useState(true)
     const [bulkText, setBulkText] = useState('')
     const [showBulk, setShowBulk] = useState(false)
+    const [aiTopic, setAiTopic] = useState('')
+    const [aiCount, setAiCount] = useState(5)
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [ttsEnabled, setTtsEnabled] = useState(false)
+    const [isGeneratingTts, setIsGeneratingTts] = useState(false)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -19,11 +24,88 @@ export default function EditQuiz() {
 
     const fetchQuiz = async () => {
         const { data: q } = await supabase.from('quizzes').select('*').eq('id', quizId).single()
-        if (q) setQuiz(q)
+        if (q) {
+            setQuiz(q)
+            setAiTopic(q.title) // Valor por defecto para el tema
+        }
 
         const { data: qs } = await supabase.from('questions').select('*').eq('quiz_id', quizId).order('order_index', { ascending: true })
         if (qs) setQuestions(qs)
         setLoading(false)
+    }
+
+    const handleGenerateTTS = async (question, index) => {
+        if (!question.text) return
+
+        try {
+            const { data, error } = await supabase.functions.invoke('generate-tts', {
+                body: {
+                    text: question.text,
+                    questionId: question.id || question.id_temp,
+                    quizId
+                }
+            })
+
+            if (error) {
+                if (error.status === 403) {
+                    toast.error('SWITCH_KILLER: Cuota del 80% alcanzada. TTS desactivado.')
+                    setTtsEnabled(false)
+                }
+                throw error
+            }
+
+            if (data?.publicUrl) {
+                updateQuestion(index, 'audio_url', data.publicUrl)
+                return data.publicUrl
+            }
+        } catch (e) {
+            console.error('Error TTS:', e)
+            throw e
+        }
+    }
+
+    const handleGenerateAI = async () => {
+        if (!aiTopic.trim()) return toast.error('Ingresa un tema para la IA')
+
+        setIsGenerating(true)
+        const toastId = toast.loading('Consultando oráculo de la IA...')
+
+        try {
+            const { data, error } = await supabase.functions.invoke('generate-quiz', {
+                body: { topic: aiTopic, count: aiCount }
+            })
+
+            if (error) throw error
+
+            const newQuestions = data.map((q, i) => ({
+                ...q,
+                id_temp: crypto.randomUUID(),
+                quiz_id: quizId,
+                order_index: questions.length + i,
+                audio_url: ''
+            }))
+
+            if (ttsEnabled) {
+                toast.loading('Generando voces neuronales...', { id: toastId })
+                for (let i = 0; i < newQuestions.length; i++) {
+                    try {
+                        const url = await handleGenerateTTS(newQuestions[i], questions.length + i)
+                        newQuestions[i].audio_url = url
+                    } catch (e) {
+                        console.error(`Error TTS en pregunta ${i}:`, e)
+                    }
+                }
+            }
+
+            setQuestions(prev => [...prev, ...newQuestions])
+            toast.success(`Protocolo completado: ${newQuestions.length} nuevas preguntas integradas`, { id: toastId })
+            setAiTopic('')
+        } catch (e) {
+            console.error(e)
+            toast.error('Error en la matriz: No se pudo generar el quiz', { id: toastId })
+        } finally {
+            setIsGenerating(false)
+        }
     }
 
     const addQuestion = () => {
@@ -129,11 +211,18 @@ REGLAS CRÍTICAS:
         toast.success('Prompt copiado para tu IA favorita')
     }
 
-    if (loading) return (
-        <div className="min-h-screen bg-surface flex items-center justify-center p-8">
-            <div className="text-center animate-pulse">
-                <Terminal className="text-primary mb-4 mx-auto" size={48} />
-                <p className="text-[10px] font-display font-black tracking-[0.4em] uppercase text-on-surface-variant">Cargando...</p>
+    if (loading && !quiz) return (
+        <div className="min-h-screen bg-surface flex items-center justify-center p-8 relative overflow-hidden">
+            <div className="v-grid absolute inset-0 opacity-20" />
+            <div className="text-center space-y-6 relative z-10">
+                <div className="relative inline-block">
+                    <Terminal className="text-primary animate-pulse" size={64} />
+                    <div className="absolute inset-0 bg-primary blur-[30px] opacity-20 animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                    <p className="text-xl font-display font-black tracking-[0.5em] uppercase text-white animate-pulse">SINCRONIZANDO_PROTOCOLO</p>
+                    <p className="text-[10px] font-display font-black tracking-[0.3em] uppercase text-primary/40">LukeQUIZ 3.0 // Editor_Interface</p>
+                </div>
             </div>
         </div>
     )
@@ -151,41 +240,41 @@ REGLAS CRÍTICAS:
                     <div className="flex items-center gap-6">
                         <button
                             onClick={() => navigate('/')}
-                            className="w-12 h-12 glass rounded-2xl flex items-center justify-center hover:bg-white/10 transition-colors"
+                            className="w-12 h-12 glass rounded-sm flex items-center justify-center hover:bg-white/10 transition-colors"
                         >
                             <ArrowLeft size={20} />
                         </button>
                         <div>
-                            <p className="text-[10px] font-display font-black text-primary tracking-[0.3em] uppercase mb-1 opacity-50">Editor de Preguntas</p>
-                            <h1 className="text-4xl font-display font-black tracking-tighter uppercase">{quiz?.title}</h1>
+                            <p className="text-[10px] font-display font-black text-primary tracking-[0.3em] uppercase mb-1 opacity-50">SISTEMA_EDICIÓN_V3.0</p>
+                            <h1 className="text-4xl font-display font-black tracking-tighter uppercase italic">{quiz?.title}</h1>
                         </div>
                     </div>
                     <button
                         onClick={() => setShowBulk(!showBulk)}
-                        className="bg-surface-high border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 text-xs font-display font-black hover:bg-surface-highest transition-colors uppercase tracking-widest"
+                        className="bg-surface-lowest border border-primary/30 px-6 py-3 rounded-sm flex items-center gap-3 text-xs font-display font-black text-primary hover:bg-primary hover:text-surface transition-all uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(236,72,153,0.2)]"
                     >
                         <FileText size={16} />
-                        Carga Masiva
+                        CARGA_MASIVA
                     </button>
                 </header>
 
                 {showBulk && (
-                    <div className="glass p-8 rounded-[2rem] border-primary/20 bg-primary/5 mb-12 space-y-4 animate-in fade-in slide-in-from-top-4">
-                        <div className="flex justify-between items-center bg-surface-lowest/50 p-6 rounded-3xl mb-4 border border-white/5">
+                    <div className="glass p-8 rounded border-primary/20 bg-primary/5 mb-12 space-y-4 animate-in fade-in slide-in-from-top-4">
+                        <div className="flex justify-between items-center bg-surface-lowest/50 p-6 rounded-sm mb-4 border border-white/5">
                             <div className="flex flex-col">
                                 <h3 className="text-sm font-display font-black text-primary uppercase tracking-widest">Carga de Preguntas en Bloque</h3>
                                 <p className="text-[10px] text-on-surface-variant font-bold uppercase opacity-50 mt-1">Formato: Pregunta | A | B | C | D | Correcta(A/B/C/D) | ImagenURL</p>
                             </div>
                             <button
                                 onClick={copyPrompt}
-                                className="flex items-center gap-3 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl transition-all border border-primary/20 hover:scale-105"
+                                className="flex items-center gap-3 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-sm transition-all border border-primary/20 hover:scale-105"
                             >
                                 <Sparkles size={14} />
                                 <span className="text-[10px] font-display font-black uppercase tracking-widest">Generar con IA</span>
                             </button>
                         </div>
                         <textarea
-                            className="w-full h-48 bg-surface-lowest border-2 border-white/5 rounded-2xl p-6 text-on-surface font-mono text-sm focus:border-primary focus:outline-none"
+                            className="w-full h-48 bg-surface-lowest border-2 border-white/5 rounded-sm p-6 text-on-surface font-mono text-sm focus:border-primary focus:outline-none"
                             placeholder="¿Cuál es la capital de Francia? | Madrid | Parí­s | Roma | Berlín | B | https://link-a-imagen.jpg"
                             value={bulkText}
                             onChange={(e) => setBulkText(e.target.value)}
@@ -193,13 +282,13 @@ REGLAS CRÍTICAS:
                         <div className="flex gap-4">
                             <button
                                 onClick={handleBulkUpload}
-                                className="flex-1 bg-primary py-4 rounded-xl text-surface font-display font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all text-sm"
+                                className="flex-1 bg-primary py-4 rounded-sm text-surface font-display font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all text-sm"
                             >
                                 Importar Preguntas
                             </button>
                             <button
                                 onClick={() => setShowBulk(false)}
-                                className="px-8 bg-surface-lowest border border-white/10 rounded-xl text-on-surface-variant font-display font-black uppercase tracking-widest text-[10px]"
+                                className="px-8 bg-surface-lowest border border-white/10 rounded-sm text-on-surface-variant font-display font-black uppercase tracking-widest text-[10px]"
                             >
                                 Cancelar
                             </button>
@@ -207,20 +296,103 @@ REGLAS CRÍTICAS:
                     </div>
                 )}
 
+                {/* AI Generation Sector */}
+                <div className="glass-card p-8 mb-12 border-primary/20 bg-gradient-to-br from-primary/10 to-transparent relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Wand2 size={80} className="rotate-12" />
+                    </div>
+
+                    <div className="relative z-10">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/20 rounded-sm">
+                                    <Sparkles size={20} className="text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-display font-black text-white uppercase tracking-[0.2em]">Generación Mágica_IA</h3>
+                                    <p className="text-[10px] text-primary font-black uppercase tracking-widest opacity-60 italic">Protocolo Gemini 1.5 Flash activated</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 bg-black/30 p-4 rounded border border-white/5">
+                                <div className="flex items-center gap-2">
+                                    <Volume2 size={16} className={ttsEnabled ? "text-secondary" : "text-white/20"} />
+                                    <span className="text-[10px] font-display font-black uppercase tracking-widest">Voz_Neuronal</span>
+                                </div>
+                                <button
+                                    onClick={() => setTtsEnabled(!ttsEnabled)}
+                                    className={`w-12 h-6 rounded-full relative transition-all ${ttsEnabled ? 'bg-secondary' : 'bg-white/10'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${ttsEnabled ? 'left-7 shadow-[0_0_10px_#22d3ee]' : 'left-1'}`} />
+                                </button>
+                                {ttsEnabled && (
+                                    <div className="flex items-center gap-1 text-[8px] font-display font-black text-secondary uppercase animate-pulse">
+                                        <ShieldAlert size={10} />
+                                        <span>Safe_80%_on</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1 space-y-2">
+                                <label className="text-[9px] font-display font-black text-white/40 tracking-[0.3em] uppercase ml-1">TEMA_DE_INSPECCIÓN</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/40 border-2 border-white/5 rounded-sm p-4 text-white font-display text-sm focus:border-primary focus:outline-none transition-all placeholder:text-white/10"
+                                    placeholder="Ej: Historia de la computación, Química avanzada..."
+                                    value={aiTopic}
+                                    onChange={(e) => setAiTopic(e.target.value)}
+                                />
+                            </div>
+                            <div className="w-full md:w-32 space-y-2">
+                                <label className="text-[9px] font-display font-black text-white/40 tracking-[0.3em] uppercase ml-1">CANTIDAD</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    className="w-full bg-black/40 border-2 border-white/5 rounded-sm p-4 text-white font-display text-sm focus:border-primary focus:outline-none transition-all text-center"
+                                    value={aiCount}
+                                    onChange={(e) => setAiCount(parseInt(e.target.value))}
+                                />
+                            </div>
+                            <div className="flex items-end">
+                                <button
+                                    onClick={handleGenerateAI}
+                                    disabled={isGenerating}
+                                    className="h-[52px] px-8 bg-primary rounded-sm text-surface font-display font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all text-xs flex items-center gap-3 disabled:opacity-50 disabled:scale-100 shadow-[0_0_20px_rgba(236,72,153,0.3)]"
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            <span>PROCESANDO...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Wand2 size={16} />
+                                            <span>GENERAR_IA</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="space-y-10">
                     {questions.map((q, idx) => (
-                        <div key={idx} className="glass p-10 rounded-[2.5rem] border-white/5 space-y-8 group transition-all hover:bg-surface-high">
+                        <div key={idx} className="glass p-10 rounded-md border-white/5 space-y-8 group transition-all hover:bg-surface-high">
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-primary/20 text-primary px-4 py-2 rounded-xl text-[10px] font-display font-black tracking-widest uppercase mb-1">
-                                        PREGUNTA {idx + 1}
+                                    <div className="bg-primary text-surface px-4 py-2 rounded-sm text-[10px] font-display font-black tracking-[0.3em] uppercase mb-1 italic">
+                                        MODULO_PREGUNTA_00{idx + 1}
                                     </div>
-                                    <div className="w-[1px] h-6 bg-white/10" />
-                                    <div className="text-xs font-display font-bold text-on-surface-variant uppercase tracking-widest">Editor de Texto</div>
+                                    <div className="w-10 h-[1px] bg-white/10" />
+                                    <div className="text-[9px] font-display font-black text-white/30 uppercase tracking-[0.5em] italic">EDITOR_DE_SERIALES</div>
                                 </div>
                                 <button
                                     onClick={() => removeQuestion(idx)}
-                                    className="p-3 bg-danger/10 text-danger rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-danger/20"
+                                    className="p-3 bg-danger/10 text-danger rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-danger/20"
                                 >
                                     <Trash2 size={18} />
                                 </button>
@@ -229,7 +401,7 @@ REGLAS CRÍTICAS:
                             <div className="space-y-2">
                                 <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.2em] uppercase ml-1">Enunciado</label>
                                 <textarea
-                                    className="w-full bg-surface-lowest border-2 border-white/5 rounded-2xl p-6 text-on-surface font-display text-2xl focus:border-primary focus:outline-none transition-colors min-h-[120px]"
+                                    className="w-full bg-surface-lowest border-2 border-white/5 rounded-sm p-6 text-on-surface font-display text-2xl focus:border-primary focus:outline-none transition-colors min-h-[120px]"
                                     value={q.text}
                                     onChange={(e) => updateQuestion(idx, 'text', e.target.value)}
                                     placeholder="Ingrese el texto de la pregunta..."
@@ -238,19 +410,20 @@ REGLAS CRÍTICAS:
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {[
-                                    { id: 'a', label: '▲', color: 'border-danger/30' },
-                                    { id: 'b', label: '◆', color: 'border-secondary/30' },
-                                    { id: 'c', label: '●', color: 'border-on-surface/30' },
-                                    { id: 'd', label: '■', color: 'border-success/30' }
+                                    { id: 'a', label: 'A', color: 'border-danger/20' },
+                                    { id: 'b', label: 'B', color: 'border-secondary/20' },
+                                    { id: 'c', label: 'C', color: 'border-white/10' },
+                                    { id: 'd', label: 'D', color: 'border-success/20' }
                                 ].map((opt) => (
                                     <div key={opt.id} className="space-y-2">
-                                        <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.2em] uppercase ml-1">Opción {opt.id.toUpperCase()}</label>
-                                        <div className={`flex items-center gap-4 bg-surface-container rounded-2xl p-2 border-2 ${opt.color}`}>
-                                            <span className="w-12 h-12 glass rounded-xl flex items-center justify-center font-display font-black text-xs text-on-surface-variant">{opt.label}</span>
+                                        <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.3em] uppercase ml-1">OPCIÓN_{opt.id.toUpperCase()}</label>
+                                        <div className={`flex items-center gap-4 bg-black/40 rounded-sm p-1 border-2 transition-all group-focus-within:border-primary/50 ${opt.color}`}>
+                                            <span className="w-12 h-12 bg-white/5 border-r border-white/10 flex items-center justify-center font-display font-black text-xl text-primary italic">{opt.label}</span>
                                             <input
-                                                className="bg-transparent border-none focus:outline-none flex-1 font-display font-bold text-lg p-3"
+                                                className="bg-transparent border-none focus:outline-none flex-1 font-display font-bold text-lg p-3 text-white placeholder:opacity-20 translate-y-[-1px]"
                                                 value={q[`option_${opt.id}`]}
                                                 onChange={(e) => updateQuestion(idx, `option_${opt.id}`, e.target.value)}
+                                                placeholder={`Contenido de la opción ${opt.label}...`}
                                             />
                                         </div>
                                     </div>
@@ -262,13 +435,13 @@ REGLAS CRÍTICAS:
                                     <ImageIcon size={10} /> URL de la Imagen (Opcional)
                                 </label>
                                 <input
-                                    className="w-full bg-surface-lowest border-2 border-white/5 rounded-2xl p-4 text-on-surface font-display text-sm focus:border-primary focus:outline-none transition-colors"
+                                    className="w-full bg-surface-lowest border-2 border-white/5 rounded-sm p-4 text-on-surface font-display text-sm focus:border-primary focus:outline-none transition-colors"
                                     value={q.image_url || ''}
                                     onChange={(e) => updateQuestion(idx, 'image_url', e.target.value)}
                                     placeholder="https://ejemplo.com/imagen.jpg"
                                 />
                                 {q.image_url && (
-                                    <div className="mt-4 rounded-2xl overflow-hidden h-40 border border-white/5">
+                                    <div className="mt-4 rounded-sm overflow-hidden h-40 border border-white/5">
                                         <img src={q.image_url} alt="Vista previa" className="w-full h-full object-cover opacity-50" />
                                     </div>
                                 )}
@@ -278,7 +451,7 @@ REGLAS CRÍTICAS:
                                 <div className="flex-1 space-y-2">
                                     <label className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.2em] uppercase ml-1">Respuesta Correcta</label>
                                     <select
-                                        className="w-full bg-surface-container border-2 border-white/5 rounded-2xl p-5 text-on-surface font-display font-black text-xl focus:border-primary focus:outline-none appearance-none cursor-pointer"
+                                        className="w-full bg-surface-container border-2 border-white/5 rounded-sm p-5 text-on-surface font-display font-black text-xl focus:border-primary focus:outline-none appearance-none cursor-pointer"
                                         value={q.correct_option}
                                         onChange={(e) => updateQuestion(idx, 'correct_option', e.target.value)}
                                     >
@@ -294,7 +467,7 @@ REGLAS CRÍTICAS:
 
                     <button
                         onClick={addQuestion}
-                        className="w-full py-12 border-2 border-dashed border-white/10 rounded-[3rem] flex flex-col items-center justify-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all text-on-surface-variant hover:text-primary group"
+                        className="w-full py-12 border-2 border-dashed border-white/10 rounded-md flex flex-col items-center justify-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all text-on-surface-variant hover:text-primary group"
                     >
                         <Plus size={40} className="group-hover:rotate-90 transition-transform" />
                         <span className="font-display font-black tracking-[0.4em] uppercase text-xs">Añadir Nueva Pregunta</span>
@@ -304,10 +477,11 @@ REGLAS CRÍTICAS:
                         <button
                             onClick={saveAll}
                             disabled={loading}
-                            className="bg-primary w-full py-6 rounded-3xl text-surface font-display font-black text-xl tracking-[0.2em] flex items-center justify-center gap-4 active:scale-[0.98] transition-all disabled:opacity-50"
+                            className="bg-primary w-full py-7 rounded-sm text-surface font-display font-black text-2xl tracking-[0.5em] flex items-center justify-center gap-6 active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_0_30px_rgba(236,72,153,0.3)] group overflow-hidden relative"
                         >
-                            <Save size={20} />
-                            {loading ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+                            <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
+                            <Save size={24} className="relative z-10" />
+                            <span className="relative z-10 italic">{loading ? 'ACTUALIZANDO_PROTOCOLO...' : 'GUARDAR_CONFIGURACIÓN'}</span>
                         </button>
                     </div>
                 </div>

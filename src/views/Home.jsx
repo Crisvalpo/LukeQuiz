@@ -139,106 +139,119 @@ export default function Home() {
                 <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-primary rounded-full blur-[120px]" />
             </div>
 
-            <div className="max-w-7xl mx-auto px-12 py-24 relative z-10">
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-20 border-b border-white/5 pb-12">
-                    <div>
-                        <div className="flex items-center gap-3 text-primary mb-2">
-                            <Terminal size={18} />
-                            <span className="font-display text-[10px] tracking-[0.4em] uppercase font-bold">Gestión de Trivias</span>
+            {/* Background Decoration Inspired by Image */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[10%] left-[5%] w-12 h-12 border-4 border-primary/20 rotate-45 animate-float" />
+                <div className="absolute top-[40%] right-[10%] w-8 h-8 border-4 border-secondary/20 rounded-full animate-float [animation-delay:2s]" />
+                <div className="absolute bottom-[20%] left-[15%] w-10 h-10 border-4 border-accent/20 rotate-12 animate-float [animation-delay:4s]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,92,246,0.1)_0%,transparent_50%)]" />
+            </div>
+
+            <div className="w-full flex justify-center py-32 px-6 md:px-12 lg:px-16 relative z-10">
+                <div className="w-full max-w-6xl">
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-10 mb-24">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="h-1 w-12 bg-gradient-to-r from-primary to-secondary rounded-full" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/40">Base de Conocimiento</span>
+                            </div>
+                            <div>
+                                <h1 className="text-5xl font-black tracking-tighter text-white italic leading-none">
+                                    Luke<span className="bg-gradient-to-r from-primary via-primary-container to-secondary bg-clip-text text-transparent not-italic">Quiz</span>
+                                </h1>
+                                <p className="text-on-surface-variant text-sm font-medium opacity-30 mt-4 tracking-wide">Centro de gestión de trivias galácticas</p>
+                            </div>
                         </div>
-                        <h1 className="text-7xl font-display font-black tracking-tighter uppercase leading-none">
-                            Mis <span className="text-primary italic">Trivias</span>
-                        </h1>
-                    </div>
 
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="group relative bg-primary px-8 py-4 rounded-2xl text-surface font-display font-black text-lg transition-all hover:scale-105 neon-glow-primary active:scale-95"
-                    >
-                        <div className="flex items-center gap-3">
-                            <PlusCircle size={22} />
-                            <span>CREAR TRIVIA</span>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="btn-vibrant px-10 py-4 rounded flex items-center gap-4 active:scale-95 group shadow-2xl shadow-primary/20 shrink-0"
+                        >
+                            <PlusCircle size={20} className="group-hover:rotate-90 transition-transform" />
+                            <span className="font-black text-xs tracking-[0.2em] uppercase">Diseñar Nueva</span>
+                        </button>
+                    </header>
+
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="h-56 bg-surface rounded animate-pulse" />
+                            ))}
                         </div>
-                    </button>
-                </header>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            {quizzes.map(q => (
+                                <div key={q.id} className="nebula-card p-10 flex flex-col justify-between min-h-[220px] group transition-all duration-500 hover:-translate-y-2">
+                                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none" />
 
-                {loading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="h-64 glass rounded-3xl animate-pulse" />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {quizzes.map(q => (
-                            <div key={q.id} className="glass rounded-2xl p-10 hover:bg-white/[0.03] transition-all group border-white/5 hover:border-primary/20 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
-                                <div className="absolute top-[-10px] right-[-10px] p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-all group-hover:scale-110 group-hover:-rotate-12">
-                                    <BookOpen size={160} />
-                                </div>
-
-                                <div>
-                                    <div className="flex items-center gap-2 text-primary/40 mb-4">
-                                        <div className="h-[1px] w-8 bg-current" />
-                                        <span className="text-[10px] font-display font-black uppercase tracking-[0.3em]">Módulo {q.id.slice(0, 4)}</span>
+                                    <div className="flex items-start justify-between gap-8 relative z-20">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-4 opacity-40">
+                                                <Terminal size={10} className="text-primary" />
+                                                <span className="text-[9px] font-black uppercase tracking-[0.3em]">ID_MODULO: {q.id.split('-')[0]}</span>
+                                            </div>
+                                            <h3 className="text-3xl font-black mb-3 tracking-tight text-white group-hover:text-primary transition-colors leading-tight truncate">
+                                                {q.title}
+                                            </h3>
+                                            <p className="text-on-surface-variant text-xs line-clamp-2 opacity-50 leading-relaxed font-medium">
+                                                {q.description || 'Sin descripción adicional. Sistema operando bajo parámetros estándar.'}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col gap-2 shrink-0">
+                                            <button
+                                                onClick={() => navigate(`/edit/${q.id}`)}
+                                                title="Configurar Parámetros"
+                                                className="w-12 h-12 bg-white/5 rounded-sm text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center border border-white/5 active:scale-95 group/btn"
+                                            >
+                                                <Settings size={20} className="group-hover/btn:rotate-90 transition-transform duration-500" />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteQuiz(q.id, q.title)}
+                                                title="Eliminar Registro"
+                                                className="w-12 h-12 bg-red-500/5 rounded-sm text-red-500/30 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5 flex items-center justify-center active:scale-95"
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <h3 className="text-2xl font-display font-black mb-4 tracking-tighter leading-tight text-white group-hover:text-primary transition-colors uppercase italic">
-                                        {q.title}
-                                    </h3>
-                                    <p className="text-on-surface-variant font-medium text-sm mb-8 line-clamp-2 opacity-60 leading-relaxed">
-                                        {q.description || 'Sistema inicializado. Sin parámetros adicionales definidos.'}
-                                    </p>
-                                </div>
 
-                                <div className="flex gap-3 mt-auto">
-                                    <button
-                                        onClick={() => startNewGame(q.id)}
-                                        className="flex-[3] bg-primary text-surface font-display font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.03] active:scale-95 neon-glow-primary shadow-xl"
-                                    >
-                                        <Play size={20} fill="currentColor" /> INICIAR
-                                    </button>
-                                    <button
-                                        onClick={() => navigate(`/edit/${q.id}`)}
-                                        title="Editar Trivia"
-                                        className="flex-1 bg-surface-highest p-5 rounded-2xl text-on-surface hover:bg-white/10 transition-all border border-white/5 flex items-center justify-center hover:text-primary"
-                                    >
-                                        <Settings size={22} />
-                                    </button>
-                                    <button
-                                        onClick={() => deleteQuiz(q.id, q.title)}
-                                        title="Eliminar Trivia"
-                                        className="flex-1 bg-danger/10 p-5 rounded-2xl text-danger hover:bg-danger/20 transition-all border border-danger/10 flex items-center justify-center"
-                                    >
-                                        <Trash2 size={22} />
-                                    </button>
+                                    <div className="mt-10 pt-8 border-t border-white/5">
+                                        <button
+                                            onClick={() => startNewGame(q.id)}
+                                            className="w-full btn-vibrant py-4 rounded-sm flex items-center justify-center gap-4 active:scale-95 text-[10px] font-black tracking-[0.4em] uppercase shadow-lg"
+                                        >
+                                            <Play size={16} fill="currentColor" /> Iniciar Experiencia
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
 
-                        {quizzes.length === 0 && (
-                            <div className="col-span-full py-32 flex flex-col items-center justify-center glass rounded-[3rem] border-dashed border-2 border-white/10 opacity-30">
-                                <PlusCircle size={60} className="mb-6" />
-                                <p className="text-3xl font-display font-bold uppercase tracking-widest">Sin Contenido</p>
-                                <p className="mt-2 text-on-surface-variant">Crea tu primera trivia para comenzar</p>
-                            </div>
-                        )}
-                    </div>
-                )}
+                            {quizzes.length === 0 && (
+                                <div className="col-span-full py-32 flex flex-col items-center justify-center glass rounded border-dashed border-2 border-white/5 opacity-40">
+                                    <PlusCircle size={48} className="mb-4 text-primary animate-pulse" />
+                                    <p className="text-lg font-black uppercase tracking-[0.4em] text-white">Base de datos vacía</p>
+                                    <p className="mt-3 text-on-surface-variant font-medium text-xs">Inicia la creación de tu primer universo de trivia.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="CREAR NUEVA TRIVIA"
+                title="DISEÑAR NUEVA TRIVIA"
             >
-                <form onSubmit={handleCreateQuiz} className="space-y-8">
-                    <div className="space-y-6">
-                        <div className="space-y-3">
-                            <label className="text-xs font-medium text-white/40 uppercase tracking-[0.2em] block">
-                                Nombre de la Trivia <span className="text-primary">*</span>
+                <form onSubmit={handleCreateQuiz} className="space-y-24">
+                    <div className="space-y-16">
+                        <div className="space-y-6">
+                            <label className="text-xs font-black text-primary uppercase tracking-[0.5em] block mb-2 opacity-70">
+                                Nombre del Desafío <span className="text-white">*</span>
                             </label>
                             <input
-                                className="w-full bg-surface-high border border-white/8 rounded-xl px-5 py-4 text-white text-base focus:border-primary/50 focus:outline-none transition-all placeholder:text-white/20"
-                                placeholder="Ej: Conocimientos Generales"
+                                className="w-full bg-surface-lowest border-b-2 border-white/5 px-0 py-6 text-white text-3xl font-black italic focus:border-primary focus:outline-none transition-all placeholder:text-white/5"
+                                placeholder="Nombre de tu trivia..."
                                 value={newQuizTitle}
                                 onChange={(e) => setNewQuizTitle(e.target.value)}
                                 autoFocus
@@ -246,30 +259,30 @@ export default function Home() {
                             />
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="text-xs font-medium text-white/40 uppercase tracking-[0.2em] block">Descripción</label>
+                        <div className="space-y-6">
+                            <label className="text-xs font-black text-secondary uppercase tracking-[0.5em] block mb-2 opacity-70">Descripción</label>
                             <textarea
-                                className="w-full bg-surface-high border border-white/8 rounded-xl px-5 py-4 text-white/70 text-sm focus:border-primary/40 focus:outline-none transition-all placeholder:text-white/20 min-h-[120px] resize-none"
-                                placeholder="¿De qué trata esta trivia?"
+                                className="w-full bg-surface-lowest border-b-2 border-white/5 px-0 py-6 text-on-surface-variant text-lg focus:border-secondary focus:outline-none transition-all placeholder:text-white/5 min-h-[140px] resize-none font-medium leading-relaxed"
+                                placeholder="Escribe algo inspirador sobre este nuevo universo..."
                                 value={newQuizDesc}
                                 onChange={(e) => setNewQuizDesc(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-8 pt-8 border-t border-white/5">
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            className="flex-1 border border-white/10 py-3.5 rounded-xl text-sm font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                            className="flex-1 text-xs font-black uppercase tracking-[0.4em] text-on-surface-variant hover:text-white transition-all py-6 border border-white/5 rounded-sm hover:bg-white/5"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            className="flex-[2] bg-primary py-3.5 rounded-xl text-sm font-semibold text-surface active:scale-95 transition-all hover:brightness-110"
+                            className="flex-[2] btn-vibrant py-6 rounded-sm text-md font-black uppercase tracking-[0.4em] active:scale-95 transition-all shadow-2xl"
                         >
-                            Crear Trivia
+                            Crear Universo
                         </button>
                     </div>
                 </form>
