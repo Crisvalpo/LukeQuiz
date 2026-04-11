@@ -41,10 +41,8 @@
   }
 }
 
+/* Variables nativas para componentes que no usan Tailwind directamente */
 :root {
-  --primary: #8ff5ff;
-  --secondary: #ac89ff;
-  --tertiary: #ff59e3;
   --glass: rgba(22, 26, 33, 0.6);
   --glass-border: rgba(143, 245, 255, 0.15);
 }
@@ -108,7 +106,9 @@ h3,
 }
 
 .option-card-premium {
-  @apply relative overflow-hidden transition-all duration-300;
+  position: relative;
+  overflow: hidden;
+  transition: all 300ms;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
