@@ -63,3 +63,12 @@
 2026-04-10T04:04:24Z ERR Request failed error="Incoming request ended abruptly: context canceled" connIndex=0 dest=https://perfume-compiled-injection-cooperation.trycloudflare.com/src/index.css?t=1775793863348 event=0 ip=198.41.200.23 type=http
 2026/04/10 00:08:39 Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
 2026/04/10 00:08:39 Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
+2026-04-10T04:27:46Z INF Initiating graceful shutdown due to signal terminated ...
+2026-04-10T04:27:46Z ERR failed to run the datagram handler error="context canceled" connIndex=0 event=0 ip=198.41.200.23
+2026-04-10T04:27:46Z ERR failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.23
+2026-04-10T04:27:46Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.23
+2026-04-10T04:27:46Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.23
+2026-04-10T04:27:46Z ERR Connection terminated connIndex=0
+2026-04-10T04:27:46Z ERR no more connections active and exiting
+2026-04-10T04:27:46Z INF Tunnel server stopped
+2026-04-10T04:27:46Z INF Metrics server stopped
