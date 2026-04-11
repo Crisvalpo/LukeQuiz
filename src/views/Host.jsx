@@ -260,7 +260,7 @@ export default function Host() {
                             <div className="space-y-16 animate-fade">
                                 <div className="space-y-8">
                                     <div className="flex items-center justify-start gap-4 mb-2 opacity-40">
-                                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em] uppercase">Calibración // Tempo</p>
+                                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em]">Calibración // Tempo</p>
                                         <div className="h-[1px] flex-1 bg-white/10" />
                                     </div>
                                     <div className="grid grid-cols-3 gap-6">
@@ -274,7 +274,7 @@ export default function Host() {
                                                 onClick={() => setSelectedTempo(t.val)}
                                                 className={`p-10 rounded-sm border flex flex-col items-center gap-2 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40 hover:opacity-100 hover:bg-white/5'}`}
                                             >
-                                                <span className="text-[10px] font-display font-black tracking-[0.4em] uppercase">{t.label}</span>
+                                                <span className="text-[10px] font-display font-black tracking-[0.4em]">{t.label}</span>
                                                 <span className="text-3xl font-display font-black">{t.desc}</span>
                                             </button>
                                         ))}
@@ -326,8 +326,8 @@ export default function Host() {
                                     <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
                                     <Trophy size={120} className="text-primary relative z-10 animate-bounce" />
                                 </div>
-                                <h3 className="text-5xl font-display font-black uppercase tracking-[0.4em] mb-4 italic">Misión_Completada</h3>
-                                <p className="text-on-surface-variant font-mono text-[10px] mb-12 opacity-40 uppercase tracking-[0.2em]">La sesión de control ha concluido satisfactoriamente // Datos guardados</p>
+                                <h3 className="text-5xl font-display font-black tracking-[0.4em] mb-4 italic">Misión Completada</h3>
+                                <p className="text-on-surface-variant font-mono text-[10px] mb-12 opacity-40 tracking-[0.2em]">La sesión de control ha concluido satisfactoriamente // Datos guardados</p>
                                 <button
                                     onClick={() => navigate('/')}
                                     className="bg-white/5 hover:bg-white/10 px-16 py-6 rounded-sm text-on-surface font-display font-black text-xs uppercase tracking-[0.4em] transition-all border border-white/10"
