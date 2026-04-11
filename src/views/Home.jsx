@@ -230,14 +230,14 @@ export default function Home() {
                 onClose={() => setIsModalOpen(false)}
                 title="CREAR NUEVA TRIVIA"
             >
-                <form onSubmit={handleCreateQuiz} className="space-y-6">
-                    <div className="space-y-5">
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block">
+                <form onSubmit={handleCreateQuiz} className="space-y-8">
+                    <div className="space-y-6">
+                        <div className="space-y-3">
+                            <label className="text-xs font-medium text-white/40 uppercase tracking-[0.2em] block">
                                 Nombre de la Trivia <span className="text-primary">*</span>
                             </label>
                             <input
-                                className="w-full bg-surface-high border border-white/8 rounded-lg px-4 py-3 text-white text-base focus:border-primary/50 focus:outline-none transition-all placeholder:text-white/20"
+                                className="w-full bg-surface-high border border-white/8 rounded-xl px-5 py-4 text-white text-base focus:border-primary/50 focus:outline-none transition-all placeholder:text-white/20"
                                 placeholder="Ej: Conocimientos Generales"
                                 value={newQuizTitle}
                                 onChange={(e) => setNewQuizTitle(e.target.value)}
@@ -246,10 +246,10 @@ export default function Home() {
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-white/50 uppercase tracking-widest block">Descripción</label>
+                        <div className="space-y-3">
+                            <label className="text-xs font-medium text-white/40 uppercase tracking-[0.2em] block">Descripción</label>
                             <textarea
-                                className="w-full bg-surface-high border border-white/8 rounded-lg px-4 py-3 text-white/70 text-sm focus:border-primary/40 focus:outline-none transition-all placeholder:text-white/20 min-h-[100px] resize-none"
+                                className="w-full bg-surface-high border border-white/8 rounded-xl px-5 py-4 text-white/70 text-sm focus:border-primary/40 focus:outline-none transition-all placeholder:text-white/20 min-h-[120px] resize-none"
                                 placeholder="¿De qué trata esta trivia?"
                                 value={newQuizDesc}
                                 onChange={(e) => setNewQuizDesc(e.target.value)}
@@ -257,17 +257,17 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex gap-3">
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            className="flex-1 border border-white/10 py-2.5 rounded-lg text-sm font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                            className="flex-1 border border-white/10 py-3.5 rounded-xl text-sm font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            className="flex-[2] bg-primary py-2.5 rounded-lg text-sm font-semibold text-surface active:scale-95 transition-all hover:brightness-110"
+                            className="flex-[2] bg-primary py-3.5 rounded-xl text-sm font-semibold text-surface active:scale-95 transition-all hover:brightness-110"
                         >
                             Crear Trivia
                         </button>

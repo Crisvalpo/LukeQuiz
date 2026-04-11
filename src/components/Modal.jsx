@@ -10,14 +10,14 @@ export default function Modal({ isOpen, onClose, title, children }) {
             <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade" onClick={onClose} />
 
             {/* Modal Container */}
-            <div className="w-full max-w-lg relative z-10 animate-scale-in">
+            <div className="w-full max-w-2xl relative z-10 animate-scale-in">
                 <div className="bg-surface-container border border-white/8 rounded-2xl shadow-2xl overflow-hidden">
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
+                    <div className="flex items-center justify-between px-10 py-8 border-b border-white/5">
                         <div>
-                            <p className="text-[10px] text-primary/60 tracking-[0.3em] uppercase font-medium mb-1">Nueva sesión</p>
-                            <h2 className="text-lg font-semibold text-white">{title}</h2>
+                            <p className="text-[10px] text-primary/60 tracking-[0.3em] uppercase font-medium mb-2">Nueva sesión</p>
+                            <h2 className="text-2xl font-semibold text-white">{title}</h2>
                         </div>
                         <button
                             onClick={onClose}
@@ -28,7 +28,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
                     </div>
 
                     {/* Content */}
-                    <div className="px-8 py-7">
+                    <div className="px-10 py-8">
                         {children}
                     </div>
                 </div>
