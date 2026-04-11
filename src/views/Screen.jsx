@@ -165,7 +165,7 @@ export default function Screen() {
 
             <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
                 {game?.status === 'waiting' && (
-                    <div className="flex-1 flex items-center justify-center p-12 relative overflow-hidden">
+                    <div className="glass border-white/5 rounded-3xl px-24 py-16 flex flex-col items-center justify-center gap-12 relative overflow-hidden group">
                         {/* Bubbles strictly in main */}
                         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-40">
                             {players.map((p, i) => {
@@ -176,7 +176,7 @@ export default function Screen() {
                                 return (
                                     <div
                                         key={p.id}
-                                        className="absolute transition-all duration-1000 animate-float-bubble glass px-10 py-6 rounded-[2.5rem] flex items-center gap-5 border border-white/20 shadow-2xl bg-surface-high/60 backdrop-blur-xl"
+                                        className="absolute transition-all duration-1000 animate-float-bubble glass px-10 py-6 rounded-3xl flex items-center gap-5 border border-white/20 shadow-2xl bg-surface-high/60 backdrop-blur-xl"
                                         style={{
                                             left: `${randomX}%`,
                                             top: `${randomY}%`,
@@ -202,13 +202,13 @@ export default function Screen() {
                                 <p className="text-xl text-on-surface-variant font-display font-medium mb-16 uppercase tracking-[0.2em] opacity-70">
                                     Escanea para participar <br /> y demuestra tu conocimiento.
                                 </p>
-                                <div className="glass p-12 rounded-[4.5rem] inline-block neon-glow-primary border-2 border-primary/30 bg-black/60 shadow-2xl hover:scale-105 transition-all duration-700">
+                                <div className="glass p-12 rounded-3xl inline-block neon-glow-primary border-2 border-primary/30 bg-black/60 shadow-2xl hover:scale-105 transition-all duration-700">
                                     <QRCodeSVG value={joinUrl} size={300} bgColor="transparent" fgColor="#8ff5ff" includeMargin={true} />
                                 </div>
                             </div>
 
                             <div className="flex justify-center">
-                                <div className="glass p-16 rounded-[4rem] text-center border-2 border-white/5 backdrop-blur-3xl min-w-[400px]">
+                                <div className="glass p-16 rounded-3xl text-center border-2 border-white/5 backdrop-blur-3xl min-w-[400px]">
                                     <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase mb-6 opacity-60 italic">Jugadores Conectados</p>
                                     <div className="text-[10rem] font-display font-black leading-none text-white tracking-tighter drop-shadow-[0_0_50px_rgba(143,245,255,0.3)]">
                                         {players.length}

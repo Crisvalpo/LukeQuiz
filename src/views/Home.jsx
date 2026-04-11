@@ -171,7 +171,7 @@ export default function Home() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {quizzes.map(q => (
-                            <div key={q.id} className="glass rounded-[2.5rem] p-10 hover:bg-white/[0.03] transition-all group border-white/5 hover:border-primary/20 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+                            <div key={q.id} className="glass rounded-2xl p-10 hover:bg-white/[0.03] transition-all group border-white/5 hover:border-primary/20 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
                                 <div className="absolute top-[-10px] right-[-10px] p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-all group-hover:scale-110 group-hover:-rotate-12">
                                     <BookOpen size={160} />
                                 </div>
@@ -261,13 +261,13 @@ export default function Home() {
                         <button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            className="flex-1 bg-surface-high/50 border border-white/5 py-6 rounded-[2rem] font-display font-black uppercase tracking-widest text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-all"
+                            className="flex-1 bg-surface-high/50 border border-white/5 py-4 rounded-2xl font-display font-black uppercase tracking-widest text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-all"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            className="flex-[2] bg-primary py-6 rounded-[2rem] font-display font-black uppercase tracking-[0.2em] text-surface neon-glow-primary active:scale-95 transition-all shadow-2xl hover:brightness-110"
+                            className="flex-[2] bg-primary py-4 rounded-2xl font-display font-black uppercase tracking-[0.2em] text-surface neon-glow-primary active:scale-95 transition-all shadow-2xl hover:brightness-110"
                         >
                             Crear Trivia
                         </button>
