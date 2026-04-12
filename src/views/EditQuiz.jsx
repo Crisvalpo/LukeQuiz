@@ -25,6 +25,9 @@ export default function EditQuiz() {
     const [bulkText, setBulkText] = useState('')
     const questionInputRef = React.useRef(null)
     const [aiPrompt, setAiPrompt] = useState('')
+    const [aiTopic, setAiTopic] = useState('')
+    const [aiCount, setAiCount] = useState(5)
+    const [ttsEnabled, setTtsEnabled] = useState(false)
     const [showMediaSearch, setShowMediaSearch] = useState(false)
 
     useEffect(() => {
@@ -85,6 +88,7 @@ export default function EditQuiz() {
             const { data: qData } = await supabase.from('quizzes').select('*').eq('id', quizId).single()
             const { data: qsData } = await supabase.from('questions').select('*').eq('quiz_id', quizId).order('order_index')
             setQuiz(qData)
+            if (qData) setAiTopic(qData.title) // Pre-cargar tema con el título del quiz
             if (qsData && qsData.length > 0) {
                 setQuestions(qsData.map(q => ({ ...q, last_tts_text: q.text })))
             } else {
@@ -230,18 +234,41 @@ export default function EditQuiz() {
     }
 
     const handleAiGenerate = async () => {
+        if (!aiTopic.trim()) return toast.error('Ingresa un tema para la IA')
+
         setLoading(true)
-        const tid = toast.loading('Generando preguntas...')
+        const tid = toast.loading('Consultando oráculo de la IA...')
         try {
             const { data, error } = await supabase.functions.invoke('generate-quiz', {
-                body: { prompt: aiPrompt, quizId }
+                body: { topic: aiTopic, count: aiCount }
             })
             if (error) throw error
-            const newQuestions = data.questions.map((q, i) => ({ ...q, order_index: questions.length + i }))
+
+            const newQuestions = data.map((q, i) => ({
+                ...q,
+                id: crypto.randomUUID(), // Usar ID temporal compatible con TTS
+                quiz_id: quizId,
+                order_index: questions.length + i,
+                audio_url: '',
+                last_tts_text: q.text
+            }))
+
+            if (ttsEnabled) {
+                toast.loading('Generando voces neuronales...', { id: tid })
+                for (let i = 0; i < newQuestions.length; i++) {
+                    try {
+                        const url = await generateAudio(newQuestions[i])
+                        newQuestions[i].audio_url = url
+                    } catch (e) {
+                        console.error(`Error TTS en pregunta ${i}:`, e)
+                    }
+                }
+            }
+
             setQuestions([...questions, ...newQuestions])
             setIsDirty(true)
             setShowAiPanel(false)
-            toast.success('Preguntas generadas', { id: tid })
+            toast.success(`Protocolo completado: ${newQuestions.length} nuevas preguntas integradas`, { id: tid })
         } catch (e) {
             toast.error('Error IA: ' + e.message, { id: tid })
         } finally {
@@ -308,31 +335,153 @@ export default function EditQuiz() {
 
             <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-0 pb-24">
                 {showAiPanel && (
-                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-primary/30 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto">
+                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-primary/30 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto backdrop-blur-3xl">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-sm font-black text-pink-500 uppercase tracking-widest flex items-center gap-2"><Sparkles size={18} /> GENERADOR IA</h3>
-                            <button onClick={() => setShowAiPanel(false)}><X size={20} className="opacity-40 hover:opacity-100" /></button>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/20 rounded-lg">
+                                    <Sparkles size={20} className="text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-display font-black text-white uppercase tracking-[0.2em]">Generación Mágica_IA</h3>
+                                    <p className="text-[10px] text-primary font-black uppercase tracking-widest opacity-60 italic">Motor Gemini 1.5 Flash Online</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowAiPanel(false)} className="p-2 hover:bg-white/5 rounded-full transition-all">
+                                <X size={20} className="opacity-40 hover:opacity-100" />
+                            </button>
                         </div>
-                        <input className="w-full bg-black border border-white/10 rounded-lg p-5 text-sm outline-none mb-4" placeholder="Ej: Crea 5 preguntas sobre la historia de Roma..." value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} />
-                        <button onClick={handleAiGenerate} className="w-full py-4 bg-pink-600 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-pink-500 transition-all">Generar nuevas preguntas</button>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-[10px] font-black text-white/40 tracking-widest uppercase ml-1">TEMA DE LA TRIVIA</label>
+                                <input
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-bold text-white outline-none focus:border-primary transition-all"
+                                    placeholder="Ej: Historia de Chile, Ciencia Ficción..."
+                                    value={aiTopic}
+                                    onChange={e => setAiTopic(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-white/40 tracking-widest uppercase ml-1">CANTIDAD</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-bold text-white outline-none focus:border-primary transition-all text-center"
+                                    value={aiCount}
+                                    onChange={e => setAiCount(parseInt(e.target.value))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-white/40 tracking-widest uppercase ml-1">VOZ NEURONAL</label>
+                                <div className="h-[54px] flex items-center justify-between px-4 bg-black/40 border border-white/10 rounded-xl">
+                                    <Volume2 size={18} className={ttsEnabled ? "text-secondary" : "text-white/20"} />
+                                    <button
+                                        onClick={() => setTtsEnabled(!ttsEnabled)}
+                                        className={`w-10 h-5 rounded-full relative transition-all ${ttsEnabled ? 'bg-secondary' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${ttsEnabled ? 'left-5.5' : 'left-0.5'}`} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleAiGenerate}
+                            disabled={loading || !aiTopic}
+                            className="w-full py-5 bg-primary rounded-xl font-black text-xs uppercase tracking-[0.3em] hover:bg-primary/80 transition-all flex items-center justify-center gap-3 disabled:opacity-30 shadow-lg shadow-primary/20 active:scale-95"
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : <Wand2 size={18} />}
+                            GENERAR NUEVAS PREGUNTAS
+                        </button>
                     </div>
                 )}
 
                 {showBulk && (
-                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-white/10 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto">
+                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-white/10 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto backdrop-blur-xl">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2"><FileText size={18} /> IMPORTACIÓN MASIVA</h3>
+                            <div className="flex items-center gap-4">
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                    <FileText size={18} /> IMPORTACIÓN MASIVA
+                                </h3>
+                            </div>
                             <button onClick={() => setShowBulk(false)}><X size={20} className="opacity-40 hover:opacity-100" /></button>
                         </div>
-                        <textarea className="w-full h-48 bg-black border border-white/10 rounded-lg p-6 text-xs font-mono outline-none resize-none leading-relaxed" placeholder="Pregunta | A | B | C | D | Correcta | URL" value={bulkText} onChange={e => setBulkText(e.target.value)} />
+
+                        {/* Instrucciones */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div className="col-span-2 space-y-3">
+                                <h4 className="text-[10px] font-black text-cyan-400 tracking-widest uppercase">Instrucciones de Uso:</h4>
+                                <ol className="text-xs text-white/70 space-y-2 list-decimal list-inside font-medium leading-relaxed">
+                                    <li>Haz clic en <strong>Copiar Prompt IA</strong> para copiar las instrucciones.</li>
+                                    <li>Abre tu IA favorita y pega el prompt copiado.</li>
+                                    <li>Copia las <strong>líneas de texto</strong> que la IA te devolverá.</li>
+                                    <li>Pega el resultado en la caja de abajo y presiona <strong>Importar</strong>.</li>
+                                </ol>
+                            </div>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => {
+                                        const prompt = `Actúa como un experto en creación de contenido educativo. Genera una lista de 20 preguntas para una trivia titulada "${quiz?.title || 'Mi Trivia'}" sobre "${quiz?.description || 'temas variados'}".\n\nCada pregunta debe seguir estrictamente este formato de texto plano, separando los campos con el carácter pipe (|):\n\nPregunta | Opción A | Opción B | Opción C | Opción D | Letra de Opción Correcta (Solo la letra A, B, C o D) | URL de Imagen Relevante\n\nPor ejemplo:\n¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80\n\nREGLAS CRÍTICAS:\n1. Devuelve SOLO las 20 líneas de preguntas, una por línea.\n2. Sin introducciones, sin números al inicio, sin explicaciones.\n3. Asegúrate de que las URLs de imagen sean de Unsplash o sitios similares y que funcionen.\n4. Las opciones deben ser coherentes y solo una debe ser la correcta.\n5. Usa exactamente el formato: texto|a|b|c|d|letra_correcta|url_imagen`;
+                                        navigator.clipboard.writeText(prompt);
+                                        toast.success('Prompt original copiado al portapapeles');
+                                    }}
+                                    className="w-full py-2.5 bg-pink-500/10 text-pink-500 rounded-lg text-xs font-black uppercase tracking-wider border border-pink-500/20 hover:bg-pink-500/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles size={14} /> Copiar Prompt IA
+                                </button>
+
+                                <div className="grid grid-cols-2 gap-2 mt-4">
+                                    <button onClick={() => window.open('https://chatgpt.com/', '_blank')} className="py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded text-[9px] font-black tracking-widest text-white/60 hover:text-white transition-all uppercase">ChatGPT</button>
+                                    <button onClick={() => window.open('https://gemini.google.com/', '_blank')} className="py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded text-[9px] font-black tracking-widest text-white/60 hover:text-white transition-all uppercase">Gemini</button>
+                                    <button onClick={() => window.open('https://deepseek.com/', '_blank')} className="py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded text-[9px] font-black tracking-widest text-white/60 hover:text-white transition-all uppercase">DeepSeek</button>
+                                    <button onClick={() => window.open('https://claude.ai/', '_blank')} className="py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded text-[9px] font-black tracking-widest text-white/60 hover:text-white transition-all uppercase">Claude</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <textarea
+                            className="w-full h-48 bg-black/50 border border-white/10 rounded-xl p-6 text-xs font-mono outline-none resize-none leading-relaxed focus:border-cyan-500/50 transition-colors"
+                            placeholder="Pega aquí el resultado de la IA...&#10;&#10;Ejemplo:&#10;¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | https://images.unsplash.com/photo-150260..."
+                            value={bulkText}
+                            onChange={e => setBulkText(e.target.value)}
+                        />
                         <button
                             onClick={() => {
-                                const lines = bulkText.split('\n').filter(l => l.trim().includes('|'))
+                                if (!bulkText.trim()) return;
+                                const lines = bulkText.split('\n').filter(l => l.trim().includes('|'));
+                                if (lines.length === 0) {
+                                    toast.error('Formato inválido. Usa: Pregunta | A | B | C | D | Correcta');
+                                    return;
+                                }
+
                                 const newQs = lines.map((l, i) => {
-                                    const [t, a, b, c, d, corr, img] = l.split('|').map(s => s.trim())
-                                    return { quiz_id: quizId, text: t, option_a: a, option_b: b, option_c: c, option_d: d, correct_option: corr?.toUpperCase() || 'A', image_url: img || '', order_index: questions.length + i }
-                                })
-                                setQuestions([...questions, ...newQs]); setShowBulk(false); setBulkText('')
+                                    const parts = l.split('|').map(s => s.trim());
+                                    const [t, a, b, c, d, corr, img] = parts;
+
+                                    let cleanCorr = 'A';
+                                    if (corr) {
+                                        const match = corr.match(/[A-D]/i);
+                                        if (match) cleanCorr = match[0].toUpperCase();
+                                    }
+
+                                    return {
+                                        quiz_id: quizId,
+                                        text: t || 'Nueva Pregunta',
+                                        option_a: a || '',
+                                        option_b: b || '',
+                                        option_c: c || '',
+                                        option_d: d || '',
+                                        correct_option: cleanCorr,
+                                        image_url: img || '',
+                                        order_index: questions.length + i
+                                    };
+                                });
+
+                                setQuestions([...questions, ...newQs]);
+                                setShowBulk(false);
+                                setBulkText('');
+                                toast.success(`${newQs.length} preguntas importadas con éxito`);
                             }}
                             className="w-full mt-6 py-4 border border-white/10 hover:bg-white/5 rounded-lg text-[10px] font-black tracking-widest"
                         >
@@ -341,16 +490,16 @@ export default function EditQuiz() {
                     </div>
                 )}
 
-                <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-start animate-in fade-in zoom-in-95 duration-500 overflow-hidden px-8 md:px-12 lg:px-24">
+                <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-hidden px-8 md:px-12 lg:px-24">
                     {questions.length > 0 && q ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start flex-1 overflow-y-auto h-full pt-4 pb-12 pr-2 custom-scrollbar">
-                            <div className="lg:col-span-1 space-y-8 bg-white/5 p-8 lg:p-12 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center min-h-[400px]">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch flex-1 overflow-y-auto h-full py-4 pr-2 custom-scrollbar">
+                            <div className="lg:col-span-1 space-y-4 bg-white/5 p-6 lg:p-8 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center h-full">
                                 <div>
                                     <textarea
                                         ref={questionInputRef}
                                         value={q.text}
                                         onChange={(e) => updateQuestion(currentIdx, { text: e.target.value })}
-                                        className="w-full bg-transparent text-2xl lg:text-3xl font-black focus:outline-none resize-none placeholder:opacity-10 leading-tight transition-all"
+                                        className="w-full bg-transparent text-xl lg:text-2xl font-black focus:outline-none resize-none placeholder:opacity-10 leading-tight transition-all"
                                         placeholder="Escribe la pregunta aquí..."
                                         rows={3}
                                     />
@@ -384,8 +533,8 @@ export default function EditQuiz() {
                             </div>
 
                             {/* Media & Herramientas */}
-                            <div className="lg:col-span-1 h-full flex flex-col gap-4 py-4 overflow-hidden">
-                                <div className="flex-1 bg-surface-lowest/40 rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
+                            <div className="lg:col-span-1 flex flex-col gap-4 overflow-hidden h-full">
+                                <div className="aspect-video lg:aspect-auto lg:flex-1 min-h-[250px] bg-surface-lowest/40 rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
                                     <div className="absolute top-4 left-4 z-20 flex gap-2">
                                         <span className="text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 border border-cyan-400/20 px-3 py-1.5 rounded-full uppercase">VISTA PREVIA</span>
                                     </div>
@@ -501,7 +650,7 @@ export default function EditQuiz() {
                 </div>
             </main >
 
-            <footer className="fixed bottom-0 left-0 right-0 h-28 bg-black/90 backdrop-blur-xl border-t border-white/10 px-8 z-50">
+            <footer className="fixed bottom-0 left-0 right-0 h-22 bg-black/90 backdrop-blur-xl border-t border-white/10 px-8 z-50">
                 <div className="max-w-[1600px] mx-auto w-full h-full flex items-center justify-between gap-8">
                     {/* Navegación */}
                     {questions && questions.length > 0 ? (
@@ -509,21 +658,21 @@ export default function EditQuiz() {
                             <button
                                 onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
                                 disabled={currentIdx === 0}
-                                className="w-14 h-14 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
+                                className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
                             >
-                                <ChevronLeft size={28} />
+                                <ChevronLeft size={24} />
                             </button>
-                            <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-4 text-center min-w-[120px] justify-center">
-                                <span className="text-2xl font-black text-pink-500">{currentIdx + 1}</span>
-                                <div className="h-6 w-[1.5px] bg-white/10" />
-                                <span className="text-[10px] font-black text-white/40 tracking-widest">{questions.length} TOTAL</span>
+                            <div className="px-5 py-2.5 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-4 text-center min-w-[110px] justify-center">
+                                <span className="text-xl font-black text-pink-500">{currentIdx + 1}</span>
+                                <div className="h-5 w-[1.5px] bg-white/10" />
+                                <span className="text-[9px] font-black text-white/40 tracking-widest">{questions.length} TOTAL</span>
                             </div>
                             <button
                                 onClick={() => setCurrentIdx(Math.min(questions.length - 1, currentIdx + 1))}
                                 disabled={currentIdx === questions.length - 1}
-                                className="w-14 h-14 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
+                                className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
                             >
-                                <ChevronRight size={28} />
+                                <ChevronRight size={24} />
                             </button>
                         </div>
                     ) : null}
@@ -534,8 +683,8 @@ export default function EditQuiz() {
                     {/* Acciones de Quiz */}
                     <div className="flex items-center gap-4 shrink-0">
                         {questions && questions.length > 0 ? (
-                            <button onClick={deleteCurrent} className="w-14 h-14 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-2xl transition-all border border-red-500/10" title="Eliminar pregunta">
-                                <Trash2 size={24} />
+                            <button onClick={deleteCurrent} className="w-12 h-12 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-2xl transition-all border border-red-500/10" title="Eliminar pregunta">
+                                <Trash2 size={22} />
                             </button>
                         ) : null}
                     </div>
