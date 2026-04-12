@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase'
 import {
     ArrowLeft, Save, Plus, Trash2, Volume2, ImageIcon,
     Sparkles, Loader2, ChevronLeft, ChevronRight, CheckCircle2,
-    FileText, X, FileQuestion, MessageSquare, Layout, Search, Link as LinkIcon
+    FileText, X, FileQuestion, MessageSquare, Layout, Search, Link as LinkIcon,
+    Wand2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAudioSync } from '../hooks/useAudioSync'
