@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { PlusCircle, Plus, Play, Settings, Terminal, Layout, Trash2, BookOpen, Brain } from 'lucide-react'
+import { Plus, Play, Settings, Trash2, PlusCircle, Search } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
 import Modal from '../components/Modal'
@@ -158,55 +158,49 @@ export default function Home() {
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {quizzes.map(q => (
-                                            <div key={q.id} className="group relative bg-surface-lowest/40 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-xl flex flex-col p-6 h-[14rem]">
+                                            <div key={q.id} className="group relative bg-surface-lowest/40 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-xl flex flex-col h-[14rem]">
                                                 {q.cover_image && (
                                                     <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700">
                                                         <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
                                                     </div>
                                                 )}
 
-                                                <div className="relative z-20 flex-1">
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="p-3 bg-primary/10 rounded-xl w-fit mb-8 text-primary border border-primary/20">
-                                                            <Brain size={20} />
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => navigate(`/edit/${q.id}`)}
-                                                                className="p-3 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                                                                title="Configurar Trivia"
-                                                            >
-                                                                <Settings size={18} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => deleteQuiz(q.id, q.title)}
-                                                                className="p-3 bg-red-500/5 rounded-xl text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5"
-                                                                title="Eliminar registro"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        </div>
+                                                <div className="relative z-20 flex-1 flex flex-col p-6">
+                                                    <div className="flex justify-end gap-2 mb-2">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
+                                                            className="p-2 bg-white/5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                                                            title="Configurar Trivia"
+                                                        >
+                                                            <Settings size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
+                                                            className="p-2 bg-red-500/5 rounded-lg text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5"
+                                                            title="Eliminar registro"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    <h3 className="text-2xl font-black text-white mb-4 tracking-tight group-hover:text-primary transition-colors line-clamp-2 leading-tight">{q.title}</h3>
-                                                    <div className="flex items-center gap-4 opacity-40">
-                                                        <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.2em]">{q.id.slice(0, 8)}</span>
-                                                        <div className="h-1 w-1 bg-white/20 rounded-full" />
-                                                        <span className="text-[10px] font-black tracking-widest text-primary uppercase">
+
+                                                    <div className="flex-1 flex flex-col justify-center">
+                                                        <h3 className="text-2xl font-black text-white mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-2 leading-tight uppercase font-display">{q.title}</h3>
+                                                        <span className="text-[10px] font-black tracking-[0.3em] text-primary uppercase opacity-60">
                                                             {q.questions?.length || 0} PREGUNTAS
                                                         </span>
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-12 pt-10 border-t border-white/5 relative z-20">
+                                                <div className="p-4 pt-0 relative z-20 mt-auto">
                                                     <button
                                                         onClick={() => startNewGame(q.id)}
                                                         disabled={!q.questions || q.questions.length === 0}
-                                                        className={`w-full py-4 rounded-xl flex items-center justify-center gap-4 transition-all text-[11px] font-black tracking-widest ${!q.questions || q.questions.length === 0
+                                                        className={`w-full py-3 rounded-xl flex items-center justify-center gap-3 transition-all text-[10px] font-black tracking-[0.3em] ${!q.questions || q.questions.length === 0
                                                             ? 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
-                                                            : 'bg-white/5 hover:bg-primary hover:text-white border border-white/10 hover:border-transparent active:scale-[0.98]'
+                                                            : 'bg-white/10 hover:bg-primary hover:text-white border border-white/10 hover:border-transparent active:scale-[0.98]'
                                                             }`}
                                                     >
-                                                        <Play size={16} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
+                                                        <Play size={14} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
                                                         {(!q.questions || q.questions.length === 0) ? 'SIN PREGUNTAS' : 'INICIAR JUEGO'}
                                                     </button>
                                                 </div>
