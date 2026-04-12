@@ -178,7 +178,7 @@ export default function Host() {
     )
 
     return (
-        <div className="min-h-screen bg-surface flex flex-col items-center py-20 md:py-32 px-16 md:px-24 relative overflow-hidden font-body text-on-surface">
+        <div className="min-h-screen bg-surface flex flex-col items-center py-8 md:py-32 px-4 md:px-24 relative overflow-hidden font-body text-on-surface">
             {/* Ambient Technical Background */}
             <div className="fixed inset-0 v-grid opacity-20 pointer-events-none" />
 
@@ -193,61 +193,43 @@ export default function Host() {
             </div>
 
             <div className="w-full max-w-7xl space-y-16 relative z-10 pb-20">
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 mb-16 px-16 md:px-24 border-b border-white/5 pb-12">
-                    <div className="text-left space-y-2">
-                        <div className="flex items-center gap-3 text-primary terminal-text">
-                            <Activity size={14} className="animate-pulse" />
-                            <p className="text-[10px] font-black tracking-[0.6em]">Panel de Control // Vivo</p>
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 px-4 md:px-24 border-b border-white/5 pb-8">
+                    <div className="text-left space-y-1">
+                        <div className="flex items-center gap-2 text-primary terminal-text">
+                            <Activity size={12} className="animate-pulse" />
+                            <p className="text-[9px] font-black tracking-[0.4em]">Panel de Control // Vivo</p>
                         </div>
-                        <h1 className="text-4xl font-display font-black text-white tracking-tight uppercase">Anfitrión</h1>
-                        <h2 className="text-2xl font-display font-black leading-tight italic tracking-tighter text-white/60">
+                        <h1 className="text-2xl md:text-4xl font-display font-black text-white tracking-tight uppercase leading-none">Anfitrión</h1>
+                        <h2 className="text-lg md:text-2xl font-display font-black leading-tight italic tracking-tighter text-white/60">
                             {game?.quizzes?.title || 'Sistema_Listo'}
                         </h2>
-                        <div className="flex gap-4 text-[9px] font-mono text-on-surface-variant opacity-30">
-                            <span>ID_PARTIDA: {gameId.slice(0, 8)}</span>
-                            <span>|</span>
-                            <span>ESTADO: CONECTADO</span>
-                        </div>
                     </div>
-                    <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/60 p-6 rounded-xl border border-white/5 backdrop-blur-md">
-                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.5em] opacity-40">Clave de Acceso</p>
-                        <div className="text-primary font-display font-black text-5xl tracking-[0.2em] shadow-lg shadow-primary/10">
+                    <div className="w-full md:w-auto flex flex-row md:flex-col items-center justify-between md:items-end gap-2 bg-surface-lowest/60 p-4 rounded-xl border border-white/5 backdrop-blur-md">
+                        <p className="text-[8px] font-display font-black text-on-surface-variant tracking-[0.3em] opacity-40 uppercase">Clave de Acceso</p>
+                        <div className="text-primary font-display font-black text-3xl md:text-5xl tracking-[0.1em]">
                             {game?.join_code}
                         </div>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-16 md:px-24">
-                    <div className="btn-command p-10 rounded-xl flex flex-col items-center justify-center gap-6 group">
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                            <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] opacity-70">Audiencia Activa</p>
-                        </div>
-                        <p className="text-9xl font-display font-black text-white leading-none tracking-tighter border-b-2 border-white/5 pb-4">
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-10 px-4 md:px-24">
+                    <div className="btn-command p-6 md:p-10 rounded-xl flex flex-col items-center justify-center gap-2 group">
+                        <p className="text-[8px] font-display font-black text-secondary tracking-[0.2em] opacity-70 uppercase">Audiencia</p>
+                        <p className="text-5xl md:text-9xl font-display font-black text-white leading-none tracking-tighter">
                             {players.length}
                         </p>
-                        <div className="flex gap-4 opacity-20 text-[9px] font-mono">
-                            <span>UP_TIME: 00:14:22</span>
-                            <span>LATENCY: 12ms</span>
-                        </div>
                     </div>
 
                     <button
                         onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`btn-command p-10 rounded-xl flex flex-col items-center justify-center gap-6 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-2xl scale-105 shadow-primary/10' : 'border-white/5 opacity-50 grayscale'}`}
+                        className={`btn-command p-6 md:p-10 rounded-xl flex flex-col items-center justify-center gap-2 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/10' : 'border-white/5 opacity-50 grayscale'}`}
                     >
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className={`w-3 h-3 rounded-full ${isAutoPilot ? 'bg-primary animate-ping' : 'bg-white/20'}`} />
-                            <p className={`text-[10px] font-display font-black tracking-[0.4em] ${isAutoPilot ? 'text-primary' : 'text-on-surface-variant'}`}>
-                                {isAutoPilot ? 'PILOTO_AUTOMÁTICO_ON' : 'MODO_MANUAL'}
-                            </p>
-                        </div>
-                        <p className={`text-6xl font-display font-black tracking-tighter ${isAutoPilot ? 'text-white' : 'text-on-surface-variant opacity-20'}`}>
+                        <p className={`text-[8px] font-display font-black tracking-[0.2em] ${isAutoPilot ? 'text-primary' : 'text-on-surface-variant'}`}>
+                            {isAutoPilot ? 'AUTO' : 'MANUAL'}
+                        </p>
+                        <p className={`text-4xl md:text-6xl font-display font-black tracking-tighter ${isAutoPilot ? 'text-white' : 'text-on-surface-variant opacity-20'}`}>
                             {isAutoPilot ? 'ON' : 'OFF'}
                         </p>
-                        <span className={`text-[9px] font-mono opacity-40 tracking-[0.3em] ${isAutoPilot ? 'text-primary' : ''}`}>
-                            {isAutoPilot ? 'SISTEMA IA ACTIVO' : 'ESPERANDO ACCIÓN'}
-                        </span>
                     </button>
                 </div>
 
@@ -256,34 +238,32 @@ export default function Host() {
 
                     <div className="relative z-10">
                         {game?.status === 'waiting' && (
-                            <div className="space-y-16 animate-fade">
-                                <div className="space-y-8">
-                                    <div className="flex items-center justify-start gap-4 mb-2 opacity-40">
-                                        <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em]">Ajustes // Tiempo</p>
-                                        <div className="h-[1px] flex-1 bg-white/10" />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-6">
-                                        {[
-                                            { val: 5, label: 'Turbo', desc: '05s' },
-                                            { val: 10, label: 'Normal', desc: '10s' },
-                                            { val: 20, label: 'Relax', desc: '20s' }
-                                        ].map(t => (
-                                            <button
-                                                key={t.val}
-                                                onClick={() => setSelectedTempo(t.val)}
-                                                className={`p-10 rounded-lg border flex flex-col items-center gap-2 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40 hover:opacity-100 hover:bg-white/5'}`}
-                                            >
-                                                <span className="text-[10px] font-display font-black tracking-[0.4em]">{t.label}</span>
-                                                <span className="text-3xl font-display font-black">{t.desc}</span>
-                                            </button>
-                                        ))}
-                                    </div>
+                            <div className="space-y-8 animate-fade">
+                                <div className="flex items-center justify-start gap-4 mb-2 opacity-40">
+                                    <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em]">Ajustes // Tiempo</p>
+                                    <div className="h-[1px] flex-1 bg-white/10" />
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 md:gap-6">
+                                    {[
+                                        { val: 5, label: 'Turbo', desc: '05s' },
+                                        { val: 10, label: 'Normal', desc: '10s' },
+                                        { val: 20, label: 'Relax', desc: '20s' }
+                                    ].map(t => (
+                                        <button
+                                            key={t.val}
+                                            onClick={() => setSelectedTempo(t.val)}
+                                            className={`p-4 md:p-10 rounded-lg border flex flex-col items-center gap-1 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40'}`}
+                                        >
+                                            <span className="text-[8px] md:text-[10px] font-display font-black tracking-[0.2em] uppercase">{t.label}</span>
+                                            <span className="text-xl md:text-3xl font-display font-black">{t.desc}</span>
+                                        </button>
+                                    ))}
                                 </div>
                                 <button
                                     onClick={handleNext}
-                                    className="w-full bg-primary py-10 rounded-lg text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-8 group italic"
+                                    className="w-full bg-primary py-6 md:py-10 rounded-xl text-xl md:text-3xl font-display font-black text-surface tracking-[0.2em] shadow-2xl transition-all active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-4 group italic"
                                 >
-                                    <Play size={40} fill="currentColor" />
+                                    <Play size={24} fill="currentColor" />
                                     <span>Iniciar Juego</span>
                                 </button>
                             </div>

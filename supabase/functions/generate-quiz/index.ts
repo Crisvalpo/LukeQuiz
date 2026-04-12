@@ -8,16 +8,19 @@ Deno.serve(async (req: Request) => {
 
     try {
         const bodyText = await req.text();
-        const { topic, count } = JSON.parse(bodyText);
+        const { topic, description, count } = JSON.parse(bodyText);
         const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
         if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY no encontrada');
 
         const prompt = `ACTÚA COMO UN API DE DATOS. 
-        GENERAR CUESTIONARIO SOBRE: "${topic}". 
-        CANTIDAD DE PREGUNTAS: ${count}. 
+        TEMA PRINCIPAL: "${topic}". 
+        CONTEXTO ADICIONAL: "${description || 'No se proporcionó contexto extra'}".
+        CANTIDAD DE PREGUNTAS: ${count || 5}. 
         IDIOMA: ESPAÑOL.
-        REGLA CRÍTICA: RESPONDE ÚNICAMENTE CON UN ARRAY JSON. SIN SALUDOS, SIN COMENTARIOS.
+        REGLA CRÍTICA 1: RESPONDE ÚNICAMENTE CON UN ARRAY JSON. SIN SALUDOS, SIN COMENTARIOS.
+        REGLA CRÍTICA 2: Las preguntas deben ser EXTREMADAMENTE CORTAS (MÁXIMO 12 PALABRAS). Este es un concurso de TV rápido, no un examen escrito.
+        REGLA CRÍTICA 3: Las opciones DEBEN ser de una o dos palabras máximo.
         FORMATO: [{"text": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_option": "A", "image_url": "", "keyword": "..."}]`;
 
         const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];

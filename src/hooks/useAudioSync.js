@@ -5,15 +5,17 @@ import { toast } from 'sonner';
 export function useAudioSync(quizId) {
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const generateAudio = async (question) => {
+    const generateAudio = async (question, targetQuizId = null) => {
         if (!question.text) {
             toast.error('La pregunta no tiene texto');
             return null;
         }
 
+        const activeId = targetQuizId || quizId;
+
         try {
             const { data, error } = await supabase.functions.invoke('generate-tts', {
-                body: { text: question.text, questionId: question.id, quizId }
+                body: { text: question.text, questionId: question.id, quizId: activeId }
             });
 
             if (error || data?.error_code) {
@@ -33,9 +35,10 @@ export function useAudioSync(quizId) {
         }
     };
 
-    const removeAudio = async (questionId) => {
+    const removeAudio = async (questionId, targetQuizId = null) => {
         if (!questionId) return;
-        const fileName = `${quizId}/${questionId}.mp3`;
+        const activeId = targetQuizId || quizId;
+        const fileName = `${activeId}/${questionId}.mp3`;
         const { error } = await supabase.storage.from('quiz-audio').remove([fileName]);
         if (error) console.error('Error removing audio from storage:', error);
     };

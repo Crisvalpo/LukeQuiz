@@ -5,7 +5,7 @@ import {
     ArrowLeft, Save, Plus, Trash2, Volume2, ImageIcon,
     Sparkles, Loader2, ChevronLeft, ChevronRight, CheckCircle2,
     FileText, X, FileQuestion, MessageSquare, Layout, Search, Link as LinkIcon,
-    Wand2
+    Wand2, Play, RefreshCcw, Mic2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAudioSync } from '../hooks/useAudioSync'
@@ -91,7 +91,7 @@ export default function EditQuiz() {
             setQuiz(qData)
             if (qData) setAiTopic(qData.title) // Pre-cargar tema con el título del quiz
             if (qsData && qsData.length > 0) {
-                setQuestions(qsData.map(q => ({ ...q, last_tts_text: q.text })))
+                setQuestions(qsData.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
             } else {
                 addNewQuestion()
             }
@@ -114,7 +114,8 @@ export default function EditQuiz() {
     const addNewQuestion = () => {
         setIsDirty(true)
         const newQ = {
-            quiz_id: quizId,
+            id: 'temp-' + crypto.randomUUID(),
+            quiz_id: quizId === 'new' ? null : quizId,
             text: '¿  ?',
             option_a: '',
             option_b: '',
@@ -142,7 +143,7 @@ export default function EditQuiz() {
         const q = questions[currentIdx]
 
         setIsDirty(true)
-        if (q.id) {
+        if (q.id && !String(q.id).startsWith('temp-')) {
             // Limpia el audio antes de borrar el registro (Garantiza mantenimiento)
             if (q.audio_url) await removeAudio(q.id)
 
@@ -157,7 +158,7 @@ export default function EditQuiz() {
     }
 
     const handleGenerateTTS = async (question) => {
-        if (!question.id) return toast.error('Guarda la pregunta antes de generar el audio')
+        if (!question.id || String(question.id).startsWith('temp-')) return toast.error('Guarda la pregunta antes de generar el audio')
         const url = await generateAudio(question)
         if (url) {
             updateQuestion(currentIdx, { audio_url: url, last_tts_text: question.text })
@@ -165,7 +166,7 @@ export default function EditQuiz() {
     }
 
     const handleGenerateAllTTS = async () => {
-        const toProcess = questions.filter(q => q.id && (!q.audio_url || q.text !== q.last_tts_text))
+        const toProcess = questions.filter(q => q.id && !String(q.id).startsWith('temp-') && (!q.audio_url || q.text !== q.last_tts_text))
         if (toProcess.length === 0) return toast.success('Todo el contenido ya tiene audio')
 
         const results = await generateBatch(toProcess)
@@ -186,12 +187,13 @@ export default function EditQuiz() {
             // 1. Guardar/Actualizar Quiz
             if (quizId === 'new') {
                 const { data, error } = await supabase.from('quizzes').insert({
-                    title: quiz.title || 'Nueva Trivia',
-                    description: quiz.description
+                    title: quiz.title || 'Sin título',
+                    description: quiz.description || ''
                 }).select().single()
                 if (error) throw error
                 currentQuizId = data.id
-                setQuiz(data)
+                // Actualizamos la URL sin recargar para no perder el estado
+                window.history.replaceState(null, '', `/edit/${data.id}`)
             } else {
                 const { error } = await supabase.from('quizzes').update({
                     title: quiz.title,
@@ -204,17 +206,36 @@ export default function EditQuiz() {
             const nextQuestions = [...questions]
             for (let i = 0; i < nextQuestions.length; i++) {
                 const q = nextQuestions[i]
-                const { last_tts_text, created_at, ...dbData } = q
-                dbData.quiz_id = currentQuizId // Asegurar relación
 
-                if (q.id) {
-                    const { id, ...updateData } = dbData
-                    const { error } = await supabase.from('questions').update(updateData).eq('id', q.id)
+                // Sanitizar para el esquema de la DB (Solo las columnas que existen en la tabla)
+                const dbData = {
+                    quiz_id: currentQuizId,
+                    text: q.text || '',
+                    option_a: q.option_a || '',
+                    option_b: q.option_b || '',
+                    option_c: q.option_c || '',
+                    option_d: q.option_d || '',
+                    correct_option: q.correct_option || 'A',
+                    time_limit: q.time_limit || 10,
+                    order_index: i,
+                    image_url: q.image_url || '',
+                    audio_url: q.audio_url || '',
+                    last_tts_text: q.last_tts_text || '',
+                    is_cover: q.is_cover || false
+                }
+
+                // Si el ID no existe o empieza con 'temp-', es una pregunta nueva
+                const isNew = !q.id || String(q.id).startsWith('temp-')
+
+                if (!isNew) {
+                    // Actualizar existente (dbData no incluye id, usamos q.id en el eq)
+                    const { error } = await supabase.from('questions').update(dbData).eq('id', q.id)
                     if (error) throw error
                 } else {
+                    // Insertar nueva (borramos ID temporal si lo tiene, para que Supabase genere el real)
                     const { data, error } = await supabase.from('questions').insert(dbData).select().single()
                     if (error) throw error
-                    if (data) nextQuestions[i] = { ...data, last_tts_text: '' }
+                    if (data) nextQuestions[i] = { ...data, last_tts_text: data.last_tts_text || '' }
                 }
             }
 
@@ -234,22 +255,61 @@ export default function EditQuiz() {
         }
     }
 
+    const handleIndividualTTS = async (idx) => {
+        const q = questions[idx];
+        if (!q.text || q.text === '¿  ?') return toast.error('Ingresa texto válido');
+        if (String(q.id).startsWith('temp-')) return toast.error('Guarda la pregunta antes de generar el audio');
+
+        setLoading(true);
+        const url = await generateAudio(q);
+        if (url) {
+            updateQuestion(idx, { audio_url: url, last_tts_text: q.text });
+        }
+        setLoading(false);
+    };
+
     const handleAiGenerate = async () => {
         if (!aiTopic.trim()) return toast.error('Ingresa un tema para la IA')
 
         setLoading(true)
         const tid = toast.loading('Consultando oráculo de la IA...')
         try {
+            // 1. Si es un quiz nuevo, necesitamos un ID real PARA EL AUDIO (evitar carpeta /new/)
+            let activeQuizId = quizId;
+            if (quizId === 'new') {
+                const { data: nQuiz, error: nErr } = await supabase.from('quizzes').insert({
+                    title: quiz.title || 'Nuevo Quiz IA',
+                    description: quiz.description || ''
+                }).select().single();
+                if (nErr) throw nErr;
+                activeQuizId = nQuiz.id;
+                window.history.replaceState(null, '', `/edit/${nQuiz.id}`);
+                // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
+            }
+
             const { data, error } = await supabase.functions.invoke('generate-quiz', {
-                body: { topic: aiTopic, count: aiCount }
+                body: {
+                    topic: aiTopic,
+                    description: quiz.description,
+                    count: aiCount
+                }
             })
             if (error) throw error
 
+            // Limpiar marcador de posición si es el único y está vacío
+            const baseQuestions = (questions.length === 1 && (questions[0].text === '¿  ?' || !questions[0].text.trim())) ? [] : questions;
+
             const newQuestions = data.map((q, i) => ({
-                ...q,
-                id: crypto.randomUUID(), // Usar ID temporal compatible con TTS
-                quiz_id: quizId,
-                order_index: questions.length + i,
+                text: q.text || 'Sin título',
+                option_a: q.option_a || '',
+                option_b: q.option_b || '',
+                option_c: q.option_c || '',
+                option_d: q.option_d || '',
+                correct_option: q.correct_option || 'A',
+                image_url: q.image_url || '',
+                id: 'temp-' + crypto.randomUUID(),
+                quiz_id: activeQuizId,
+                order_index: baseQuestions.length + i,
                 audio_url: '',
                 last_tts_text: q.text
             }))
@@ -258,7 +318,7 @@ export default function EditQuiz() {
                 toast.loading('Generando voces neuronales...', { id: tid })
                 for (let i = 0; i < newQuestions.length; i++) {
                     try {
-                        const url = await generateAudio(newQuestions[i])
+                        const url = await generateAudio(newQuestions[i], activeQuizId)
                         newQuestions[i].audio_url = url
                     } catch (e) {
                         console.error(`Error TTS en pregunta ${i}:`, e)
@@ -266,9 +326,10 @@ export default function EditQuiz() {
                 }
             }
 
-            setQuestions([...questions, ...newQuestions])
+            setQuestions([...baseQuestions, ...newQuestions])
             setIsDirty(true)
             setShowAiPanel(false)
+            setCurrentIdx(0) // Ir a la primera pregunta generada
             toast.success(`Protocolo completado: ${newQuestions.length} nuevas preguntas integradas`, { id: tid })
         } catch (e) {
             toast.error('Error IA: ' + e.message, { id: tid })
@@ -481,6 +542,9 @@ export default function EditQuiz() {
                                     return;
                                 }
 
+                                // Limpiar marcador de posición si es el único y está vacío
+                                const baseQuestions = (questions.length === 1 && (questions[0].text === '¿  ?' || !questions[0].text.trim())) ? [] : questions;
+
                                 const newQs = lines.map((l, i) => {
                                     const parts = l.split('|').map(s => s.trim());
                                     const [t, a, b, c, d, corr, img] = parts;
@@ -492,6 +556,7 @@ export default function EditQuiz() {
                                     }
 
                                     return {
+                                        id: 'temp-' + crypto.randomUUID(),
                                         quiz_id: quizId,
                                         text: t || 'Nueva Pregunta',
                                         option_a: a || '',
@@ -500,12 +565,13 @@ export default function EditQuiz() {
                                         option_d: d || '',
                                         correct_option: cleanCorr,
                                         image_url: img || '',
-                                        order_index: questions.length + i
+                                        order_index: baseQuestions.length + i
                                     };
                                 });
 
-                                setQuestions([...questions, ...newQs]);
+                                setQuestions([...baseQuestions, ...newQs]);
                                 setShowBulk(false);
+                                setCurrentIdx(0);
                                 setBulkText('');
                                 toast.success(`${newQs.length} preguntas importadas con éxito`);
                             }}
@@ -531,6 +597,52 @@ export default function EditQuiz() {
                                         placeholder="Escribe la pregunta aquí..."
                                         rows={3}
                                     />
+                                </div>
+
+                                {/* TTS Engine 2.0 - Control de Sincronización */}
+                                <div className="flex items-center justify-between p-3 bg-surface-lowest/60 rounded-2xl border border-white/5 backdrop-blur-md">
+                                    <div className="flex items-center gap-3">
+                                        {!q.audio_url ? (
+                                            <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 rounded-full border border-red-500/20">
+                                                <Mic2 size={12} className="text-red-500" />
+                                                <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Sin Audio</span>
+                                            </div>
+                                        ) : q.text !== q.last_tts_text ? (
+                                            <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/10 rounded-full border border-orange-500/20">
+                                                <RefreshCcw size={12} className="text-orange-500 animate-pulse" />
+                                                <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Desactualizado</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
+                                                <Volume2 size={12} className="text-green-500" />
+                                                <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Sincronizado</span>
+                                            </div>
+                                        )}
+                                        <span className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] hidden md:block">TTS Engine 2.0</span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        {q.audio_url && (
+                                            <button
+                                                onClick={() => new Audio(q.audio_url).play()}
+                                                className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-all flex items-center justify-center"
+                                                title="Probar sonido"
+                                            >
+                                                <Play size={16} fill="currentColor" />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => handleIndividualTTS(currentIdx)}
+                                            disabled={loading || (q.audio_url && q.text === q.last_tts_text)}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${q.audio_url && q.text === q.last_tts_text
+                                                ? 'bg-white/5 text-white/20 cursor-not-allowed'
+                                                : 'bg-secondary text-on-secondary hover:bg-secondary/80 active:scale-95'
+                                                }`}
+                                        >
+                                            <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
+                                            {q.audio_url && q.text !== q.last_tts_text ? "RE-VINCULAR" : "VINCULAR VOZ"}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-2 mt-4">

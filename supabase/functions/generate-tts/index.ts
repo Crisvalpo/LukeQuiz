@@ -83,11 +83,13 @@ serve(async (req) => {
         if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`)
 
         // 4. Actualizar Contador y Retornar URL
+        const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
         await supabase.rpc('increment_tts_usage', {
             month_id: currentMonth,
             char_count: text.length,
-            q_id: questionId,
-            qz_id: quizId
+            q_id: isUUID(String(questionId)) ? questionId : null,
+            qz_id: isUUID(String(quizId)) ? quizId : null
         })
 
         const { data: { publicUrl } } = supabase.storage
