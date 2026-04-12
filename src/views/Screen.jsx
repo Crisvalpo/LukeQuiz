@@ -177,7 +177,7 @@ export default function Screen() {
             {game?.status === 'question' && (
                 <div className="fixed top-0 left-0 w-full h-[2px] z-[100] bg-white/5 overflow-hidden">
                     <div
-                        className="h-full bg-gradient-to-r from-primary via-secondary to-primary transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(236,72,153,0.5)]"
+                        className="h-full bg-gradient-to-r from-primary via-secondary to-primary transition-all duration-1000 ease-linear shadow-lg shadow-primary/30"
                         style={{ width: `${(timeLeft / (game.settings?.tempo || 10)) * 100}%` }}
                     />
                 </div>
@@ -189,18 +189,18 @@ export default function Screen() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary blur-[150px] animate-pulse" style={{ animationDelay: '2s' }} />
             </div>
 
-            <header className="px-12 py-2 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface-lowest/60 backdrop-blur-xl">
+            <header className="px-16 md:px-24 py-12 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface-lowest/60 backdrop-blur-xl">
                 <div className="flex items-center gap-12">
                     <h1 className="text-3xl font-display font-black tracking-tighter text-white italic leading-none">
                         LUKE<span className="text-primary">QUIZ</span>
                     </h1>
                     <div className="flex items-center gap-8 border-l border-white/10 pl-8">
-                        <div className="flex items-center gap-3 bg-secondary/10 px-6 py-2 rounded-md border border-secondary/20">
+                        <div className="flex items-center gap-3 bg-secondary/10 px-6 py-2 rounded-xl border border-secondary/20">
                             <Users size={16} className="text-secondary" />
                             <p className="text-xl font-display font-black text-secondary">{players.length}</p>
                         </div>
                         {game?.status === 'waiting' && (
-                            <div className="bg-primary/10 border border-primary/20 px-8 py-2 rounded-lg text-primary font-display font-black text-4xl tracking-[0.3em]">
+                            <div className="bg-primary/10 border border-primary/20 px-8 py-2 rounded-2xl text-primary font-display font-black text-4xl tracking-[0.3em]">
                                 {game?.join_code}
                             </div>
                         )}
@@ -213,36 +213,36 @@ export default function Screen() {
 
             <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
                 {game?.status === 'waiting' && (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-12 relative overflow-hidden p-12 v-grid">
+                    <div className="flex-1 flex flex-col items-center justify-center gap-12 relative overflow-hidden p-20 md:p-32 v-grid">
 
                         {/* Technical Player Grid */}
                         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
                             {/* Decorative background grid lines could go here */}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-20 items-center w-full max-w-7xl relative z-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center w-full max-w-7xl relative z-10 px-12 md:px-20">
                             <div className="text-left space-y-8">
                                 <div className="space-y-2">
-                                    <p className="text-xs font-display font-bold text-primary tracking-[0.8em] italic opacity-60">Interfaz de Juego</p>
-                                    <p className="text-[9px] font-display font-black tracking-[0.6em]">LukeQuiz 3.0 // Portal de Juego</p>
-                                    <h1 className="text-8xl font-display font-black leading-[0.85] italic text-white tracking-tighter">
-                                        Ingresar al<br />
-                                        <span className="text-primary">Juego</span>
+                                    <p className="text-[10px] font-display font-black text-primary/60 tracking-[0.5em] uppercase">Interfaz de Juego</p>
+                                    <p className="text-[9px] font-display font-black tracking-[0.6em] text-white/40 uppercase">LukeQuiz 3.0 // Portal de Juego</p>
+                                    <h1 className="text-5xl font-display font-black leading-tight text-white tracking-tight">
+                                        Ingresar al <br />
+                                        <span className="text-primary tracking-normal">Juego</span>
                                     </h1>
                                 </div>
                                 <p className="text-xl text-on-surface-variant font-mono font-medium tracking-[0.2em] opacity-40">
                                     Estableciendo conexión... <br /> Escanea para entrar al juego
                                 </p>
-                                <div className="bg-white/[0.03] p-10 rounded-xl border border-white/10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
+                                <div className="bg-white/[0.03] p-8 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
                                     <div className="absolute top-0 left-0 w-full h-[1px] bg-primary/40 scan-line animate-scan" />
                                     <QRCodeSVG value={joinUrl} size={300} bgColor="white" fgColor="#0b0118" includeMargin={true} />
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-8">
-                                <div className="bg-surface-lowest/80 p-16 rounded-xl text-center border border-white/10 backdrop-blur-3xl relative">
-                                    <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] mb-8 opacity-60">Jugadores Conectados</p>
-                                    <div className="text-[12rem] font-display font-black leading-none text-white tracking-tighter neon-glow-primary">
+                                <div className="bg-surface-lowest/80 p-12 rounded-2xl text-center border border-white/10 backdrop-blur-3xl relative">
+                                    <p className="text-[10px] font-display font-black text-primary tracking-[0.4em] mb-8 opacity-60 text-center">JUGADORES</p>
+                                    <div className="text-[10rem] font-display font-black leading-none text-white tracking-tight">
                                         {players.length}
                                     </div>
                                     <div className="mt-12 flex flex-wrap justify-center gap-3">
@@ -273,7 +273,7 @@ export default function Screen() {
                             </button>
                         )}
                         {/* Sidebar */}
-                        <aside className="w-1/4 bg-surface-lowest/80 backdrop-blur-2xl flex flex-col h-full p-10 border-r border-white/5 shadow-2xl">
+                        <aside className="w-1/4 bg-surface-lowest/80 backdrop-blur-2xl flex flex-col h-full p-12 border-r border-white/5 shadow-2xl">
                             <div className="flex items-center gap-3 mt-4">
                                 <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
                                 <p className="text-[10px] font-display font-black text-secondary tracking-[0.6em] uppercase italic">Clasificación Actual</p>
@@ -284,7 +284,7 @@ export default function Screen() {
                                     {players.sort((a, b) => b.score - a.score).map((p, i) => (
                                         <div
                                             key={p.id}
-                                            className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-500 border-l ${i === 0 ? 'bg-primary/10 border-primary' : 'bg-white/[0.03] border-white/5'}`}
+                                            className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-500 border-l ${i === 0 ? 'bg-primary/10 border-primary' : 'bg-white/5 border-white/5'}`}
                                         >
                                             <div className="w-8 h-8 rounded-md flex items-center justify-center font-display font-black text-[10px] bg-black/40 text-white/50 border border-white/5">
                                                 {String(i + 1).padStart(2, '0')}
@@ -305,7 +305,7 @@ export default function Screen() {
                             </div>
                             <div className="h-1 w-full bg-white/5 rounded-none overflow-hidden">
                                 <div
-                                    className="h-full bg-primary transition-all duration-1000 shadow-[0_0_15px_rgba(236,72,153,0.5)]"
+                                    className="h-full bg-primary transition-all duration-1000 shadow-lg shadow-primary/30"
                                     style={{ width: `${(answers.length / (players.length || 1)) * 100}%` }}
                                 />
                             </div>
@@ -318,7 +318,7 @@ export default function Screen() {
                             <div className="flex items-start gap-12 relative z-10 w-full">
                                 <div className="flex-1 space-y-2">
                                     <p className="text-[10px] font-display font-black text-secondary tracking-[0.8em] uppercase italic opacity-40">Control de Juego // Pregunta Actual</p>
-                                    <h2 className="text-6xl font-display font-black leading-[0.95] tracking-tighter text-white italic drop-shadow-2xl">
+                                    <h2 className="text-4xl font-display font-black leading-tight tracking-tight text-white">
                                         {currentQuestion.text}
                                     </h2>
                                 </div>
@@ -326,7 +326,7 @@ export default function Screen() {
 
                             <div className="flex-1 flex flex-col gap-10 min-h-0 relative z-10">
                                 <div className="flex-1 flex justify-center items-center min-h-0 py-2">
-                                    <div className="h-full max-h-[25vh] w-fit bg-black/40 rounded-xl overflow-hidden border border-white/10 shadow-2xl relative group mx-auto">
+                                    <div className="h-full max-h-[25vh] w-fit bg-black/40 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group mx-auto">
                                         <img
                                             src={currentQuestion.image_url || PLACEHOLDER_URL}
                                             alt="Pregunta"
@@ -341,7 +341,7 @@ export default function Screen() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 pb-10">
+                                <div className="grid grid-cols-2 gap-8 pb-10">
                                     {[
                                         { id: 'A', icon: 'A', label: currentQuestion.option_a },
                                         { id: 'B', icon: 'B', label: currentQuestion.option_b },
@@ -356,7 +356,7 @@ export default function Screen() {
                                         return (
                                             <div
                                                 key={opt.id}
-                                                className={`option-card-premium option-${opt.id} px-10 rounded-lg transition-all duration-500 flex items-center h-full min-h-[90px] border border-white/5 relative overflow-hidden ${showResults ? (isCorrect ? 'scale-[1.05] border-4 border-success neon-glow-success z-20 shadow-[0_0_60px_rgba(128,255,128,0.4)]' : 'opacity-10 grayscale blur-[2px] scale-95') : 'hover:scale-[1.02]'}`}
+                                                className={`option-card-premium option-${opt.id} px-10 rounded-xl transition-all duration-500 flex items-center h-full min-h-[90px] border border-white/5 relative overflow-hidden ${showResults ? (isCorrect ? 'scale-[1.05] border-2 border-success z-20 shadow-2xl shadow-success/40' : 'opacity-10 grayscale blur-[2px] scale-95') : 'hover:scale-[1.02]'}`}
                                             >
                                                 {/* Progress Bar Background on Results */}
                                                 {showResults && (
@@ -397,9 +397,9 @@ export default function Screen() {
                                     <p className="text-xs font-display font-bold text-primary tracking-[1em] uppercase italic">Podio de Ganadores</p>
                                     <div className="h-[1px] w-20 bg-primary/40" />
                                 </div>
-                                <h2 className="text-[9.5rem] font-display font-black italic tracking-tighter leading-[0.8] uppercase text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                                    JUEGO<br />
-                                    <span className="text-primary">FINALIZADO</span>
+                                <h2 className="text-7xl font-display font-black tracking-tight leading-none text-white uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                    Juego<br />
+                                    <span className="text-primary">Finalizado</span>
                                 </h2>
                             </div>
 
@@ -425,7 +425,7 @@ export default function Screen() {
                                             <span className="text-8xl animate-float drop-shadow-[0_0_30px_rgba(236,72,153,0.4)]">{players[0].emoji}</span>
                                             <div className="bg-primary px-4 py-1.5 rounded-sm text-[10px] font-black text-surface uppercase tracking-[0.4em] italic shadow-[0_0_20px_rgba(236,72,153,0.5)]">CAMPEÓN</div>
                                         </div>
-                                        <div className="bg-primary/10 border border-primary/30 w-full h-[320px] rounded-xl flex flex-col items-center p-8 shadow-[0_0_100px_rgba(236,72,153,0.1)] relative overflow-hidden">
+                                        <div className="bg-primary/10 border border-primary/30 w-full h-[320px] rounded-2xl flex flex-col items-center p-8 shadow-2xl relative overflow-hidden">
                                             <div className="absolute top-0 left-0 w-full h-[4px] bg-primary animate-pulse" />
                                             <div className="scan-line absolute top-0 left-0 animate-scan opacity-20" />
                                             <span className="font-display font-black truncate w-full text-4xl uppercase text-primary mb-2">{players[0].nickname}</span>
@@ -441,7 +441,7 @@ export default function Screen() {
                                             <span className="text-5xl animate-float" style={{ animationDelay: '1s' }}>{players[2].emoji}</span>
                                             <div className="bg-white/10 px-3 py-1 rounded-sm border border-white/20 text-[8px] font-black text-white uppercase tracking-widest">TERCER PUESTO</div>
                                         </div>
-                                        <div className="bg-surface-lowest/80 border border-white/5 w-full h-[140px] rounded-xl flex flex-col items-center p-6 shadow-2xl relative overflow-hidden group">
+                                        <div className="bg-surface-lowest/80 border border-white/5 w-full h-[140px] rounded-2xl flex flex-col items-center p-6 shadow-2xl relative overflow-hidden group">
                                             <div className="absolute top-0 left-0 w-full h-[2px] bg-white opacity-20" />
                                             <span className="font-display font-black truncate w-full text-lg uppercase text-white/50">{players[2].nickname}</span>
                                             <p className="text-[4rem] font-display font-black text-white/10 absolute -bottom-4 -right-4 italic tracking-tighter">03</p>
@@ -454,7 +454,7 @@ export default function Screen() {
                 }
             </main >
 
-            <footer className="px-12 py-8 text-center text-on-surface-variant/20 text-[10px] font-display font-black tracking-[0.6em] uppercase relative z-20 border-t border-white/5 bg-black/20">
+            <footer className="px-12 py-10 text-center text-on-surface-variant/20 text-[10px] font-display font-black tracking-[0.6em] uppercase relative z-20 border-t border-white/5 bg-black/20">
                 Estado: Sincronizado | Conexión en tiempo real | LukeQuiz v2.0
             </footer>
 

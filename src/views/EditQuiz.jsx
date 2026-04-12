@@ -161,13 +161,13 @@ export default function EditQuiz() {
     const q = questions[currentIdx]
 
     return (
-        <div className="h-screen bg-[#050505] text-white font-sans overflow-hidden flex flex-col relative">
-            <header className="fixed top-0 left-0 right-0 h-20 bg-black/80 backdrop-blur-md border-b border-white/10 px-8 flex items-center justify-between z-50">
+        <div className="h-screen bg-surface-lowest text-white font-sans overflow-hidden flex flex-col relative p-12 md:p-16">
+            <header className="fixed top-20 left-20 right-20 h-28 bg-black/80 backdrop-blur-md border border-white/10 px-20 md:px-32 flex items-center justify-between z-50 rounded-3xl shadow-2xl">
                 <div className="flex items-center gap-6">
                     <button onClick={() => navigate('/')} className="p-3 hover:bg-white/10 rounded-full transition-all"><ArrowLeft size={24} /></button>
-                    <div>
-                        <h1 className="text-xl font-black uppercase tracking-widest">{quiz?.title || 'EDITOR'}</h1>
-                        <p className="text-[10px] font-bold text-white/30 tracking-widest uppercase">{quiz?.category} • EDITOR DE PREGUNTAS</p>
+                    <div className="flex flex-col">
+                        <p className="text-[10px] font-display font-black tracking-[0.6em] text-primary/40 uppercase">Maestro Editor</p>
+                        <h1 className="text-xl font-display font-black text-white italic tracking-tight leading-none uppercase">{quiz?.title || 'Sin Título'}</h1>
                     </div>
                 </div>
 
@@ -192,9 +192,9 @@ export default function EditQuiz() {
                 </div>
             </header>
 
-            <main className="h-full pt-20 pb-28 px-8 flex flex-col items-center justify-center overflow-hidden relative">
+            <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-40 pb-40">
                 {showAiPanel && (
-                    <div className="absolute top-4 inset-x-8 z-[60] bg-[#0f0f0f] border border-pink-500/30 p-8 rounded-xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto">
+                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-primary/30 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-sm font-black text-pink-500 uppercase tracking-widest flex items-center gap-2"><Sparkles size={18} /> GENERADOR IA</h3>
                             <button onClick={() => setShowAiPanel(false)}><X size={20} className="opacity-40 hover:opacity-100" /></button>
@@ -205,7 +205,7 @@ export default function EditQuiz() {
                 )}
 
                 {showBulk && (
-                    <div className="absolute top-4 inset-x-8 z-[60] bg-[#0f0f0f] border border-white/10 p-8 rounded-xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto">
+                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-white/10 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2"><FileText size={18} /> IMPORTACIÓN MASIVA</h3>
                             <button onClick={() => setShowBulk(false)}><X size={20} className="opacity-40 hover:opacity-100" /></button>
@@ -227,10 +227,10 @@ export default function EditQuiz() {
                     </div>
                 )}
 
-                <div className="w-full max-w-7xl mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-visible px-12">
+                <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-visible px-24 md:px-48">
                     {questions.length > 0 && q ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center flex-1 overflow-hidden">
-                            <div className="lg:col-span-1 space-y-8 bg-white/5 p-12 rounded-[40px] border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.5)] backdrop-blur-xl relative z-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center flex-1 overflow-hidden h-full">
+                            <div className="lg:col-span-1 space-y-12 bg-white/5 p-16 lg:p-24 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center min-h-[500px]">
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <label className="text-[10px] font-black text-pink-500 tracking-[0.3em] uppercase">TEXTO DE LA PREGUNTA</label>
@@ -268,9 +268,9 @@ export default function EditQuiz() {
                                     <textarea
                                         value={q.text}
                                         onChange={(e) => updateQuestion(currentIdx, { text: e.target.value })}
-                                        className="w-full bg-transparent text-4xl font-black focus:outline-none resize-none placeholder:opacity-10 leading-tight transition-all"
+                                        className="w-full bg-transparent text-5xl font-black focus:outline-none resize-none placeholder:opacity-10 leading-tight transition-all"
                                         placeholder="Escribe la pregunta aquí..."
-                                        rows={3}
+                                        rows={5}
                                     />
                                 </div>
 
@@ -297,7 +297,7 @@ export default function EditQuiz() {
 
                             {/* Media & Herramientas */}
                             <div className="lg:col-span-1 h-full flex flex-col gap-6 py-6 overflow-hidden">
-                                <div className="flex-1 bg-black/40 rounded-[40px] border border-white/5 flex items-center justify-center overflow-hidden relative group">
+                                <div className="flex-1 bg-surface-lowest/40 rounded-4xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
                                     <div className="absolute top-6 left-6 z-20">
                                         <span className="text-[10px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 border border-cyan-400/20 px-4 py-2 rounded-full uppercase">VISTA PREVIA</span>
                                     </div>
@@ -310,7 +310,7 @@ export default function EditQuiz() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="space-y-4 bg-white/5 p-8 rounded-[40px] border border-white/5">
+                                <div className="space-y-4 bg-white/5 p-8 rounded-4xl border border-white/5">
                                     <div className="flex items-center gap-3">
                                         <div className="p-3 bg-cyan-400/10 rounded-xl text-cyan-400"><ImageIcon size={20} /></div>
                                         <input
@@ -327,6 +327,12 @@ export default function EditQuiz() {
                     ) : (
                         <div className="max-w-5xl mx-auto">
                             <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <div className="flex items-center gap-8 border-l border-white/10 pl-8">
+                                    <div className="flex flex-col">
+                                        <p className="text-[9px] font-display font-black tracking-[0.6em] text-primary/40 uppercase">Maestro Editor</p>
+                                        <h2 className="text-xl font-display font-black text-white italic tracking-tight leading-none uppercase">Configuración</h2>
+                                    </div>
+                                </div>
                                 <h2 className="text-5xl font-black text-white italic tracking-tighter mb-4">
                                     Configurar<span className="text-primary not-italic">Trivia</span>
                                 </h2>
@@ -337,7 +343,7 @@ export default function EditQuiz() {
                                 {/* Opción 1: Manual */}
                                 <button
                                     onClick={addNewQuestion}
-                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
                                 >
                                     <div className="absolute top-6 right-6">
                                         <span className="text-[9px] font-black px-3 py-1 rounded-full bg-white/5 text-white/40 border border-white/10 tracking-widest">MANUAL</span>
@@ -354,7 +360,7 @@ export default function EditQuiz() {
                                 {/* Opción 2: Masiva */}
                                 <button
                                     onClick={() => setShowBulk(true)}
-                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
                                 >
                                     <div className="absolute top-6 right-6">
                                         <span className="text-[9px] font-black px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 tracking-widest uppercase">Prompt IA</span>
@@ -371,7 +377,7 @@ export default function EditQuiz() {
                                 {/* Opción 3: Generar con IA */}
                                 <button
                                     onClick={() => setShowAiPanel(true)}
-                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-primary/20 rounded-[2rem] p-10 flex flex-col items-center text-center gap-6 hover:bg-primary/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(236,72,153,0.1)]"
+                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-primary/20 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-primary/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl shadow-primary/10"
                                 >
                                     <div className="absolute top-6 right-6">
                                         <span className="text-[9px] font-black px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 tracking-widest uppercase animate-pulse">IA GENERADOR</span>
@@ -388,7 +394,7 @@ export default function EditQuiz() {
                         </div>
                     )}
                 </div>
-            </main>
+            </main >
 
             <footer className="fixed bottom-0 left-0 right-0 h-28 bg-black/90 backdrop-blur-xl border-t border-white/10 px-8 z-50">
                 <div className="max-w-[1600px] mx-auto w-full h-full flex items-center justify-between gap-8">
@@ -446,6 +452,6 @@ export default function EditQuiz() {
                     </div>
                 </div>
             </footer>
-        </div>
+        </div >
     )
 }

@@ -152,17 +152,17 @@ export default function Join() {
 
     if (joined) {
         return (
-            <div className="min-h-screen bg-background flex flex-col p-6 font-body text-on-surface relative overflow-hidden v-grid">
+            <div className="min-h-screen bg-background flex flex-col p-12 font-body text-on-surface relative overflow-hidden v-grid">
                 {/* Atmosphere */}
                 <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-5">
                     <div className="absolute top-[10%] left-[-5%] w-[40%] h-[40%] bg-primary rounded-full blur-[100px]" />
                     <div className="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-secondary rounded-full blur-[100px]" />
                 </div>
 
-                <div className="relative z-10 flex-1 flex flex-col max-w-lg mx-auto w-full pt-12">
+                <div className="relative z-10 flex-1 flex flex-col max-w-lg mx-auto w-full pt-16">
                     {(!game || game.status === 'waiting') && (
-                        <div className="flex-1 flex flex-col items-center justify-center pb-20">
-                            <div className="glass p-12 rounded-xl border border-white/10 text-center relative overflow-hidden group">
+                        <div className="flex-1 flex flex-col items-center justify-center pb-10">
+                            <div className="glass p-10 rounded-2xl border border-white/10 text-center relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-full h-[2px] bg-secondary scan-line opacity-50" />
                                 <div className="text-[7rem] mb-8 animate-float drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">{player?.emoji}</div>
 
@@ -193,7 +193,7 @@ export default function Join() {
                                 )}
                             </div>
 
-                            <div className="flex-1 grid grid-cols-1 gap-6 pb-12">
+                            <div className="flex-1 grid grid-cols-1 gap-4 pb-10">
                                 {[
                                     { id: 'A', icon: 'A', color: 'option-A' },
                                     { id: 'B', icon: 'B', color: 'option-B' },
@@ -204,7 +204,7 @@ export default function Join() {
                                         key={opt.id}
                                         onClick={() => submitAnswer(opt.id)}
                                         disabled={hasAnswered}
-                                        className={`relative h-full min-h-[120px] rounded-lg flex items-center justify-between px-10 transition-all duration-300 border-2 overflow-hidden
+                                        className={`relative h-full min-h-[100px] rounded-xl flex items-center justify-between px-10 transition-all duration-300 border-2 overflow-hidden
                                             ${opt.color} ${hasAnswered
                                                 ? (playerAnswer === opt.id ? 'opacity-100 scale-100 border-white' : 'opacity-20 grayscale scale-95 border-transparent')
                                                 : 'hover:scale-[1.02] active:scale-95 border-white/10'}`}
@@ -222,7 +222,7 @@ export default function Join() {
                         <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 animate-fade ${!hasAnswered ? 'bg-surface' : (currentQuestion?.correct_option === playerAnswer ? 'bg-success' : 'bg-red-600')}`}>
                             <div className="v-grid absolute inset-0 opacity-20" />
                             <div className="text-center space-y-10 w-full max-w-sm relative z-10">
-                                <div className="w-40 h-40 rounded-xl bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
+                                <div className="size-40 rounded-2xl bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
                                     {!hasAnswered ? (
                                         <Loader2 className="animate-spin text-white" size={64} />
                                     ) : (
@@ -242,7 +242,7 @@ export default function Join() {
                                     <div className="h-1 w-20 bg-white/30 mx-auto" />
                                 </div>
 
-                                <div className="bg-black/30 backdrop-blur-md p-10 rounded-xl border border-white/10 w-full shadow-2xl">
+                                <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full shadow-2xl">
                                     <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2">Puntuación Total</p>
                                     <p className="text-6xl font-display font-black text-white tabular-nums tracking-tighter">{player?.score?.toLocaleString()}</p>
                                 </div>
@@ -305,7 +305,7 @@ export default function Join() {
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-lg p-8 text-white font-display font-black text-6xl text-center focus:border-primary focus:bg-primary/5 focus:outline-none transition-all uppercase tracking-[0.3em] placeholder:opacity-5"
+                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-2xl p-6 text-white font-display font-black text-6xl text-center focus:border-primary focus:bg-primary/5 focus:outline-none transition-all uppercase tracking-[0.3em] placeholder:opacity-5"
                                     placeholder="000000"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -320,7 +320,7 @@ export default function Join() {
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-lg p-6 text-white font-display font-black text-2xl focus:border-secondary focus:bg-secondary/5 focus:outline-none transition-all text-center uppercase tracking-widest"
+                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-2xl p-6 text-white font-display font-black text-2xl focus:border-secondary focus:bg-secondary/5 focus:outline-none transition-all text-center uppercase tracking-widest"
                                     placeholder="Tu apodo..."
                                     value={nickname}
                                     onChange={(e) => setNickname(e.target.value)}

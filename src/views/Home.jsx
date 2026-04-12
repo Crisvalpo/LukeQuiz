@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { PlusCircle, Play, Settings, Terminal, Layout, Trash2, BookOpen, Brain } from 'lucide-react'
+import { PlusCircle, Plus, Play, Settings, Terminal, Layout, Trash2, BookOpen, Brain } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
 import Modal from '../components/Modal'
+import LogoLukeQuiz from '../components/LogoLukeQuiz'
 
 export default function Home() {
     const [quizzes, setQuizzes] = useState([])
@@ -119,121 +120,113 @@ export default function Home() {
         <div className="min-h-screen bg-surface selection:bg-primary/30 font-body relative overflow-hidden">
             {/* Background Glow */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
-                <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-primary rounded-full blur-[120px]" />
+                <div className="absolute top-1/4 -right-12 w-1/3 h-1/3 bg-primary rounded-full blur-3xl" />
             </div>
 
             {/* Background Decoration */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[10%] left-[5%] w-12 h-12 border-4 border-primary/20 rotate-45 animate-float" />
-                <div className="absolute bottom-[20%] left-[15%] w-10 h-10 border-4 border-accent/20 rotate-12 animate-float [animation-delay:4s]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,92,246,0.1)_0%,transparent_50%)]" />
+                <div className="absolute top-24 left-12 w-12 h-12 border-4 border-primary/20 rotate-45 animate-float" />
+                <div className="absolute bottom-48 left-20 w-10 h-10 border-4 border-accent/20 rotate-12 animate-float [animation-delay:4s]" />
+                <div className="absolute inset-0 bg-radial-gradient" />
             </div>
 
-            <div className="w-full h-screen flex justify-center items-center p-6 md:p-10 relative z-10">
-                <div className="w-full max-w-7xl h-full max-h-[920px] bg-surface-lowest/40 backdrop-blur-3xl rounded-[2rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] flex flex-col p-10 md:p-14 lg:p-20 relative overflow-hidden">
-                    {/* El padding aquí crea los espacios amarillos (arriba/abajo) y verdes (lados) */}
+            <div className="w-full h-screen flex flex-col px-6 md:px-12 pt-4 md:pt-6 pb-4 md:pb-6 relative z-10 max-w-[1700px] mx-auto">
+                <header className="flex justify-between items-center mb-4 px-8 pt-2 md:pt-4 shrink-0 relative z-20">
+                    <div className="space-y-4 text-left">
+                        <p className="text-[12px] font-display font-black tracking-[0.4em] text-primary/40 uppercase">Haz de tus preguntas un Juego</p>
+                        <LogoLukeQuiz className="w-80 h-auto -ml-3" />
+                    </div>
+                    <button
+                        onClick={() => navigate('/edit/new')}
+                        className="bg-primary hover:bg-primary-hover text-white px-10 py-5 rounded-2xl font-display font-black flex items-center gap-4 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 group"
+                    >
+                        <Plus size={24} className="group-hover:rotate-90 transition-transform" />
+                        <span className="tracking-widest text-[14px]">NUEVO</span>
+                    </button>
+                </header>
 
-                    <header className="flex justify-between items-center mb-12 px-6 shrink-0">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                                <div className="h-[2px] w-12 bg-gradient-to-r from-primary to-secondary rounded-full" />
-                                <span className="text-[10px] font-black text-primary/40 tracking-[0.8em] uppercase">Control Maestro</span>
+                <div className="flex-1 w-full bg-surface-lowest/40 backdrop-blur-3xl rounded-3xl shadow-2xl flex flex-col relative overflow-hidden border border-white/10">
+                    <div className="flex-1 min-h-0 bg-black/40 shadow-inner flex flex-col overflow-hidden relative group/inner">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 md:px-16 pt-4 md:pt-6 pb-4 md:pb-6">
+                            <div className="lg:px-2">
+                                {loading ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {[1, 2, 3, 4, 5, 6].map(i => (
+                                            <div key={i} className="h-[14rem] bg-white/5 rounded-xl animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {quizzes.map(q => (
+                                            <div key={q.id} className="group relative bg-surface-lowest/40 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-xl flex flex-col p-6 h-[14rem]">
+                                                {q.cover_image && (
+                                                    <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700">
+                                                        <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+
+                                                <div className="relative z-20 flex-1">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="p-3 bg-primary/10 rounded-xl w-fit mb-8 text-primary border border-primary/20">
+                                                            <Brain size={20} />
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => navigate(`/edit/${q.id}`)}
+                                                                className="p-3 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                                                                title="Configurar Trivia"
+                                                            >
+                                                                <Settings size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => deleteQuiz(q.id, q.title)}
+                                                                className="p-3 bg-red-500/5 rounded-xl text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5"
+                                                                title="Eliminar registro"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <h3 className="text-2xl font-black text-white mb-4 tracking-tight group-hover:text-primary transition-colors line-clamp-2 leading-tight">{q.title}</h3>
+                                                    <div className="flex items-center gap-4 opacity-40">
+                                                        <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.2em]">{q.id.slice(0, 8)}</span>
+                                                        <div className="h-1 w-1 bg-white/20 rounded-full" />
+                                                        <span className="text-[10px] font-black tracking-widest text-primary uppercase">
+                                                            {q.questions?.length || 0} PREGUNTAS
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-12 pt-10 border-t border-white/5 relative z-20">
+                                                    <button
+                                                        onClick={() => startNewGame(q.id)}
+                                                        disabled={!q.questions || q.questions.length === 0}
+                                                        className={`w-full py-4 rounded-xl flex items-center justify-center gap-4 transition-all text-[11px] font-black tracking-widest ${!q.questions || q.questions.length === 0
+                                                            ? 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
+                                                            : 'bg-white/5 hover:bg-primary hover:text-white border border-white/10 hover:border-transparent active:scale-[0.98]'
+                                                            }`}
+                                                    >
+                                                        <Play size={16} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
+                                                        {(!q.questions || q.questions.length === 0) ? 'SIN PREGUNTAS' : 'INICIAR JUEGO'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {quizzes.length === 0 && (
+                                            <div className="col-span-full h-full min-h-[400px] flex flex-col items-center justify-center gap-8 opacity-40 hover:opacity-100 transition-opacity duration-700">
+                                                <div className="p-8 bg-white/5 rounded-full border border-white/10">
+                                                    <PlusCircle size={48} className="text-primary animate-pulse" />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-xl font-black uppercase tracking-[0.5em] text-white">No hay juegos creados</p>
+                                                    <p className="mt-4 text-[10px] text-on-surface-variant font-bold tracking-[0.2em] uppercase">Inicia la creación de tu primera trivia</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                            <h1 className="text-6xl font-black text-white italic tracking-tighter leading-tight">
-                                Luke<span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent not-italic font-display uppercase tracking-[-0.05em]">Quiz</span>
-                            </h1>
-                        </div>
-
-                        {/* El botón de creación (revertido a NUEVO) */}
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="bg-primary hover:bg-primary-hover text-white px-10 py-5 rounded-xl flex items-center gap-4 active:scale-95 transition-all shadow-[0_0_40px_rgba(236,72,153,0.3)] group"
-                        >
-                            <PlusCircle size={22} className="group-hover:rotate-90 transition-transform duration-500" />
-                            <span className="font-black text-[10px] tracking-[0.4em]">NUEVO</span>
-                        </button>
-                    </header>
-
-                    {/* Orange Container Area from sketch - Structural only, removing visible border */}
-                    <div className="flex-1 min-h-0 bg-black/20 rounded-[1.5rem] shadow-inner flex flex-col overflow-hidden relative group/inner">
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-16 md:p-32 lg:p-48">
-                            {loading ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                                    {[1, 2, 3, 4, 5, 6].map(i => (
-                                        <div key={i} className="h-64 bg-white/5 rounded-xl animate-pulse" />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16">
-                                    {quizzes.map(q => (
-                                        <div key={q.id} className="group relative bg-surface-lowest/40 border border-white/10 rounded-xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-[0_0_40px_rgba(236,72,153,0.15)] flex flex-col p-10 min-h-[280px]">
-                                            {q.cover_image && (
-                                                <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700">
-                                                    <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
-                                                </div>
-                                            )}
-
-                                            <div className="relative z-20 flex-1">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="p-3 bg-primary/10 rounded-xl w-fit mb-8 text-primary border border-primary/20">
-                                                        <Brain size={20} />
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => navigate(`/edit/${q.id}`)}
-                                                            className="p-3 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
-                                                            title="Configurar Trivia"
-                                                        >
-                                                            <Settings size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => deleteQuiz(q.id, q.title)}
-                                                            className="p-3 bg-red-500/5 rounded-xl text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5"
-                                                            title="Eliminar registro"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <h3 className="text-2xl font-black text-white mb-4 tracking-tight group-hover:text-primary transition-colors line-clamp-2 leading-tight">{q.title}</h3>
-                                                <div className="flex items-center gap-4 opacity-40">
-                                                    <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-[0.2em]">{q.id.slice(0, 8)}</span>
-                                                    <div className="h-1 w-1 bg-white/20 rounded-full" />
-                                                    <span className="text-[10px] font-black tracking-widest text-primary uppercase">
-                                                        {q.questions?.length || 0} PREGUNTAS
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-12 pt-10 border-t border-white/5 relative z-20">
-                                                <button
-                                                    onClick={() => startNewGame(q.id)}
-                                                    disabled={!q.questions || q.questions.length === 0}
-                                                    className={`w-full py-5 rounded-xl flex items-center justify-center gap-4 transition-all text-[11px] font-black tracking-[0.4em] ${!q.questions || q.questions.length === 0
-                                                        ? 'bg-white/[0.02] text-white/10 cursor-not-allowed border border-white/5'
-                                                        : 'bg-white/5 hover:bg-primary hover:text-white border border-white/10 hover:border-transparent active:scale-[0.98]'
-                                                        }`}
-                                                >
-                                                    <Play size={16} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
-                                                    {(!q.questions || q.questions.length === 0) ? 'SIN PREGUNTAS' : 'INICIAR JUEGO'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {quizzes.length === 0 && (
-                                        <div className="col-span-full h-full min-h-[400px] flex flex-col items-center justify-center gap-8 opacity-40 hover:opacity-100 transition-opacity duration-700">
-                                            <div className="p-8 bg-white/5 rounded-full border border-white/10">
-                                                <PlusCircle size={48} className="text-primary animate-pulse" />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-xl font-black uppercase tracking-[0.5em] text-white">No hay juegos creados</p>
-                                                <p className="mt-4 text-[10px] text-on-surface-variant font-bold tracking-[0.2em] uppercase">Inicia la creación de tu primera trivia</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -288,6 +281,6 @@ export default function Home() {
                     </div>
                 </form>
             </Modal>
-        </div>
+        </div >
     )
 }

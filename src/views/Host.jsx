@@ -178,7 +178,7 @@ export default function Host() {
     )
 
     return (
-        <div className="min-h-screen bg-surface flex flex-col items-center py-20 px-12 relative overflow-hidden font-body text-on-surface">
+        <div className="min-h-screen bg-surface flex flex-col items-center py-20 md:py-32 px-16 md:px-24 relative overflow-hidden font-body text-on-surface">
             {/* Ambient Technical Background */}
             <div className="fixed inset-0 v-grid opacity-20 pointer-events-none" />
 
@@ -192,14 +192,15 @@ export default function Host() {
                 <div className="h-full bg-primary animate-pulse w-1/3" />
             </div>
 
-            <div className="w-full max-w-6xl space-y-16 relative z-10 pb-20">
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 mb-8 px-4 border-b border-white/5 pb-12">
+            <div className="w-full max-w-7xl space-y-16 relative z-10 pb-20">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 mb-16 px-16 md:px-24 border-b border-white/5 pb-12">
                     <div className="text-left space-y-2">
                         <div className="flex items-center gap-3 text-primary terminal-text">
                             <Activity size={14} className="animate-pulse" />
-                            <span className="text-[10px] font-black opacity-60">Panel del Anfitrión // Juego en Vivo</span>
+                            <p className="text-[10px] font-black tracking-[0.6em]">Panel de Control // Vivo</p>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-display font-black leading-tight italic tracking-tighter text-white drop-shadow-2xl">
+                        <h1 className="text-4xl font-display font-black text-white tracking-tight uppercase">Anfitrión</h1>
+                        <h2 className="text-2xl font-display font-black leading-tight italic tracking-tighter text-white/60">
                             {game?.quizzes?.title || 'Sistema_Listo'}
                         </h2>
                         <div className="flex gap-4 text-[9px] font-mono text-on-surface-variant opacity-30">
@@ -208,16 +209,16 @@ export default function Host() {
                             <span>ESTADO: CONECTADO</span>
                         </div>
                     </div>
-                    <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/40 p-6 rounded-lg border border-white/5 backdrop-blur-sm">
+                    <div className="flex flex-col items-center md:items-end gap-2 bg-surface-lowest/60 p-6 rounded-xl border border-white/5 backdrop-blur-md">
                         <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.5em] opacity-40">Clave de Acceso</p>
-                        <div className="text-primary font-display font-black text-5xl tracking-[0.2em] neon-glow-primary">
+                        <div className="text-primary font-display font-black text-5xl tracking-[0.2em] shadow-lg shadow-primary/10">
                             {game?.join_code}
                         </div>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-4">
-                    <div className="btn-command p-12 rounded-xl flex flex-col items-center justify-center gap-6 group">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-16 md:px-24">
+                    <div className="btn-command p-10 rounded-xl flex flex-col items-center justify-center gap-6 group">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
                             <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] opacity-70">Audiencia Activa</p>
@@ -233,7 +234,7 @@ export default function Host() {
 
                     <button
                         onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`btn-command p-12 rounded-xl flex flex-col items-center justify-center gap-6 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(236,72,153,0.15)] scale-105' : 'border-white/5 opacity-50 grayscale'}`}
+                        className={`btn-command p-10 rounded-xl flex flex-col items-center justify-center gap-6 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-2xl scale-105 shadow-primary/10' : 'border-white/5 opacity-50 grayscale'}`}
                     >
                         <div className="flex items-center gap-2 mb-2">
                             <div className={`w-3 h-3 rounded-full ${isAutoPilot ? 'bg-primary animate-ping' : 'bg-white/20'}`} />
@@ -250,7 +251,7 @@ export default function Host() {
                     </button>
                 </div>
 
-                <div className="bg-surface-lowest/50 p-12 md:p-16 rounded-xl border border-white/5 relative overflow-hidden shadow-2xl backdrop-blur-xl">
+                <div className="bg-surface-lowest/50 p-10 md:p-12 rounded-xl border border-white/5 relative overflow-hidden shadow-2xl backdrop-blur-xl">
                     <div className="scan-line absolute top-0 left-0 animate-scan" />
 
                     <div className="relative z-10">
