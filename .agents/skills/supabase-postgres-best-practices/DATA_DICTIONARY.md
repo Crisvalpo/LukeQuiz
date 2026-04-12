@@ -12,6 +12,9 @@ Almacena la configuración principal de cada cuestionario.
 - **background_music_url** (text, nullable): Enlace al audio ambiental durante el juego.
 - **created_at** (timestamptz): Fecha de creación del registro.
 
+> [!IMPORTANT]
+> La eliminación de un registro en `quizzes` dispara un **DELETE CASCADE** en `questions` y `games`.
+
 ### 2. `questions`
 | column | type | description |
 | :--- | :--- | :--- |
@@ -31,6 +34,10 @@ Almacena la configuración principal de cada cuestionario.
 | is_cover | bool | Si es `true`, esta imagen será la portada del quiz. |
 | created_at | timestamptz | Fecha de creación. |
 
+> [!IMPORTANT]
+> **Relación**: `quiz_id` tiene **ON DELETE CASCADE**. Al borrar la trivia, se borran sus preguntas automáticamente.
+> La eliminación de una pregunta dispara un **DELETE CASCADE** en `answers`.
+
 > [!NOTE]
 > La columna `media_url` ha sido eliminada por obsolescencia en la versión TTS Engine 2.0.
 
@@ -45,6 +52,10 @@ Controla el estado de una partida en tiempo real.
 - **settings** (jsonb): Configuraciones de la partida (ej: tempo).
 - **created_at** (timestamptz): Fecha de inicio.
 
+> [!IMPORTANT]
+> **Relación**: `quiz_id` tiene **ON DELETE CASCADE**. Al borrar la trivia, se borran sus partidas automáticamente.
+> La eliminación de un juego dispara un **DELETE CASCADE** en `players`.
+
 ### 4. `players`
 Jugadores conectados a una partida específica.
 - **id** (uuid, PK): Identificador único del jugador.
@@ -53,6 +64,10 @@ Jugadores conectados a una partida específica.
 - **emoji** (text): Icono visual asociado.
 - **score** (int): Puntaje acumulado en la sesión.
 - **created_at** (timestamptz): Fecha de ingreso.
+
+> [!IMPORTANT]
+> **Relación**: `game_id` tiene **ON DELETE CASCADE**. Al borrar el juego, se borran sus jugadores automáticamente.
+> La eliminación de un jugador dispara un **DELETE CASCADE** en `answers`.
 
 ### 5. `answers`
 Registro de las respuestas enviadas por los jugadores.
@@ -72,6 +87,9 @@ Registro de las respuestas enviadas por los jugadores.
 | question_id | uuid | FK a questions.id (Opcional). |
 | chars_count | int | Número de caracteres procesados en este evento. |
 | created_at | timestamptz | Fecha y hora de la generación. |
+
+> [!NOTE]
+> **Relación**: `quiz_id` y `question_id` tienen **ON DELETE SET NULL**. Se conservan los logs para auditoría aunque se borre el contenido original.
 
 ---
 

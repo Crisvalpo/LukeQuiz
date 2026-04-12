@@ -10,9 +10,6 @@ import LogoLukeQuiz from '../components/LogoLukeQuiz'
 export default function Home() {
     const [quizzes, setQuizzes] = useState([])
     const [loading, setLoading] = useState(true)
-    const [isModalOpen, setIsModalOpen] = useState(false)
-    const [newQuizTitle, setNewQuizTitle] = useState('')
-    const [newQuizDesc, setNewQuizDesc] = useState('')
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -96,8 +93,6 @@ export default function Home() {
 
         const promise = new Promise(async (resolve, reject) => {
             try {
-                const { error: gError } = await supabase.from('games').delete().eq('quiz_id', id)
-                if (gError) throw gError
                 const { error: qError } = await supabase.from('quizzes').delete().eq('id', id)
                 if (qError) throw qError
                 resolve()
@@ -160,23 +155,23 @@ export default function Home() {
                                         {quizzes.map(q => (
                                             <div key={q.id} className="group relative bg-surface-lowest/40 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-xl flex flex-col h-[14rem]">
                                                 {q.cover_image && (
-                                                    <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700">
+                                                    <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none z-0">
                                                         <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
                                                     </div>
                                                 )}
 
                                                 <div className="relative z-20 flex-1 flex flex-col p-6">
-                                                    <div className="flex justify-end gap-2 mb-2">
+                                                    <div className="flex justify-end gap-2 mb-2 relative z-30">
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
-                                                            className="p-2 bg-white/5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5"
+                                                            className="p-2 bg-white/5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5 cursor-pointer"
                                                             title="Configurar Trivia"
                                                         >
                                                             <Settings size={16} />
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
-                                                            className="p-2 bg-red-500/5 rounded-lg text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5"
+                                                            className="p-2 bg-red-500/5 rounded-lg text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5 cursor-pointer"
                                                             title="Eliminar registro"
                                                         >
                                                             <Trash2 size={16} />
@@ -191,11 +186,11 @@ export default function Home() {
                                                     </div>
                                                 </div>
 
-                                                <div className="p-4 pt-0 relative z-20 mt-auto">
+                                                <div className="p-4 pt-0 relative z-30 mt-auto">
                                                     <button
-                                                        onClick={() => startNewGame(q.id)}
+                                                        onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
                                                         disabled={!q.questions || q.questions.length === 0}
-                                                        className={`w-full py-3 rounded-xl flex items-center justify-center gap-3 transition-all text-[10px] font-black tracking-[0.3em] ${!q.questions || q.questions.length === 0
+                                                        className={`w-full py-3 rounded-xl flex items-center justify-center gap-3 transition-all text-[10px] font-black tracking-[0.3em] cursor-pointer ${!q.questions || q.questions.length === 0
                                                             ? 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
                                                             : 'bg-white/10 hover:bg-primary hover:text-white border border-white/10 hover:border-transparent active:scale-[0.98]'
                                                             }`}
@@ -225,56 +220,6 @@ export default function Home() {
                     </div>
                 </div>
             </div>
-
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="CREAR JUEGO"
-            >
-                <form onSubmit={handleCreateQuiz} className="space-y-24">
-                    <div className="space-y-16">
-                        <div className="space-y-6">
-                            <label className="text-xs font-black text-primary uppercase tracking-[0.5em] block mb-2 opacity-70">
-                                Nombre del Juego <span className="text-white">*</span>
-                            </label>
-                            <input
-                                className="w-full bg-surface-lowest border-b-2 border-white/5 px-0 py-6 text-white text-3xl font-black italic focus:border-primary focus:outline-none transition-all placeholder:text-white/5"
-                                placeholder="Escribe el nombre aquí..."
-                                value={newQuizTitle}
-                                onChange={(e) => setNewQuizTitle(e.target.value)}
-                                autoFocus
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-6">
-                            <label className="text-xs font-black text-secondary uppercase tracking-[0.5em] block mb-2 opacity-70">Descripción</label>
-                            <textarea
-                                className="w-full bg-surface-lowest border-b-2 border-white/5 px-0 py-6 text-on-surface-variant text-lg focus:border-secondary focus:outline-none transition-all placeholder:text-white/5 min-h-[140px] resize-none font-medium leading-relaxed"
-                                placeholder="De qué trata este juego..."
-                                value={newQuizDesc}
-                                onChange={(e) => setNewQuizDesc(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-8 pt-8 border-t border-white/5 text-center">
-                        <button
-                            type="button"
-                            onClick={() => setIsModalOpen(false)}
-                            className="flex-1 text-xs font-black uppercase tracking-[0.4em] text-on-surface-variant hover:text-white transition-all py-6 border border-white/5 rounded-sm hover:bg-white/5"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            className="flex-[2] btn-vibrant py-6 rounded-sm text-md font-black uppercase tracking-[0.4em] active:scale-95 transition-all shadow-2xl"
-                        >
-                            Empezar
-                        </button>
-                    </div>
-                </form>
-            </Modal>
-        </div >
+        </div>
     )
 }
