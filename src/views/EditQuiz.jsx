@@ -276,6 +276,29 @@ export default function EditQuiz() {
         }
     }
 
+    const handleOpenAiPanel = () => {
+        if (!quiz?.title?.trim() || !quiz?.description?.trim()) {
+            toast.error('Ingresa un Título y Descripción para darle contexto a la IA', {
+                style: { background: '#ec4899', color: '#fff', border: 'none' }
+            });
+            return;
+        }
+        setAiTopic(quiz.title);
+        setShowAiPanel(true);
+        setShowBulk(false);
+    }
+
+    const handleOpenBulkPanel = () => {
+        if (!quiz?.title?.trim() || !quiz?.description?.trim()) {
+            toast.error('Ingresa un Título y Descripción para el contexto de la carga masiva', {
+                style: { background: '#ec4899', color: '#fff', border: 'none' }
+            });
+            return;
+        }
+        setShowBulk(true);
+        setShowAiPanel(false);
+    }
+
     if (loading && !quiz) return <div className="h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-pink-500" size={48} /></div>
 
     const q = questions[currentIdx]
@@ -311,13 +334,13 @@ export default function EditQuiz() {
                     </button>
 
                     {/* Botón Carga Masiva - IA */}
-                    <button onClick={() => setShowBulk(!showBulk)} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 rounded-lg text-xs font-bold hover:bg-white/10 transition-all text-white/60 overflow-hidden">
+                    <button onClick={handleOpenBulkPanel} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 rounded-lg text-xs font-bold hover:bg-white/10 transition-all text-white/60 overflow-hidden">
                         <FileText size={16} /> <span className="hidden md:inline">CARGA MASIVA</span>
                         <div className="absolute top-0 right-0 bg-cyan-500/20 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter text-cyan-400 opacity-50 group-hover:opacity-100 transition-opacity uppercase">IA</div>
                     </button>
 
                     {/* Botón Generar IA - MAGIA */}
-                    <button onClick={() => setShowAiPanel(!showAiPanel)} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 rounded-lg text-xs font-bold hover:bg-white/10 transition-all text-secondary overflow-hidden">
+                    <button onClick={handleOpenAiPanel} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 rounded-lg text-xs font-bold hover:bg-white/10 transition-all text-secondary overflow-hidden">
                         <Sparkles size={16} /> <span className="hidden md:inline">GENERAR IA</span>
                         <div className="absolute top-0 right-0 bg-secondary/20 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter text-secondary opacity-50 group-hover:opacity-100 transition-opacity uppercase">Magia</div>
                     </button>
@@ -333,9 +356,9 @@ export default function EditQuiz() {
                 </div>
             </header>
 
-            <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-0 pb-24">
-                {showAiPanel && (
-                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-primary/30 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto backdrop-blur-3xl">
+            {showAiPanel && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="w-full max-w-4xl bg-surface border border-primary/30 p-8 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300">
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/20 rounded-lg">
@@ -395,10 +418,12 @@ export default function EditQuiz() {
                             GENERAR NUEVAS PREGUNTAS
                         </button>
                     </div>
-                )}
+                </div>
+            )}
 
-                {showBulk && (
-                    <div className="absolute top-4 inset-x-8 z-[60] bg-surface border border-white/10 p-8 rounded-2xl shadow-2xl animate-in slide-in-from-top-4 duration-300 max-w-4xl mx-auto backdrop-blur-xl">
+            {showBulk && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="w-full max-w-4xl bg-surface border border-white/10 p-8 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300">
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
@@ -488,8 +513,10 @@ export default function EditQuiz() {
                             IMPORTAR PREGUNTAS
                         </button>
                     </div>
-                )}
+                </div>
+            )}
 
+            <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-0 pb-24">
                 <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-hidden px-8 md:px-12 lg:px-24">
                     {questions.length > 0 && q ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch flex-1 overflow-y-auto h-full py-4 pr-2 custom-scrollbar">
@@ -613,7 +640,7 @@ export default function EditQuiz() {
 
                                 {/* Opción 2: Masiva */}
                                 <button
-                                    onClick={() => setShowBulk(true)}
+                                    onClick={handleOpenBulkPanel}
                                     className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
                                 >
                                     <div className="absolute top-6 right-6">
@@ -624,13 +651,13 @@ export default function EditQuiz() {
                                     </div>
                                     <div className="space-y-2">
                                         <h3 className="text-xl font-black text-white tracking-tight">Carga Masiva</h3>
-                                        <p className="text-xs text-on-surface-variant leading-relaxed opacity-40">Pega tu documento o lista y el motor IA la estructurará.</p>
+                                        <p className="text-xs text-on-surface-variant leading-relaxed opacity-40">Pega tu documento o lista y estructúralo rápidamente.</p>
                                     </div>
                                 </button>
 
                                 {/* Opción 3: Generar con IA */}
                                 <button
-                                    onClick={() => setShowAiPanel(true)}
+                                    onClick={handleOpenAiPanel}
                                     className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-primary/20 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-primary/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl shadow-primary/10"
                                 >
                                     <div className="absolute top-6 right-6">
