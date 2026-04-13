@@ -705,6 +705,7 @@ export default function EditQuiz() {
                                     <div className="flex items-center gap-4">
                                         <div className="p-2 bg-cyan-400/10 rounded-xl text-cyan-400"><ImageIcon size={20} /></div>
                                         <input
+                                            id="media-url-input"
                                             className="flex-1 bg-transparent text-sm font-mono text-cyan-400 outline-none placeholder:text-cyan-400/20"
                                             value={q.image_url || ''}
                                             onChange={e => updateQuestion(currentIdx, { image_url: e.target.value })}
@@ -713,7 +714,36 @@ export default function EditQuiz() {
                                     </div>
                                     <div className="grid grid-cols-3 gap-2">
                                         <button onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(`${quiz?.title} ${q.text}`)}&tbm=isch`, '_blank')} className="flex items-center justify-center gap-2 py-2.5 bg-white/5 rounded-xl text-[9px] font-black hover:bg-white/10 transition-all uppercase tracking-widest border border-white/5"><Search size={14} />Buscar</button>
-                                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); if (t.startsWith('http')) updateQuestion(currentIdx, { image_url: t, media_type: 'image' }) } catch (e) { } }} className="flex items-center justify-center gap-2 py-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20"><LinkIcon size={14} />Pegar</button>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const input = document.getElementById('media-url-input');
+                                                input?.focus();
+
+                                                if (!navigator.clipboard || !navigator.clipboard.readText) {
+                                                    toast.error('Pegado no soportado. Usa Ctrl+V');
+                                                    return;
+                                                }
+
+                                                try {
+                                                    const text = await navigator.clipboard.readText();
+                                                    const cleanText = text?.trim();
+
+                                                    if (cleanText) {
+                                                        updateQuestion(currentIdx, { image_url: cleanText, media_type: 'image' });
+                                                        toast.success('¡Contenido pegado!');
+                                                    } else {
+                                                        toast.error('El portapapeles está vacío');
+                                                    }
+                                                } catch (e) {
+                                                    console.error('Clipboard error:', e);
+                                                    toast.error('Bloqueado por el navegador. Usa Ctrl+V');
+                                                }
+                                            }}
+                                            className="flex items-center justify-center gap-2 py-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20"
+                                        >
+                                            <LinkIcon size={14} />Pegar
+                                        </button>
                                         <button onClick={() => updateQuestion(currentIdx, { image_url: '', media_type: 'none' })} className="flex items-center justify-center gap-2 py-2.5 bg-red-500/10 text-red-500 rounded-xl text-[9px] font-black hover:bg-red-500/20 transition-all uppercase tracking-widest border border-red-500/10"><Trash2 size={14} />Limpiar</button>
                                     </div>
                                 </div>

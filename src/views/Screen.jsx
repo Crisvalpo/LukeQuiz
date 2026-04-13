@@ -201,10 +201,23 @@ export default function Screen() {
                 </div>
             )}
 
-            {/* Background Glows */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-20">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary blur-[150px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary blur-[150px] animate-pulse" style={{ animationDelay: '2s' }} />
+            {/* Background Image / Glows */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                {game?.status === 'question' && currentQuestion?.image_url ? (
+                    <div className="absolute inset-0 z-0 transition-all duration-1000 animate-in fade-in zoom-in-110">
+                        <img
+                            src={currentQuestion.image_url}
+                            className="w-full h-full object-cover opacity-30 blur-[2px]"
+                            alt=""
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
+                    </div>
+                ) : (
+                    <div className="opacity-20 transition-all duration-1000">
+                        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary blur-[150px] animate-pulse" />
+                        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary blur-[150px] animate-pulse" style={{ animationDelay: '2s' }} />
+                    </div>
+                )}
             </div>
 
             <header className="px-16 md:px-24 py-5 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface-lowest/60 backdrop-blur-xl">
@@ -367,9 +380,9 @@ export default function Screen() {
                                         <p className="text-[10px] font-display font-black text-white tracking-[0.8em] uppercase italic">Neural Audio Feed ACTIVE // Question Mode</p>
                                     </div>
                                     <h2 className={`font-display font-black leading-[1.1] tracking-tighter text-white max-w-5xl drop-shadow-2xl transition-all duration-500 ${currentQuestion.text.length > 120 ? 'text-2xl md:text-3xl' :
-                                            currentQuestion.text.length > 80 ? 'text-3xl md:text-4xl' :
-                                                currentQuestion.text.length > 50 ? 'text-4xl md:text-5xl' :
-                                                    'text-5xl md:text-6xl'
+                                        currentQuestion.text.length > 80 ? 'text-3xl md:text-4xl' :
+                                            currentQuestion.text.length > 50 ? 'text-4xl md:text-5xl' :
+                                                'text-5xl md:text-6xl'
                                         }`}>
                                         {currentQuestion.text}
                                     </h2>

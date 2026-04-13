@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { EMOJIS } from '../utils/helpers'
-import { User, Key, CheckCircle2, Users, Loader2, Sparkles, Send } from 'lucide-react'
+import { User, Key, CheckCircle2, Users, Loader2, Sparkles, Trophy, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function Join() {
@@ -17,6 +17,8 @@ export default function Join() {
     const [currentQuestion, setCurrentQuestion] = useState(null)
     const [hasAnswered, setHasAnswered] = useState(false)
     const [playerAnswer, setPlayerAnswer] = useState(null)
+    const [winnerId, setWinnerId] = useState(null)
+    const [exitCountdown, setExitCountdown] = useState(null)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -57,6 +59,23 @@ export default function Join() {
                         if (payload.new.status === 'results' || payload.new.status === 'finished') {
                             const { data: p } = await supabase.from('players').select('*').eq('id', player.id).single()
                             if (p) setPlayer(p)
+
+                            if (payload.new.status === 'finished') {
+                                // Fetch all players to find winner
+                                const { data: allPlayers } = await supabase
+                                    .from('players')
+                                    .select('id, score')
+                                    .eq('game_id', player.game_id)
+                                    .order('score', { ascending: false })
+                                    .limit(1)
+
+                                if (allPlayers && allPlayers.length > 0) {
+                                    const top = allPlayers[0]
+                                    setWinnerId(top.id)
+                                    // Start exit countdown
+                                    setExitCountdown(top.id === player.id ? 15 : 10)
+                                }
+                            }
                         }
                     }
                 )
@@ -65,6 +84,17 @@ export default function Join() {
             return () => channel.unsubscribe()
         }
     }, [joined, player])
+
+    useEffect(() => {
+        if (exitCountdown === null) return
+        if (exitCountdown <= 0) {
+            localStorage.removeItem('kahoot_player')
+            window.location.reload()
+            return
+        }
+        const timer = setInterval(() => setExitCountdown(prev => prev - 1), 1000)
+        return () => clearInterval(timer)
+    }, [exitCountdown])
 
     const fetchQuestion = async (quizId, index) => {
         const { data } = await supabase.from('questions').select('*').eq('quiz_id', quizId).eq('order_index', index).single()
@@ -219,41 +249,76 @@ export default function Join() {
                     )}
 
                     {(game?.status === 'results' || game?.status === 'finished') && (
-                        <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 animate-fade ${!hasAnswered ? 'bg-surface' : (currentQuestion?.correct_option === playerAnswer ? 'bg-success' : 'bg-red-600')}`}>
+                        <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 animate-fade transition-colors duration-1000 ${!hasAnswered ? 'bg-surface' : (currentQuestion?.correct_option === playerAnswer ? 'bg-success' : 'bg-destructive')}`}>
+                            {/* Dynamic Glow for Result */}
+                            <div className={`absolute inset-0 opacity-40 blur-[120px] pointer-events-none transition-all duration-1000 ${currentQuestion?.correct_option === playerAnswer ? 'bg-success-bright' : 'bg-red-500'}`} />
                             <div className="v-grid absolute inset-0 opacity-20" />
+
                             <div className="text-center space-y-10 w-full max-w-sm relative z-10">
-                                <div className="size-40 rounded-2xl bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
-                                    {!hasAnswered ? (
-                                        <Loader2 className="animate-spin text-white" size={64} />
-                                    ) : (
-                                        currentQuestion?.correct_option === playerAnswer
-                                            ? <Sparkles size={80} className="text-white" />
-                                            : <div className="text-white text-[10rem] font-display font-black leading-none">×</div>
-                                    )}
-                                </div>
+                                {game.status === 'finished' ? (
+                                    <div className="animate-in zoom-in duration-1000 text-center space-y-8">
+                                        <div className="size-48 rounded-full bg-black/40 backdrop-blur-3xl flex items-center justify-center mx-auto border-4 border-white/20 shadow-[0_0_80px_rgba(255,255,255,0.2)] relative">
+                                            {winnerId === player.id ? (
+                                                <Trophy size={100} className="text-primary animate-bounce" />
+                                            ) : (
+                                                <div className="text-white/60 text-center leading-tight">
+                                                    <p className="text-[12px] font-display font-black tracking-widest uppercase">Fin de</p>
+                                                    <p className="text-3xl font-display font-black italic">Partida</p>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                <div className="space-y-4">
-                                    <p className="text-[10px] font-display font-black text-white/50 tracking-[0.5em] uppercase">RESULTADOS</p>
-                                    <h2 className="text-6xl font-display font-black tracking-tighter text-white uppercase leading-none">
-                                        {!hasAnswered
-                                            ? 'SIN DATOS'
-                                            : (currentQuestion?.correct_option === playerAnswer ? 'CORRECTO' : 'ERROR')}
-                                    </h2>
-                                    <div className="h-1 w-20 bg-white/30 mx-auto" />
-                                </div>
+                                        <div className="space-y-2">
+                                            <h2 className="text-5xl md:text-7xl font-display font-black tracking-tighter text-white uppercase italic leading-none">
+                                                {winnerId === player.id ? '¡CAMPEÓN!' : 'Finalizado'}
+                                            </h2>
+                                            <p className="text-[11px] font-display font-black text-white/50 tracking-[0.5em] uppercase">
+                                                {winnerId === player.id ? 'Has dominado el tablero' : 'Gracias por participar'}
+                                            </p>
+                                        </div>
 
-                                <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full shadow-2xl">
-                                    <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2">Puntuación Total</p>
-                                    <p className="text-6xl font-display font-black text-white tabular-nums tracking-tighter">{player?.score?.toLocaleString()}</p>
-                                </div>
+                                        <div className="bg-black/30 backdrop-blur-md p-10 rounded-2xl border border-white/10 w-full shadow-2xl relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-[1px] bg-primary animate-scan z-0" />
+                                            <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2 relative z-10">Ranking Final</p>
+                                            <p className="text-7xl font-display font-black text-white tabular-nums tracking-tighter relative z-10">
+                                                #{winnerId === player.id ? '1' : 'Participante'}
+                                            </p>
+                                            <p className="text-2xl font-display font-black text-primary uppercase mt-4 opacity-80">{player?.score?.toLocaleString()} PTS</p>
+                                        </div>
 
-                                {game.status === 'finished' && (
-                                    <button
-                                        onClick={() => { localStorage.removeItem('kahoot_player'); window.location.reload(); }}
-                                        className="w-full bg-white text-background py-6 rounded-sm font-display font-black text-sm uppercase tracking-[0.3em] hover:bg-on-surface transition-colors active:scale-95"
-                                    >
-                                        REINICIAR JUEGO
-                                    </button>
+                                        <div className="pt-4">
+                                            <p className="text-[10px] font-display font-black text-white/40 tracking-[0.3em] uppercase animate-pulse">
+                                                Saliendo en {exitCountdown}s...
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="size-40 rounded-2xl bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
+                                            {!hasAnswered ? (
+                                                <Loader2 className="animate-spin text-white" size={64} />
+                                            ) : (
+                                                currentQuestion?.correct_option === playerAnswer
+                                                    ? <Sparkles size={80} className="text-white" />
+                                                    : <div className="text-white text-[10rem] font-display font-black leading-none">×</div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-display font-black text-white/50 tracking-[0.5em] uppercase">RESULTADOS</p>
+                                            <h2 className="text-6xl font-display font-black tracking-tighter text-white uppercase leading-none">
+                                                {!hasAnswered
+                                                    ? 'SIN DATOS'
+                                                    : (currentQuestion?.correct_option === playerAnswer ? 'CORRECTO' : 'ERROR')}
+                                            </h2>
+                                            <div className="h-1 w-20 bg-white/30 mx-auto" />
+                                        </div>
+
+                                        <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full shadow-2xl">
+                                            <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2">Puntuación Actual</p>
+                                            <p className="text-6xl font-display font-black text-white tabular-nums tracking-tighter">{player?.score?.toLocaleString()}</p>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
