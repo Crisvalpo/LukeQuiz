@@ -98,7 +98,8 @@ export default function Screen() {
 
     useEffect(() => {
         if (game?.status !== 'question' || !currentQuestion || !game.question_started_at) {
-            setTimeLeft(0); return
+            setTimeLeft(0);
+            return
         }
         const calculateTime = () => {
             const start = new Date(game.question_started_at).getTime()
@@ -107,11 +108,16 @@ export default function Screen() {
             const tempo = game.settings?.tempo || 10
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
+
+            // Auto-advance if time is up
+            if (remaining <= 0 && !isUpdating) {
+                handleNext()
+            }
         }
         calculateTime()
         const interval = setInterval(calculateTime, 1000)
         return () => clearInterval(interval)
-    }, [game?.status, game?.question_started_at, currentQuestion])
+    }, [game?.status, game?.question_started_at, currentQuestion?.id, isUpdating])
 
     useEffect(() => {
         if (!game || !questions.length) return
@@ -119,7 +125,7 @@ export default function Screen() {
         let timer
         // Lógica de finalización temprana: si todos respondieron, pasar a resultados
         if (game.status === 'question' && players.length > 0 && answers.length === players.length) {
-            timer = setTimeout(() => handleNext(), 1000)
+            timer = setTimeout(() => handleNext(), 500)
         }
         // Lógica de Piloto Automático para otros estados
         else if (isAutoPilot && game.status === 'results') {
@@ -201,24 +207,8 @@ export default function Screen() {
                 </div>
             )}
 
-            {/* Background Image / Glows */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                {game?.status === 'question' && currentQuestion?.image_url ? (
-                    <div className="absolute inset-0 z-0 transition-all duration-1000 animate-in fade-in zoom-in-110">
-                        <img
-                            src={currentQuestion.image_url}
-                            className="w-full h-full object-cover opacity-30 blur-[2px]"
-                            alt=""
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
-                    </div>
-                ) : (
-                    <div className="opacity-20 transition-all duration-1000">
-                        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary blur-[150px] animate-pulse" />
-                        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary blur-[150px] animate-pulse" style={{ animationDelay: '2s' }} />
-                    </div>
-                )}
-            </div>
+            {/* Background Image / Glows - Memoized for Performance */}
+            <BackgroundView status={game?.status} imageUrl={currentQuestion?.image_url} />
 
             <header className="px-16 md:px-24 py-5 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface-lowest/60 backdrop-blur-xl">
                 <div className="flex items-center gap-12">
@@ -567,3 +557,26 @@ export default function Screen() {
         </div >
     )
 }
+
+// Optimized Background Component to prevent stuttering on timer ticks
+const BackgroundView = React.memo(({ status, imageUrl }) => {
+    return (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+            {status === 'question' && imageUrl ? (
+                <div key={imageUrl} className="absolute inset-0 z-0 transition-all duration-1000 animate-in fade-in zoom-in-110">
+                    <img
+                        src={imageUrl}
+                        className="w-full h-full object-cover opacity-30 blur-[2px]"
+                        alt=""
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
+                </div>
+            ) : (
+                <div className="opacity-20 transition-all duration-1000">
+                    <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary blur-[150px] animate-pulse" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary blur-[150px] animate-pulse" style={{ animationDelay: '2s' }} />
+                </div>
+            )}
+        </div>
+    );
+});
