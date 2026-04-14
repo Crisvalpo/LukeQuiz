@@ -624,6 +624,24 @@ export default function EditQuiz() {
                             </div>
                         </div>
 
+                        <div className="flex justify-between items-center mb-2 px-1">
+                            <label className="text-[10px] font-black text-white/40 tracking-widest uppercase">Contenido de la IA</label>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const text = await navigator.clipboard.readText();
+                                        setBulkText(text);
+                                        toast.success('Contenido pegado del portapapeles');
+                                    } catch (err) {
+                                        toast.error('Error al acceder al portapapeles');
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
+                            >
+                                <Plus size={12} className="rotate-45" /> PEGAR CONTENIDO
+                            </button>
+                        </div>
+
                         <textarea
                             className="w-full h-48 bg-black/50 border border-white/10 rounded-xl p-6 text-xs font-mono outline-none resize-none leading-relaxed focus:border-cyan-500/50 transition-colors"
                             placeholder="Pega aquí el resultado de la IA...&#10;&#10;Ejemplo:&#10;¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | https://images.unsplash.com/photo-150260..."
