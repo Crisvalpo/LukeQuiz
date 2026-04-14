@@ -32,6 +32,7 @@ export default function EditQuiz() {
     const [aiPrompt, setAiPrompt] = useState('')
     const [aiTopic, setAiTopic] = useState('')
     const [aiCount, setAiCount] = useState(5)
+    const [bulkCount, setBulkCount] = useState(20)
     const [ttsEnabled, setTtsEnabled] = useState(false)
     const [showMediaSearch, setShowMediaSearch] = useState(false)
 
@@ -575,13 +576,39 @@ export default function EditQuiz() {
                                     <li>Copia las <strong>líneas de texto</strong> que la IA te devolverá.</li>
                                     <li>Pega el resultado en la caja de abajo y presiona <strong>Importar</strong>.</li>
                                 </ol>
+
+                                <div className="mt-8 space-y-3">
+                                    <label className="text-[10px] font-black text-white/40 tracking-widest uppercase ml-1 block">Número de preguntas deseado</label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex bg-black/40 border border-white/10 rounded-xl p-1 w-fit">
+                                            {[5, 10, 15, 20].map(n => (
+                                                <button
+                                                    key={n}
+                                                    onClick={() => setBulkCount(n)}
+                                                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${bulkCount === n ? 'bg-cyan-500 text-black' : 'text-white/40 hover:text-white/60'}`}
+                                                >
+                                                    {n}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="20"
+                                            className="w-20 bg-black/40 border border-white/10 rounded-xl p-3 text-sm font-bold text-white outline-none focus:border-cyan-500 transition-all text-center"
+                                            value={bulkCount}
+                                            onChange={e => setBulkCount(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                                        />
+                                        <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest italic">Personalizar (Máx 20)</span>
+                                    </div>
+                                </div>
                             </div>
                             <div className="space-y-3">
                                 <button
                                     onClick={() => {
-                                        const prompt = `Actúa como un experto en creación de contenido educativo. Genera una lista de 20 preguntas para una trivia titulada "${quiz?.title || 'Mi Trivia'}" sobre "${quiz?.description || 'temas variados'}".\n\nCada pregunta debe seguir estrictamente este formato de texto plano, separando los campos con el carácter pipe (|):\n\nPregunta | Opción A | Opción B | Opción C | Opción D | Letra de Opción Correcta (Solo la letra A, B, C o D) | URL de Imagen Relevante\n\nPor ejemplo:\n¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80\n\nREGLAS CRÍTICAS:\n1. Devuelve SOLO las 20 líneas de preguntas, una por línea.\n2. Sin introducciones, sin números al inicio, sin explicaciones.\n3. Asegúrate de que las URLs de imagen sean de Unsplash o sitios similares y que funcionen.\n4. Las opciones deben ser coherentes y solo una debe ser la correcta.\n5. Usa exactamente el formato: texto|a|b|c|d|letra_correcta|url_imagen`;
+                                        const prompt = `Actúa como un experto en creación de contenido educativo. Genera una lista de ${bulkCount} preguntas para una trivia titulada "${quiz?.title || 'Mi Trivia'}" sobre "${quiz?.description || 'temas variados'}".\n\nCada pregunta debe seguir estrictamente este formato de texto plano, separando los campos con el carácter pipe (|):\n\nPregunta | Opción A | Opción B | Opción C | Opción D | Letra de Opción Correcta (Solo la letra A, B, C o D) | URL de Imagen Relevante\n\nPor ejemplo:\n¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80\n\nREGLAS CRÍTICAS:\n1. Devuelve SOLO las ${bulkCount} líneas de preguntas, una por línea.\n2. Sin introducciones, sin números al inicio, sin explicaciones.\n3. Asegúrate de que las URLs de imagen sean de Unsplash o sitios similares y que funcionen.\n4. Las opciones deben ser coherentes y solo una debe ser la correcta.\n5. Usa exactamente el formato: texto|a|b|c|d|letra_correcta|url_imagen`;
                                         navigator.clipboard.writeText(prompt);
-                                        toast.success('Prompt original copiado al portapapeles');
+                                        toast.success(`Prompt para ${bulkCount} preguntas copiado`);
                                     }}
                                     className="w-full py-2.5 bg-pink-500/10 text-pink-500 rounded-lg text-xs font-black uppercase tracking-wider border border-pink-500/20 hover:bg-pink-500/20 transition-all flex items-center justify-center gap-2"
                                 >
