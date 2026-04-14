@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Play, SkipForward, BarChart2, CheckCircle, Users, Trophy, Loader2, Activity } from 'lucide-react'
+import { Play, SkipForward, BarChart2, CheckCircle, Users, Trophy, Loader2, Activity, Settings, Zap, Headphones, Home } from 'lucide-react'
 import { calculateScore } from '../utils/helpers'
 import { toast } from 'sonner'
 import { useGameRoom } from '../hooks/useGameRoom'
@@ -12,7 +12,7 @@ export default function Host() {
     const [questions, setQuestions] = useState([])
     const [answerCount, setAnswerCount] = useState(0)
     const [isAutoPilot, setIsAutoPilot] = useState(true)
-    const [selectedTempo, setSelectedTempo] = useState(10) // 5, 10, 20
+    const [selectedTempo, setSelectedTempo] = useState(10)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -30,34 +30,25 @@ export default function Host() {
         return () => channel.unsubscribe()
     }, [gameId, game?.quiz_id])
 
-    // Auto-Pilot Logic
     useEffect(() => {
         if (!game || !questions.length) return
-
         let timer
-
         if (game.status === 'question') {
             const checkTime = () => {
                 const start = new Date(game.question_started_at).getTime()
                 const now = Date.now()
                 const elapsed = (now - start) / 1000
                 const tempo = game.settings?.tempo || 10
-
-                // Obligatorio: Si todos respondieron O se acabó el tiempo
                 if ((answerCount > 0 && answerCount === players.length) || elapsed >= tempo) {
                     handleNext()
                     return true
                 }
                 return false
             }
-
-            if (!checkTime()) {
-                timer = setInterval(checkTime, 1000)
-            }
+            if (!checkTime()) timer = setInterval(checkTime, 1000)
         } else if (isAutoPilot && game.status === 'results') {
             timer = setTimeout(() => handleNext(), 8000)
         }
-
         return () => {
             if (timer) {
                 clearInterval(timer)
@@ -75,89 +66,46 @@ export default function Host() {
         if (!game || !questions.length) return
         const currentQ = questions[game.current_question_index]
         if (!currentQ) return
-
-        const { count } = await supabase
-            .from('answers')
-            .select('*', { count: 'exact', head: true })
-            .eq('question_id', currentQ.id)
-
+        const { count } = await supabase.from('answers').select('*', { count: 'exact', head: true }).eq('question_id', currentQ.id)
         setAnswerCount(count || 0)
     }
 
     const updateStatus = async (status, indexOffset = 0) => {
         const promise = new Promise(async (resolve, reject) => {
-            if (status === 'results') {
-                await processScores()
-            }
-
+            if (status === 'results') await processScores()
             const updates = {
                 status,
                 current_question_index: (game.current_question_index + indexOffset),
                 question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
             }
-
-            const { data, error } = await supabase
-                .from('games')
-                .update(updates)
-                .eq('id', gameId)
-                .select()
-                .single()
-
+            const { data, error } = await supabase.from('games').update(updates).eq('id', gameId).select().single()
             if (error) reject(error)
             else {
                 setGame(data)
                 resolve(data)
             }
         })
-
+        toast.dismiss() // Clean up previous toasts
         toast.promise(promise, {
-            loading: 'Actualizando estado...',
-            success: 'Actualizado',
-            error: 'Fallo al actualizar el juego'
+            loading: 'Cargando...',
+            success: 'Listo',
+            error: 'Error de red',
+            duration: 1500
         })
     }
 
     const processScores = async () => {
         const currentQ = questions[game.current_question_index]
         if (!currentQ) return
-
-        const { error: rpcError } = await supabase.rpc('process_scores', {
-            p_game_id: gameId,
-            p_question_id: currentQ.id
-        })
-
-        if (!rpcError) return
-
-        const { data: qAnswers } = await supabase
-            .from('answers')
-            .select('*, players(*)')
-            .eq('question_id', currentQ.id)
-
-        if (!qAnswers) return
-
-        for (const ans of qAnswers) {
-            const isCorrect = ans.selected_option === currentQ.correct_option
-            if (isCorrect) {
-                const startTime = new Date(game.question_started_at).getTime()
-                const answerTime = new Date(ans.created_at).getTime()
-                const elapsed = (answerTime - startTime) / 1000
-                const currentTempo = game.settings?.tempo || 10
-                const timeLeft = Math.max(0, currentTempo - elapsed)
-
-                const points = calculateScore(timeLeft, currentTempo, true)
-                const currentScore = ans.players?.score || 0
-
-                await supabase
-                    .from('players')
-                    .update({ score: currentScore + points })
-                    .eq('id', ans.player_id)
-            }
-        }
+        await supabase.rpc('process_scores', { p_game_id: gameId, p_question_id: currentQ.id })
     }
 
     const handleNext = async () => {
         if (game.status === 'waiting') {
-            // Guardar tempo en settings si la columna existe (o simplemente usarlo)
+            if (players.length < 2) {
+                toast.error('SE NECESITAN AL MENOS 2 JUGADORES')
+                return
+            }
             await supabase.from('games').update({ settings: { tempo: selectedTempo } }).eq('id', gameId)
             updateStatus('question', 0)
         } else if (game.status === 'question') {
@@ -172,158 +120,171 @@ export default function Host() {
     }
 
     if (loading) return (
-        <div className="min-h-screen bg-surface flex items-center justify-center">
-            <Loader2 className="animate-spin text-primary" size={48} />
+        <div className="h-screen bg-[#0f172a] flex items-center justify-center">
+            <Loader2 className="animate-spin text-pink-500" size={48} />
         </div>
     )
 
     return (
-        <div className="min-h-screen bg-surface flex flex-col items-center py-8 md:py-32 px-4 md:px-24 relative overflow-hidden font-body text-on-surface">
-            {/* Ambient Technical Background */}
-            <div className="fixed inset-0 v-grid opacity-20 pointer-events-none" />
-
-            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
-                <div className="absolute top-[20%] left-[10%] w-[30%] h-[30%] bg-primary rounded-full blur-[120px]" />
-                <div className="absolute bottom-[20%] right-[10%] w-[30%] h-[30%] bg-secondary rounded-full blur-[120px]" />
+        <div className="h-screen w-screen bg-[#080c14] flex flex-col font-body text-white relative overflow-hidden">
+            {/* Background Glows */}
+            <div className="fixed inset-0 pointer-events-none opacity-10">
+                <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-pink-500/10 to-transparent" />
+                <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-cyan-500/5 rounded-full blur-[120px]" />
             </div>
 
-            {/* System Status Bar */}
-            <div className="fixed top-0 left-0 w-full h-1 bg-white/5 z-[100]">
-                <div className="h-full bg-primary animate-pulse w-1/3" />
+            {/* Sticky Header */}
+            <header className="relative z-20 bg-black/40 backdrop-blur-xl border-b border-white/5 p-5 flex items-center justify-between shadow-2xl">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-500 border border-pink-500/20">
+                        <Activity size={20} className="animate-pulse" />
+                    </div>
+                    <div>
+                        <p className="text-[8px] font-black tracking-[0.3em] text-pink-500 uppercase">Live Controller</p>
+                        <h1 className="text-sm font-display font-black tracking-tight truncate max-w-[120px]">
+                            {game?.quizzes?.title || 'Partida'}
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="bg-white/5 px-4 py-2 rounded-lg border border-white/10 text-center">
+                        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-0.5">PIN TV</p>
+                        <p className="text-xl font-display font-black text-pink-500 leading-none">{game?.join_code}</p>
+                    </div>
+                </div>
+            </header>
+
+            {/* Quick Stats Bar */}
+            <div className="relative z-10 flex border-b border-white/5 divide-x divide-white/5 text-center bg-black/20">
+                <div className="flex-1 p-3">
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">AUDIENCIA</p>
+                    <div className="flex items-center justify-center gap-2">
+                        <Users size={12} className="text-cyan-500" />
+                        <span className="text-xl font-display font-black leading-none">{players.length}</span>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsAutoPilot(!isAutoPilot)}
+                    className={`flex-1 p-3 transition-colors ${isAutoPilot ? 'bg-pink-500/5' : 'bg-transparent'}`}
+                >
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">AUTO-PILOT</p>
+                    <span className={`text-xl font-display font-black leading-none ${isAutoPilot ? 'text-pink-500' : 'text-white/20'}`}>
+                        {isAutoPilot ? 'ON' : 'OFF'}
+                    </span>
+                </button>
             </div>
 
-            <div className="w-full max-w-7xl space-y-16 relative z-10 pb-20">
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 px-4 md:px-24 border-b border-white/5 pb-8">
-                    <div className="text-left space-y-1">
-                        <div className="flex items-center gap-2 text-primary terminal-text">
-                            <Activity size={12} className="animate-pulse" />
-                            <p className="text-[9px] font-black tracking-[0.4em]">Panel de Control // Vivo</p>
+            {/* Main Content Area */}
+            <main className="flex-1 relative z-10 p-6 flex flex-col justify-center overflow-y-auto">
+                {game?.status === 'waiting' && (
+                    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="text-center space-y-2">
+                            <h2 className="text-3xl font-display font-black uppercase italic tracking-tighter">Preparando...</h2>
+                            <p className="text-xs text-white/40 uppercase tracking-[0.2em]">Configura el ritmo de la partida</p>
                         </div>
-                        <h1 className="text-2xl md:text-4xl font-display font-black text-white tracking-tight uppercase leading-none">Anfitrión</h1>
-                        <h2 className="text-lg md:text-2xl font-display font-black leading-tight italic tracking-tighter text-white/60">
-                            {game?.quizzes?.title || 'Sistema_Listo'}
-                        </h2>
-                    </div>
-                    <div className="w-full md:w-auto flex flex-row md:flex-col items-center justify-between md:items-end gap-2 bg-surface-lowest/60 p-4 rounded-xl border border-white/5 backdrop-blur-md">
-                        <p className="text-[8px] font-display font-black text-on-surface-variant tracking-[0.3em] opacity-40 uppercase">Clave de Acceso</p>
-                        <div className="text-primary font-display font-black text-3xl md:text-5xl tracking-[0.1em]">
-                            {game?.join_code}
+
+                        <div className="grid grid-cols-3 gap-3">
+                            {[
+                                { val: 5, label: 'Turbo', icon: Zap },
+                                { val: 10, label: 'Normal', icon: Activity },
+                                { val: 20, label: 'Relax', icon: Headphones }
+                            ].map(t => (
+                                <button
+                                    key={t.val}
+                                    onClick={() => setSelectedTempo(t.val)}
+                                    className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${selectedTempo === t.val ? 'border-pink-500 bg-pink-500/10 text-pink-500' : 'border-white/5 text-white/20'}`}
+                                >
+                                    <t.icon size={20} />
+                                    <span className="text-[8px] font-black tracking-widest uppercase">{t.label}</span>
+                                    <span className="text-lg font-display font-black">{t.val}s</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
-                </header>
+                )}
 
-                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-10 px-4 md:px-24">
-                    <div className="btn-command p-6 md:p-10 rounded-xl flex flex-col items-center justify-center gap-2 group">
-                        <p className="text-[8px] font-display font-black text-secondary tracking-[0.2em] opacity-70 uppercase">Audiencia</p>
-                        <p className="text-5xl md:text-9xl font-display font-black text-white leading-none tracking-tighter">
-                            {players.length}
-                        </p>
+                {game?.status === 'question' && (
+                    <div className="text-center space-y-8 animate-in zoom-in duration-300">
+                        <div className="relative inline-block">
+                            <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                            <BarChart2 size={120} className="text-pink-500 relative z-10 mx-auto" />
+                        </div>
+                        <div className="space-y-4">
+                            <div className="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-md">
+                                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mb-2">RESPUESTAS</p>
+                                <div className="text-7xl font-display font-black text-white tabular-nums">
+                                    {answerCount}<span className="text-white/10">/</span><span className="text-white/20">{players.length}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                )}
 
+                {game?.status === 'results' && (
+                    <div className="text-center space-y-8 animate-in fade-in duration-500">
+                        <div className="relative inline-block">
+                            <div className="absolute inset-0 bg-cyan-500/10 blur-3xl rounded-full scale-150" />
+                            <Trophy size={100} className="text-cyan-500 relative z-10 mx-auto" />
+                        </div>
+                        <div className="bg-white/5 border border-white/10 p-8 rounded-3xl">
+                            <h3 className="text-2xl font-display font-black uppercase italic mb-2 text-cyan-500">Resultados Listos</h3>
+                            <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-bold">Presiona para cargar la siguiente</p>
+                        </div>
+                    </div>
+                )}
+
+                {game?.status === 'finished' && (
+                    <div className="text-center space-y-12 py-10">
+                        <div className="space-y-4">
+                            <Trophy size={80} className="text-pink-500 mx-auto animate-bounce" />
+                            <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter">🏆 ¡FIN!</h2>
+                        </div>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="w-full bg-white/5 hover:bg-white/10 py-6 rounded-2xl text-on-surface font-display font-black text-[10px] uppercase tracking-[0.4em] transition-all border border-white/10"
+                        >
+                            Volver al Menú
+                        </button>
+                    </div>
+                )}
+            </main>
+
+            {/* Bottom Action Area (Thumb Friendly) */}
+            <div className="relative z-30 p-6 pt-0 bg-gradient-to-t from-black to-transparent">
+                {game?.status !== 'finished' && (
                     <button
-                        onClick={() => setIsAutoPilot(!isAutoPilot)}
-                        className={`btn-command p-6 md:p-10 rounded-xl flex flex-col items-center justify-center gap-2 transition-all duration-500 group relative border-2 ${isAutoPilot ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/10' : 'border-white/5 opacity-50 grayscale'}`}
+                        onClick={handleNext}
+                        className={`w-full h-24 rounded-3xl font-display font-black text-xl tracking-[0.2em] shadow-2xl transition-all active:scale-[0.95] flex items-center justify-center gap-4 italic group active:brightness-90
+                            ${game?.status === 'waiting' ? (players.length < 2 ? 'bg-white/10 text-white/20 border border-white/10' : 'bg-pink-500 text-black neon-glow-primary') :
+                                game?.status === 'question' ? 'bg-amber-500 text-black shadow-amber-500/20' :
+                                    'bg-cyan-500 text-black shadow-cyan-500/20'}`}
                     >
-                        <p className={`text-[8px] font-display font-black tracking-[0.2em] ${isAutoPilot ? 'text-primary' : 'text-on-surface-variant'}`}>
-                            {isAutoPilot ? 'AUTO' : 'MANUAL'}
-                        </p>
-                        <p className={`text-4xl md:text-6xl font-display font-black tracking-tighter ${isAutoPilot ? 'text-white' : 'text-on-surface-variant opacity-20'}`}>
-                            {isAutoPilot ? 'ON' : 'OFF'}
-                        </p>
-                    </button>
-                </div>
-
-                <div className="bg-surface-lowest/50 p-10 md:p-12 rounded-xl border border-white/5 relative overflow-hidden shadow-2xl backdrop-blur-xl">
-                    <div className="scan-line absolute top-0 left-0 animate-scan" />
-
-                    <div className="relative z-10">
                         {game?.status === 'waiting' && (
-                            <div className="space-y-8 animate-fade">
-                                <div className="flex items-center justify-start gap-4 mb-2 opacity-40">
-                                    <p className="text-[10px] font-display font-black text-on-surface-variant tracking-[0.8em]">Ajustes // Tiempo</p>
-                                    <div className="h-[1px] flex-1 bg-white/10" />
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 md:gap-6">
-                                    {[
-                                        { val: 5, label: 'Turbo', desc: '05s' },
-                                        { val: 10, label: 'Normal', desc: '10s' },
-                                        { val: 20, label: 'Relax', desc: '20s' }
-                                    ].map(t => (
-                                        <button
-                                            key={t.val}
-                                            onClick={() => setSelectedTempo(t.val)}
-                                            className={`p-4 md:p-10 rounded-lg border flex flex-col items-center gap-1 transition-all transform active:scale-95 ${selectedTempo === t.val ? 'border-primary bg-primary/10 text-primary neon-glow-primary' : 'border-white/5 opacity-40'}`}
-                                        >
-                                            <span className="text-[8px] md:text-[10px] font-display font-black tracking-[0.2em] uppercase">{t.label}</span>
-                                            <span className="text-xl md:text-3xl font-display font-black">{t.desc}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={handleNext}
-                                    className="w-full bg-primary py-6 md:py-10 rounded-xl text-xl md:text-3xl font-display font-black text-surface tracking-[0.2em] shadow-2xl transition-all active:scale-[0.98] neon-glow-primary flex items-center justify-center gap-4 group italic"
-                                >
-                                    <Play size={24} fill="currentColor" />
-                                    <span>Iniciar Juego</span>
-                                </button>
-                            </div>
+                            <>
+                                <Play size={24} fill="currentColor" />
+                                <span>INICIAR</span>
+                            </>
                         )}
-
                         {game?.status === 'question' && (
-                            <div className="space-y-12 animate-fade text-center">
-                                <div className="text-primary/40 animate-pulse mb-8 flex justify-center">
-                                    <BarChart2 size={100} />
-                                </div>
-                                <button
-                                    onClick={handleNext}
-                                    className="w-full bg-secondary py-12 rounded-sm text-3xl font-display font-black text-surface tracking-[0.3em] shadow-2xl transition-all hover:brightness-110 active:scale-[0.98] neon-glow-secondary flex items-center justify-center gap-6"
-                                >
-                                    <span>Finalizar Pregunta</span>
-                                </button>
-                                <p className="text-[10px] font-display font-bold text-on-surface-variant uppercase tracking-[0.5em] opacity-40 pt-4">Sincronización de red activa // Latencia optimizada</p>
-                            </div>
+                            <>
+                                <SkipForward size={24} fill="currentColor" />
+                                <span>FINALIZAR</span>
+                            </>
                         )}
-
                         {game?.status === 'results' && (
-                            <div className="space-y-12 animate-fade text-center">
-                                <div className="text-primary/40 mb-8 flex justify-center">
-                                    <Trophy size={100} />
-                                </div>
-                                <button
-                                    onClick={handleNext}
-                                    className="w-full bg-surface-highest border border-primary/40 py-12 rounded-lg text-3xl font-display font-black text-primary tracking-[0.3em] shadow-2xl transition-all hover:bg-primary/5 active:scale-[0.98] flex items-center justify-center gap-8"
-                                >
-                                    <SkipForward size={48} fill="currentColor" />
-                                    <span>{game.current_question_index < questions.length - 1 ? 'Cargar Siguiente Pregunta' : 'Ver Podio Final'}</span>
-                                </button>
-                            </div>
+                            <>
+                                <Play size={24} fill="currentColor" />
+                                <span>SIGUIENTE</span>
+                            </>
                         )}
+                    </button>
+                )}
 
-                        {game?.status === 'finished' && (
-                            <div className="text-center py-16 flex flex-col items-center animate-fade">
-                                <div className="relative mb-12">
-                                    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
-                                    <Trophy size={120} className="text-primary relative z-10 animate-bounce" />
-                                </div>
-                                <h3 className="text-5xl font-display font-black tracking-[0.4em] mb-4 italic">Juego Finalizado</h3>
-                                <p className="text-on-surface-variant font-mono text-[10px] mb-12 opacity-40 tracking-[0.2em]">La partida ha concluido satisfactoriamente // Resultados Listos</p>
-                                <button
-                                    onClick={() => navigate('/')}
-                                    className="bg-white/5 hover:bg-white/10 px-16 py-6 rounded-xl text-on-surface font-display font-black text-xs uppercase tracking-[0.4em] transition-all border border-white/10"
-                                >
-                                    Finalizar Sesión
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                {/* Navigation Hint */}
+                <div className="flex justify-center mt-6">
+                    <div className="w-12 h-1.5 bg-white/10 rounded-full" />
                 </div>
-
-                <footer className="pt-8 flex flex-col items-center gap-4 opacity-30">
-                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                    <p className="text-[10px] font-display font-black tracking-[0.5em] uppercase text-center">
-                        LukeQuiz // Partida en Vivo
-                    </p>
-                </footer>
             </div>
         </div>
     )

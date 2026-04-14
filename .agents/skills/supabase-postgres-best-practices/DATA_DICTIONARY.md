@@ -53,6 +53,7 @@ Controla el estado de una partida en tiempo real.
 - **current_question_index** (int): Índice de la pregunta que se está mostrando.
 - **question_started_at** (timestamptz): Timestamp para sincronización del timer.
 - **settings** (jsonb): Configuraciones de la partida (ej: tempo).
+- **user_id** (uuid, FK): El usuario que inició la partida (auth.users).
 - **created_at** (timestamptz): Fecha de inicio.
 
 > [!IMPORTANT]

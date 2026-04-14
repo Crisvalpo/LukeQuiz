@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Plus, Play, Settings, Trash2, PlusCircle, Search, Library, User, LogOut, Ticket, Crown } from 'lucide-react'
+import { Plus, Play, Settings, Trash2, PlusCircle, Search, Library, User, LogOut, Ticket, Crown, Monitor } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'
@@ -11,6 +11,7 @@ import PremiumModal from '../components/PremiumModal'
 
 export default function Home() {
     const { user, refreshProfile } = useAuth()
+    const [activeGames, setActiveGames] = useState([])
     const [quizzes, setQuizzes] = useState([])
     const [loading, setLoading] = useState(true)
     const [view, setView] = useState('library') // 'library' or 'mine'
@@ -20,11 +21,20 @@ export default function Home() {
 
     useEffect(() => {
         fetchQuizzes()
-    }, [view, searchQuery])
+        if (user) fetchActiveGames()
+    }, [view, searchQuery, user])
 
-    useEffect(() => {
-        fetchQuizzes()
-    }, [view, searchQuery])
+    const fetchActiveGames = async () => {
+        if (!user) return
+        const { data } = await supabase
+            .from('games')
+            .select('*, quizzes(title)')
+            .eq('user_id', user.id)
+            .neq('status', 'finished')
+            .order('created_at', { ascending: false })
+
+        if (data) setActiveGames(data)
+    }
 
     const fetchQuizzes = async () => {
         setLoading(true)
@@ -59,6 +69,10 @@ export default function Home() {
     }
 
     const startNewGame = async (quizId) => {
+        if (!user) {
+            toast.error('Debes iniciar sesión para comenzar una partida')
+            return
+        }
         const promise = new Promise(async (resolve, reject) => {
             const code = generateJoinCode()
             const { data: game, error } = await supabase
@@ -67,7 +81,8 @@ export default function Home() {
                     quiz_id: quizId,
                     join_code: code,
                     status: 'waiting',
-                    current_question_index: 0
+                    current_question_index: 0,
+                    user_id: user.id
                 })
                 .select()
                 .single()
@@ -77,13 +92,32 @@ export default function Home() {
         })
 
         toast.promise(promise, {
+            loading: 'Iniciando partida...',
             success: (game) => {
+                fetchActiveGames()
                 window.open(`/screen/${game.id}`, '_blank')
                 navigate(`/host/${game.id}`)
                 return '¡Partida Iniciada!'
             },
             error: 'Error al iniciar el juego'
         })
+    }
+
+    const finishGame = async (gameId) => {
+        const { error } = await supabase
+            .from('games')
+            .update({ status: 'finished' })
+            .eq('id', gameId)
+
+        if (!error) {
+            toast.success('Partida finalizada')
+            fetchActiveGames()
+        }
+    }
+
+    const resumeGame = (gameId) => {
+        window.open(`/screen/${gameId}`, '_blank')
+        navigate(`/host/${gameId}`)
     }
 
     const deleteQuiz = async (id, title) => {
@@ -139,11 +173,12 @@ export default function Home() {
                     <div className="flex items-center gap-6">
                         <button
                             onClick={() => navigate('/tv')}
-                            className="hidden lg:flex items-center gap-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 px-6 py-4 rounded-xl font-display font-black text-[12px] tracking-[0.2em] transition-all border border-cyan-500/20 group"
+                            className="flex items-center gap-3 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-6 py-4 rounded-xl font-display font-black text-[10px] tracking-[0.2em] transition-all group"
                         >
                             <Monitor size={18} className="group-hover:scale-110 transition-transform" />
                             MODO TV
                         </button>
+
                         {user ? (
                             <div className="flex items-center gap-4 bg-white/5 p-2 pr-6 rounded-2xl border border-white/10 group">
                                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-black border border-primary/20 uppercase relative">
@@ -226,6 +261,47 @@ export default function Home() {
                     <div className="flex-1 min-h-0 bg-black/40 shadow-inner flex flex-col overflow-hidden relative group/inner">
                         <div className="flex-1 overflow-y-auto custom-scrollbar px-8 md:px-16 pt-8 pb-8">
                             <div className="lg:px-2">
+                                {/* Active Games Section */}
+                                {activeGames.length > 0 && (
+                                    <div className="mb-12 animate-in fade-in slide-in-from-top duration-700">
+                                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary uppercase tracking-[0.2em] text-[12px]">
+                                            <Play size={16} className="fill-current" /> Partidas en curso
+                                        </h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {activeGames.map(g => (
+                                                <div key={g.id} className="bg-white/5 border border-primary/20 rounded-2xl p-6 flex flex-col gap-5 shadow-2xl relative overflow-hidden group">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                                                    <div className="flex justify-between items-start relative z-10">
+                                                        <div>
+                                                            <div className="text-[9px] font-black tracking-[0.3em] text-primary uppercase mb-1">CÓDIGO: {g.join_code}</div>
+                                                            <h3 className="font-display font-black text-lg leading-tight line-clamp-1 uppercase">{g.quizzes?.title || 'Trivia'}</h3>
+                                                            <div className="text-[10px] text-white/30 font-bold uppercase tracking-widest mt-1">Status: <span className="text-primary">{g.status}</span></div>
+                                                        </div>
+                                                        <div className="p-3 bg-primary/10 rounded-xl text-primary border border-primary/20">
+                                                            <Monitor size={18} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-3 relative z-10">
+                                                        <button
+                                                            onClick={() => resumeGame(g.id)}
+                                                            className="flex-1 bg-primary text-white py-3 rounded-xl font-black text-[10px] tracking-widest uppercase hover:bg-primary-hover transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                                                        >
+                                                            <Play size={14} fill="currentColor" /> Continuar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => finishGame(g.id)}
+                                                            className="px-4 border border-white/10 hover:bg-white/5 py-3 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all text-white/40 hover:text-white"
+                                                        >
+                                                            Finalizar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/5 to-transparent mt-12" />
+                                    </div>
+                                )}
+
                                 {loading ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                         {[1, 2, 3, 4, 5, 6].map(i => (

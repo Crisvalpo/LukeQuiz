@@ -14,6 +14,16 @@ export default function Screen() {
     const [audioUnlocked, setAudioUnlocked] = useState(false)
     const [answers, setAnswers] = useState([])
 
+    const unlockAudio = () => {
+        if (audioUnlocked) return
+        // Play a silent sound to unlock audio context
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
+        silentAudio.play().then(() => {
+            setAudioUnlocked(true)
+            console.log('Audio Context Unlocked via gesture')
+        }).catch(e => console.error('Audio Unlock Failed:', e))
+    }
+
     useEffect(() => {
         if (game?.status === 'question' && currentQuestion?.audio_url && audioRef.current) {
             audioRef.current.load()
@@ -196,7 +206,10 @@ export default function Screen() {
     const joinUrl = `${window.location.origin}/join?code=${game?.join_code}`
 
     return (
-        <div className="h-screen bg-surface flex flex-col font-body text-on-surface relative overflow-hidden">
+        <div
+            onClick={unlockAudio}
+            className="h-screen bg-surface flex flex-col font-body text-on-surface relative overflow-hidden cursor-pointer"
+        >
             {/* Top Subtle Timer Bar */}
             {game?.status === 'question' && (
                 <div className="fixed top-0 left-0 w-full h-[2px] z-[100] bg-white/5 overflow-hidden">
@@ -210,25 +223,25 @@ export default function Screen() {
             {/* Background Image / Glows - Memoized for Performance */}
             <BackgroundView status={game?.status} imageUrl={currentQuestion?.image_url} />
 
-            <header className="px-16 md:px-24 py-5 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface-lowest/60 backdrop-blur-xl">
-                <div className="flex items-center gap-12">
-                    <h1 className="text-3xl font-display font-black tracking-tighter text-white italic leading-none">
+            <header className="px-12 md:px-24 py-4 flex justify-between items-center relative z-20 border-b border-white/5 bg-surface-lowest/60 backdrop-blur-xl shrink-0">
+                <div className="flex items-center gap-8">
+                    <h1 className="text-2xl font-display font-black tracking-tighter text-white italic leading-none">
                         LUKE<span className="text-primary">QUIZ</span>
                     </h1>
-                    <div className="flex items-center gap-8 border-l border-white/10 pl-8">
-                        <div className="flex items-center gap-3 bg-secondary/10 px-6 py-2 rounded-xl border border-secondary/20">
-                            <Users size={16} className="text-secondary" />
-                            <p className="text-xl font-display font-black text-secondary">{players.length}</p>
+                    <div className="flex items-center gap-6 border-l border-white/10 pl-6">
+                        <div className="flex items-center gap-2 bg-secondary/10 px-4 py-1.5 rounded-lg border border-secondary/20">
+                            <Users size={14} className="text-secondary" />
+                            <p className="text-lg font-display font-black text-secondary">{players.length}</p>
                         </div>
                         {game?.status === 'waiting' && (
-                            <div className="bg-primary/10 border border-primary/20 px-8 py-2 rounded-2xl text-primary font-display font-black text-4xl tracking-[0.3em]">
+                            <div className="bg-primary/10 border border-primary/20 px-6 py-1.5 rounded-xl text-primary font-display font-black text-2xl tracking-[0.2em]">
                                 {game?.join_code}
                             </div>
                         )}
                     </div>
                 </div>
-                <div className="text-right">
-                    <p className="text-[10px] font-display font-black tracking-[0.6em] text-primary animate-pulse">JUEGO EN VIVO // ACTIVO</p>
+                <div className="text-right hidden sm:block">
+                    <p className="text-[9px] font-display font-black tracking-[0.4em] text-primary animate-pulse uppercase">Modo TV // Sincronizado</p>
                 </div>
             </header>
 
@@ -257,19 +270,19 @@ export default function Screen() {
                             </div>
 
                             {/* COLUMNA DERECHA: AUDIENCIA */}
-                            <div className="lg:col-span-7 flex flex-col items-center lg:items-start space-y-6 animate-in slide-in-from-right duration-700">
+                            <div className="lg:col-span-7 flex flex-col items-center lg:items-start space-y-4 animate-in slide-in-from-right duration-700">
                                 <div className="text-center lg:text-left w-full">
-                                    <div className="flex items-center gap-4 mb-4 opacity-50 justify-center lg:justify-start">
-                                        <Activity size={14} className="text-primary animate-pulse" />
-                                        <p className="text-[11px] font-display font-black text-white tracking-[0.6em] uppercase">Monitoreo de Audiencia en Tiempo Real</p>
+                                    <div className="flex items-center gap-3 mb-2 opacity-50 justify-center lg:justify-start">
+                                        <Activity size={12} className="text-primary animate-pulse" />
+                                        <p className="text-[10px] font-display font-black text-white tracking-[0.4em] uppercase">Monitoreo de Audiencia</p>
                                     </div>
-                                    <div className="flex items-end gap-6 justify-center lg:justify-start">
-                                        <span className="text-[6rem] font-display font-black leading-none text-white tracking-tighter transition-all duration-1000">
+                                    <div className="flex items-end gap-4 justify-center lg:justify-start">
+                                        <span className="text-[4rem] font-display font-black leading-none text-white tracking-tighter transition-all duration-1000">
                                             {players.length}
                                         </span>
-                                        <div className="mb-4 space-y-1 text-left">
-                                            <p className="text-2xl font-display font-black text-primary uppercase italic leading-none">Jugadores</p>
-                                            <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Sincronizados</p>
+                                        <div className="mb-2 space-y-0 text-left">
+                                            <p className="text-xl font-display font-black text-primary uppercase italic leading-none">Jugadores</p>
+                                            <p className="text-[9px] font-mono text-white/30 uppercase tracking-widest">En Línea</p>
                                         </div>
                                     </div>
                                 </div>
@@ -281,20 +294,14 @@ export default function Screen() {
                                             <p className="text-xs font-display font-black tracking-widest uppercase text-center">Esperando Conexiones...</p>
                                         </div>
                                     ) : (
-                                        <>
+                                        <div className="w-full flex flex-wrap content-start items-start gap-4 p-2">
                                             {players.map((p) => (
-                                                <div key={p.id} className="animate-in fade-in zoom-in-90 duration-500 bg-white/5 border border-white/10 px-6 py-3 rounded-full flex items-center gap-4 hover:bg-white/10 transition-colors">
+                                                <div key={p.id} className="animate-in fade-in zoom-in-90 duration-500 bg-white/5 border border-white/10 px-6 py-3 rounded-full flex items-center gap-4 hover:bg-white/10 transition-colors shrink-0">
                                                     <span className="text-2xl">{p.emoji}</span>
-                                                    <span className="text-sm font-display font-black text-white uppercase italic tracking-tighter">{p.nickname}</span>
+                                                    <span className="font-display font-black text-lg uppercase tracking-wider">{p.nickname}</span>
                                                 </div>
                                             ))}
-                                            {/* Botón de inicio rápido flotante sobre la lista */}
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm rounded-[2.5rem]">
-                                                <button onClick={handleNext} className="bg-primary text-surface px-12 py-4 rounded-xl font-display font-black text-xl uppercase italic tracking-widest shadow-2xl scale-90 group-hover:scale-100 transition-transform">
-                                                    Iniciar Sesión Ahora
-                                                </button>
-                                            </div>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -305,15 +312,10 @@ export default function Screen() {
                 {(game?.status === 'question' || game?.status === 'results') && currentQuestion && (
                     <div className="flex-1 flex overflow-hidden">
                         <audio key={currentQuestion?.id} ref={audioRef} src={currentQuestion?.audio_url} hidden />
-                        {!audioUnlocked && game?.status === 'question' && (
-                            <button
-                                onClick={() => {
-                                    audioRef.current.play().then(() => setAudioUnlocked(true))
-                                }}
-                                className="fixed bottom-24 right-12 z-[110] bg-pink-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest animate-bounce shadow-2xl shadow-pink-600/40 flex items-center gap-3"
-                            >
-                                <Activity size={16} /> ACTIVAR AUDIO
-                            </button>
+                        {!audioUnlocked && game?.status === 'waiting' && (
+                            <div className="fixed bottom-12 right-12 z-[110] bg-primary/20 backdrop-blur-md text-primary px-6 py-3 rounded-full font-black text-[9px] uppercase tracking-widest animate-pulse border border-primary/20 flex items-center gap-3">
+                                <Activity size={12} /> Toca la pantalla una vez para activar sonido
+                            </div>
                         )}
                         {/* Sidebar: Cinematic & Narrower */}
                         <aside className="w-1/5 bg-surface-lowest/80 backdrop-blur-3xl flex flex-col h-full p-8 border-r border-white/5 shadow-2xl relative">
@@ -360,7 +362,7 @@ export default function Screen() {
                         </aside>
 
                         {/* Main Interaction Area: More Space */}
-                        <div className="w-4/5 flex flex-col p-16 md:p-20 h-full gap-12 v-grid relative">
+                        <div className="w-4/5 flex flex-col p-8 md:p-12 lg:p-16 h-full gap-8 v-grid relative overflow-hidden">
                             <div className="scan-line absolute top-0 left-0 animate-scan z-0 opacity-10" />
 
                             <div className="flex items-start gap-12 relative z-10 w-full animate-in slide-in-from-top duration-700">
@@ -380,21 +382,7 @@ export default function Screen() {
                             </div>
 
                             <div className="flex-1 flex flex-col gap-10 min-h-0 relative z-10">
-                                <div className="flex-1 flex justify-center items-center min-h-0 py-2">
-                                    <div className="h-full max-h-[30vh] w-fit bg-black/40 rounded-3xl overflow-hidden border border-white/5 shadow-[0_40px_100px_rgba(0,0,0,0.6)] relative group mx-auto animate-in zoom-in duration-1000 delay-300">
-                                        <img
-                                            src={currentQuestion.image_url || PLACEHOLDER_URL}
-                                            alt="Pregunta"
-                                            className="w-full h-full object-contain transition-all duration-1000 hover:scale-110"
-                                            onError={(e) => {
-                                                if (!e.target.src.includes('postimg.cc')) {
-                                                    e.target.src = PLACEHOLDER_URL;
-                                                }
-                                            }}
-                                        />
-                                        <div className="absolute top-4 left-4 bg-primary/20 backdrop-blur-md px-3 py-1 border border-primary/30 rounded-md text-[8px] font-mono text-primary font-bold tracking-widest uppercase">DATAFEED_IMG_01</div>
-                                    </div>
-                                </div>
+                                <div className="flex-1" />
 
                                 <div className="grid grid-cols-2 gap-8 pb-10">
                                     {[
@@ -446,20 +434,20 @@ export default function Screen() {
                 )}
 
                 {game?.status === 'finished' && (
-                    <div className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative v-grid">
-                        <div className="mb-20 text-center z-10">
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden relative v-grid min-h-0">
+                        <div className="mb-8 text-center z-10">
                             <div className="flex items-center justify-center gap-4 mb-4">
                                 <div className="h-[1px] w-20 bg-primary/40" />
                                 <p className="text-xs font-display font-bold text-primary tracking-[1em] uppercase italic">Podio de Ganadores</p>
                                 <div className="h-[1px] w-20 bg-primary/40" />
                             </div>
-                            <h2 className="text-7xl font-display font-black tracking-tight leading-none text-white uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-black tracking-tight leading-none text-white uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
                                 Juego<br />
                                 <span className="text-primary">Finalizado</span>
                             </h2>
                         </div>
 
-                        <div className="flex items-end justify-center gap-4 h-[400px] z-10 w-full max-w-5xl">
+                        <div className="flex items-end justify-center gap-4 h-[35vh] max-h-[400px] z-10 w-full max-w-5xl">
                             {/* P2 */}
                             {players[1] && (
                                 <div className="flex flex-col items-center flex-1 max-w-[200px]">
@@ -510,7 +498,7 @@ export default function Screen() {
                         {players[0] && (
                             <div className="mt-12 z-20 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-1000">
                                 <div className="bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-amber-500/20 p-[1px] rounded-[2rem] shadow-[0_0_50px_rgba(236,72,153,0.2)]">
-                                    <div className="bg-surface-lowest/90 backdrop-blur-2xl px-12 py-6 rounded-[2rem] flex items-center gap-12 border border-white/5">
+                                    <div className="bg-surface-lowest/90 backdrop-blur-2xl px-8 py-4 rounded-[1.5rem] flex items-center gap-8 border border-white/5 max-w-4xl">
                                         <div className="relative">
                                             <div className="absolute -inset-4 bg-amber-500/20 blur-xl animate-pulse rounded-full" />
                                             <Trophy size={48} className="text-amber-400 relative z-10" />

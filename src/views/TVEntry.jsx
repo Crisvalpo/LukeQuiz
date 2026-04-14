@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Monitor, Loader2, Delete, ChevronLeft } from 'lucide-react'
+import { Monitor, Loader2, ChevronLeft, Keyboard } from 'lucide-react'
 import { toast } from 'sonner'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'
 
@@ -9,129 +9,118 @@ export default function TVEntry() {
     const [code, setCode] = useState('')
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
-
-    const handleNumberClick = (num) => {
-        if (code.length < 6) {
-            setCode(prev => prev + num)
-        }
-    }
-
-    const handleDelete = () => {
-        setCode(prev => prev.slice(0, -1))
-    }
+    const inputRef = useRef(null)
 
     useEffect(() => {
-        if (code.length === 6) {
-            verifyCode()
+        // Auto-focus input for TV keyboard
+        if (inputRef.current) {
+            inputRef.current.focus()
         }
-    }, [code])
+    }, [])
+
+    const handleSumbit = async (e) => {
+        if (e) e.preventDefault()
+        if (code.length < 4) {
+            toast.error('PIN DEMASIADO CORTO')
+            return
+        }
+        verifyCode()
+    }
 
     const verifyCode = async () => {
         setLoading(true)
-        const { data, error } = await supabase
-            .from('games')
-            .select('id')
-            .eq('join_code', code.toUpperCase())
-            .single()
+        console.log('Verifying PIN:', code.toUpperCase())
+        try {
+            const { data, error } = await supabase
+                .from('games')
+                .select('id')
+                .eq('join_code', code.toUpperCase())
+                .single()
 
-        if (error || !data) {
-            toast.error('CÓDIGO INVÁLIDO')
-            setCode('')
+            if (error || !data) {
+                toast.error('CÓDIGO INVÁLIDO')
+                setLoading(false)
+            } else {
+                toast.success('CONECTANDO...')
+                setTimeout(() => {
+                    navigate(`/screen/${data.id}`)
+                }, 800)
+            }
+        } catch (err) {
+            console.error(err)
             setLoading(false)
-        } else {
-            toast.success('CONECTANDO A LA PANTALLA...')
-            setTimeout(() => {
-                navigate(`/screen/${data.id}`)
-            }, 1000)
         }
     }
 
-    // Keyboard support
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key >= '0' && e.key <= '9') {
-                handleNumberClick(e.key)
-            } else if (e.key === 'Backspace') {
-                handleDelete()
-            }
-        }
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [code])
-
     return (
-        <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-8 font-body text-white relative overflow-hidden">
+        <div className="h-screen w-screen bg-[#0f172a] flex flex-col items-center justify-center p-6 md:p-12 font-body text-white relative overflow-hidden">
             {/* Background Glows */}
-            <div className="fixed inset-0 pointer-events-none opacity-10">
-                <div className="absolute top-1/4 -left-12 w-1/3 h-1/3 bg-primary rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-1/4 -right-12 w-1/3 h-1/3 bg-secondary rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+            <div className="fixed inset-0 pointer-events-none opacity-20">
+                <div className="absolute top-1/4 -left-12 w-1/2 h-1/2 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute bottom-1/4 -right-12 w-1/2 h-1/2 bg-pink-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
             </div>
 
-            <div className="w-full max-w-4xl space-y-12 relative z-10 text-center">
-                <div className="space-y-4">
+            <div className="w-full max-w-2xl space-y-8 relative z-10 text-center flex flex-col items-center">
+                <div className="space-y-6 w-full">
                     <button
                         onClick={() => navigate('/')}
-                        className="absolute top-0 left-0 p-4 text-white/20 hover:text-white transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest"
+                        className="absolute top-0 left-0 p-4 text-white/20 hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
                     >
-                        <ChevronLeft size={16} /> Volver
+                        <ChevronLeft size={14} /> Inicio
                     </button>
-                    <LogoLukeQuiz className="w-72 h-auto mx-auto mb-8" />
-                    <div className="inline-flex items-center gap-3 bg-primary/10 px-6 py-2 rounded-full border border-primary/20 mb-4">
-                        <Monitor size={16} className="text-primary" />
-                        <p className="text-[10px] font-display font-black text-primary tracking-[0.4em] uppercase">Modo TV / Proyector</p>
-                    </div>
-                    <h1 className="text-5xl font-display font-black tracking-tighter uppercase leading-none italic">
-                        Conecta tu <span className="text-primary">Pantalla</span>
-                    </h1>
-                    <p className="text-sm font-bold text-white/40 uppercase tracking-[0.2em]">Ingresa el PIN de 6 dígitos del juego</p>
-                </div>
 
-                <div className="flex justify-center gap-4">
-                    {[0, 1, 2, 3, 4, 5].map((idx) => (
-                        <div
-                            key={idx}
-                            className={`w-16 h-20 md:w-24 md:h-32 bg-black/40 border-2 rounded-2xl flex items-center justify-center text-4xl md:text-6xl font-display font-black transition-all duration-300 ${code[idx] ? 'border-primary text-white shadow-lg shadow-primary/20 scale-105' : 'border-white/10 text-white/5'}`}
-                        >
-                            {code[idx] || '•'}
+                    <LogoLukeQuiz className="w-64 md:w-80 h-auto mx-auto" />
+
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="inline-flex items-center gap-3 bg-cyan-500/10 px-6 py-2 rounded-full border border-cyan-500/20">
+                            <Monitor size={16} className="text-cyan-500" />
+                            <p className="text-[10px] font-display font-black text-cyan-500 tracking-[0.4em] uppercase">Modo TV / Proyector</p>
                         </div>
-                    ))}
+                        <h1 className="text-4xl md:text-5xl font-display font-black tracking-tighter uppercase leading-none italic">
+                            Conecta tu <span className="text-cyan-500">Pantalla</span>
+                        </h1>
+                    </div>
                 </div>
 
-                {loading ? (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                        <Loader2 className="animate-spin text-primary" size={48} />
-                        <p className="text-xs font-black tracking-[0.4em] text-primary animate-pulse uppercase">Sincronizando...</p>
+                <form onSubmit={handleSumbit} className="w-full space-y-8">
+                    <div className="relative group max-w-md mx-auto">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value.toUpperCase())}
+                            className="w-full bg-black/40 border-4 border-white/10 rounded-3xl p-8 text-white font-display font-black text-5xl md:text-7xl text-center focus:border-cyan-500 focus:bg-cyan-500/5 focus:outline-none transition-all uppercase tracking-[0.2em] placeholder:opacity-10"
+                            placeholder="PIN"
+                            maxLength={8}
+                            autoComplete="off"
+                        />
+                        <div className="absolute -bottom-10 left-0 right-0 text-center">
+                            <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                                <Keyboard size={12} /> Usa el teclado de tu TV
+                            </p>
+                        </div>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-3 gap-6 max-w-md mx-auto pt-8">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+
+                    <div className="pt-8">
+                        {loading ? (
+                            <div className="flex flex-col items-center gap-4">
+                                <Loader2 className="animate-spin text-cyan-500" size={48} />
+                                <p className="text-[10px] font-black tracking-[0.4em] text-cyan-500 animate-pulse uppercase">Verificando sesión...</p>
+                            </div>
+                        ) : (
                             <button
-                                key={num}
-                                onClick={() => handleNumberClick(num.toString())}
-                                className="h-20 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl text-3xl font-display font-black transition-all active:scale-95 flex items-center justify-center"
+                                type="submit"
+                                className="bg-cyan-500 hover:bg-cyan-400 text-[#0f172a] px-12 py-5 rounded-2xl font-display font-black text-xl tracking-[0.2em] uppercase transition-all active:scale-95 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
                             >
-                                {num}
+                                CONECTAR
                             </button>
-                        ))}
-                        <div />
-                        <button
-                            onClick={() => handleNumberClick('0')}
-                            className="h-20 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl text-3xl font-display font-black transition-all active:scale-95 flex items-center justify-center"
-                        >
-                            0
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            className="h-20 bg-red-500/10 hover:bg-red-500/20 border border-red-500/10 hover:border-red-500/30 rounded-2xl text-red-500 transition-all active:scale-95 flex items-center justify-center"
-                        >
-                            <Delete size={32} />
-                        </button>
+                        )}
                     </div>
-                )}
+                </form>
             </div>
 
-            <footer className="mt-20 opacity-20 text-[10px] font-display font-black tracking-[0.6em] uppercase text-center border-t border-white/5 pt-8 w-full max-w-4xl">
-                Esperando PIN de sesión activa // LukeQuiz TV Link
+            <footer className="absolute bottom-8 left-0 right-0 opacity-10 text-[9px] font-display font-black tracking-[0.5em] uppercase text-center pointer-events-none">
+                LukeQuiz // Professional Trivia Projection
             </footer>
         </div>
     )
