@@ -32,7 +32,7 @@ export default function EditQuiz() {
     const [aiPrompt, setAiPrompt] = useState('')
     const [aiTopic, setAiTopic] = useState('')
     const [aiCount, setAiCount] = useState(5)
-    const [bulkCount, setBulkCount] = useState(20)
+    const [bulkCount, setBulkCount] = useState(5)
     const [ttsEnabled, setTtsEnabled] = useState(false)
     const [showMediaSearch, setShowMediaSearch] = useState(false)
 
