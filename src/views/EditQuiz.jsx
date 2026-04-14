@@ -626,20 +626,31 @@ export default function EditQuiz() {
 
                         <div className="flex justify-between items-center mb-2 px-1">
                             <label className="text-[10px] font-black text-white/40 tracking-widest uppercase">Contenido de la IA</label>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        const text = await navigator.clipboard.readText();
-                                        setBulkText(text);
-                                        toast.success('Contenido pegado del portapapeles');
-                                    } catch (err) {
-                                        toast.error('Error al acceder al portapapeles');
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
-                            >
-                                <Plus size={12} className="rotate-45" /> PEGAR CONTENIDO
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setBulkText('');
+                                        toast.success('Contenido limpiado');
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-500/20 transition-all"
+                                >
+                                    <Trash2 size={12} /> LIMPIAR
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const text = await navigator.clipboard.readText();
+                                            setBulkText(text);
+                                            toast.success('Contenido pegado del portapapeles');
+                                        } catch (err) {
+                                            toast.error('Error al acceder al portapapeles');
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
+                                >
+                                    <Plus size={12} className="rotate-45" /> PEGAR CONTENIDO
+                                </button>
+                            </div>
                         </div>
 
                         <textarea
