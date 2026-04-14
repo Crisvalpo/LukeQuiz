@@ -395,13 +395,13 @@ export default function EditQuiz() {
                             <input
                                 value={quiz?.title || ''}
                                 onChange={(e) => { setQuiz({ ...quiz, title: e.target.value }); setIsDirty(true); }}
-                                className="bg-transparent border-none text-xl font-display font-black text-white italic tracking-tight leading-none outline-none placeholder:text-white/20 w-full"
+                                className={`bg-transparent border-none text-3xl font-display font-black text-white italic tracking-tight leading-none outline-none placeholder:text-white/20 w-full ${!quiz?.title?.trim() ? 'animate-pulse-input' : ''}`}
                                 placeholder="Título de la trivia"
                             />
                             <input
                                 value={quiz?.description || ''}
                                 onChange={(e) => { setQuiz({ ...quiz, description: e.target.value }); setIsDirty(true); }}
-                                className="bg-transparent border-none text-[11px] font-bold text-white/40 tracking-[0.2em] outline-none placeholder:text-white/10 w-full mt-2"
+                                className={`bg-transparent border-none text-sm font-bold text-white/40 tracking-[0.2em] outline-none placeholder:text-white/10 w-full mt-2 ${!quiz?.description?.trim() ? 'animate-pulse-input' : ''}`}
                                 placeholder="Añade una descripción..."
                             />
                         </div>
@@ -441,18 +441,12 @@ export default function EditQuiz() {
                     {/* Botón Carga Masiva - IA */}
                     <button
                         onClick={handleOpenBulkPanel}
-                        className={`group relative flex items-center gap-3 px-6 h-11 border rounded-lg text-xs font-bold transition-all overflow-hidden ${user?.is_premium
-                            ? 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
-                            : 'bg-white/5 border-amber-500/10 text-amber-500/40 grayscale opacity-70 cursor-not-allowed'
-                            }`}
+                        className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 rounded-lg text-xs font-bold transition-all overflow-hidden"
                     >
-                        {user?.is_premium ? <FileText size={16} /> : <Crown size={14} className="text-amber-500" />}
+                        <FileText size={16} />
                         <span className="hidden md:inline">CARGA MASIVA</span>
-                        <div className={`absolute top-0.5 right-0.5 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter transition-opacity uppercase ${user?.is_premium
-                            ? 'bg-cyan-500/20 text-cyan-400 opacity-50 group-hover:opacity-100'
-                            : 'bg-amber-500/10 text-amber-500 opacity-100'
-                            }`}>
-                            {user?.is_premium ? 'IA' : 'Premium'}
+                        <div className="absolute top-0.5 right-0.5 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter transition-opacity uppercase bg-cyan-500/20 text-cyan-400 opacity-50 group-hover:opacity-100">
+                            IA
                         </div>
                     </button>
 
