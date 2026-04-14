@@ -8,6 +8,7 @@ import EditQuiz from './views/EditQuiz'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import Login from './views/Login'
 import TVEntry from './views/TVEntry'
+import Admin from './views/Admin'
 import { Toaster } from 'sonner'
 import './index.css'
 
@@ -34,6 +35,11 @@ function App() {
             <Route path="/edit/:quizId" element={
               <ProtectedRoute>
                 <EditQuiz />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <Admin />
               </ProtectedRoute>
             } />
           </Routes>

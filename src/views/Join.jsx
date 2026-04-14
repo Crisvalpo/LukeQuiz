@@ -182,29 +182,29 @@ export default function Join() {
 
     if (joined) {
         return (
-            <div className="min-h-screen bg-background flex flex-col p-12 font-body text-on-surface relative overflow-hidden v-grid">
+            <div className="h-[100dvh] w-screen bg-background flex flex-col p-[4vh] font-body text-on-surface relative overflow-hidden v-grid">
                 {/* Atmosphere */}
                 <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-5">
-                    <div className="absolute top-[10%] left-[-5%] w-[40%] h-[40%] bg-primary rounded-full blur-[100px]" />
-                    <div className="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-secondary rounded-full blur-[100px]" />
+                    <div className="absolute top-[10%] left-[-5%] w-[40vw] h-[40vw] bg-primary rounded-full blur-[10vh]" />
+                    <div className="absolute bottom-[10%] right-[-5%] w-[40vw] h-[40vw] bg-secondary rounded-full blur-[10vh]" />
                 </div>
 
-                <div className="relative z-10 flex-1 flex flex-col max-w-lg mx-auto w-full pt-16">
+                <div className="relative z-10 flex-1 flex flex-col max-w-lg mx-auto w-full pt-[4vh]">
                     {(!game || game.status === 'waiting') && (
-                        <div className="flex-1 flex flex-col items-center justify-center pb-10">
-                            <div className="glass p-10 rounded-2xl border border-white/10 text-center relative overflow-hidden group">
+                        <div className="flex-1 flex flex-col items-center justify-center pb-[5vh]">
+                            <div className="glass p-[5vh] rounded-[3vh] border border-white/10 text-center relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-full h-[2px] bg-secondary scan-line opacity-50" />
-                                <div className="text-[7rem] mb-8 animate-float drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">{player?.emoji}</div>
+                                <div className="text-[15vh] mb-[4vh] animate-float drop-shadow-[0_0_3vh_rgba(6,182,212,0.3)]">{player?.emoji}</div>
 
-                                <p className="text-[10px] font-display font-black text-secondary tracking-[0.4em] uppercase mb-2 opacity-50">JUGADOR_CONECTADO</p>
-                                <h2 className="text-5xl font-display font-black tracking-tighter mb-8 uppercase text-white truncate">{player?.nickname}</h2>
+                                <p className="text-[1.2vh] font-display font-black text-secondary tracking-[0.4em] uppercase mb-[1vh] opacity-50">JUGADOR_CONECTADO</p>
+                                <h2 className="text-[5vh] font-display font-black tracking-tighter mb-[4vh] uppercase text-white truncate">{player?.nickname}</h2>
 
-                                <div className="bg-surface-lowest/50 border border-white/5 p-6 rounded-lg mb-6">
-                                    <p className="text-on-surface-variant font-display font-bold uppercase tracking-[0.2em] text-[10px] animate-pulse">
+                                <div className="bg-surface-lowest/50 border border-white/5 p-[3vh] rounded-[2vh] mb-[4vh]">
+                                    <p className="text-on-surface-variant font-display font-bold uppercase tracking-[0.2em] text-[1.2vh] animate-pulse">
                                         Estado: Esperando al anfitrión...
                                     </p>
                                 </div>
-                                <div className="text-[9px] font-mono text-white/20 uppercase tracking-widest">
+                                <div className="text-[1vh] font-mono text-white/20 uppercase tracking-widest">
                                     PLAYER_ID: {player?.id.split('-')[0]}
                                 </div>
                             </div>
@@ -212,18 +212,18 @@ export default function Join() {
                     )}
 
                     {game?.status === 'question' && (
-                        <div className="flex-1 flex flex-col pt-6">
-                            <div className="mb-12">
-                                <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase mb-1">Estado: JUGANDO</p>
-                                <h2 className="text-5xl font-display font-black tracking-tighter uppercase text-white">Tu Respuesta</h2>
+                        <div className="flex-1 flex flex-col pt-[2vh]">
+                            <div className="mb-[4vh]">
+                                <p className="text-[1.2vh] font-display font-black text-primary tracking-[0.5em] uppercase mb-[0.5vh]">Estado: JUGANDO</p>
+                                <h2 className="text-[5vh] font-display font-black tracking-tighter uppercase text-white leading-none">Tu Respuesta</h2>
                                 {hasAnswered && (
-                                    <div className="mt-4 inline-flex items-center gap-2 bg-success/10 text-success px-6 py-2 rounded-sm font-display font-black text-[10px] uppercase tracking-widest border border-success/20 animate-fade">
+                                    <div className="mt-[2vh] inline-flex items-center gap-[1vh] bg-success/10 text-success px-[3vh] py-[1vh] rounded-[0.5vh] font-display font-black text-[1.2vh] uppercase tracking-widest border border-success/20 animate-fade">
                                         <CheckCircle2 size={12} /> Respuesta enviada con éxito
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex-1 grid grid-cols-1 gap-4 pb-10">
+                            <div className="flex-1 grid grid-cols-1 gap-[2vh] pb-[4vh]">
                                 {[
                                     { id: 'A', icon: 'A', color: 'option-A' },
                                     { id: 'B', icon: 'B', color: 'option-B' },
@@ -234,14 +234,14 @@ export default function Join() {
                                         key={opt.id}
                                         onClick={() => submitAnswer(opt.id)}
                                         disabled={hasAnswered}
-                                        className={`relative h-full min-h-[100px] rounded-xl flex items-center justify-between px-10 transition-all duration-300 border-2 overflow-hidden
+                                        className={`relative h-full min-h-[12vh] rounded-[2vh] flex items-center justify-between px-[5vh] transition-all duration-300 border-2 overflow-hidden
                                             ${opt.color} ${hasAnswered
                                                 ? (playerAnswer === opt.id ? 'opacity-100 scale-100 border-white' : 'opacity-20 grayscale scale-95 border-transparent')
                                                 : 'hover:scale-[1.02] active:scale-95 border-white/10'}`}
                                     >
                                         <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity" />
-                                        <span className="text-7xl font-display font-black text-white relative z-10">{opt.id}</span>
-                                        <span className="text-4xl font-black text-white/30 relative z-10">{opt.icon}</span>
+                                        <span className="text-[8vh] font-display font-black text-white relative z-10">{opt.id}</span>
+                                        <span className="text-[4vh] font-black text-white/30 relative z-10">{opt.icon}</span>
                                     </button>
                                 ))}
                             </div>
@@ -249,74 +249,74 @@ export default function Join() {
                     )}
 
                     {(game?.status === 'results' || game?.status === 'finished') && (
-                        <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 animate-fade transition-colors duration-1000 ${!hasAnswered ? 'bg-surface' : (currentQuestion?.correct_option === playerAnswer ? 'bg-success' : 'bg-destructive')}`}>
+                        <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-[4vh] animate-fade transition-colors duration-1000 ${!hasAnswered ? 'bg-surface' : (currentQuestion?.correct_option === playerAnswer ? 'bg-success' : 'bg-destructive')}`}>
                             {/* Dynamic Glow for Result */}
-                            <div className={`absolute inset-0 opacity-40 blur-[120px] pointer-events-none transition-all duration-1000 ${currentQuestion?.correct_option === playerAnswer ? 'bg-success-bright' : 'bg-red-500'}`} />
+                            <div className={`absolute inset-0 opacity-40 blur-[12vh] pointer-events-none transition-all duration-1000 ${currentQuestion?.correct_option === playerAnswer ? 'bg-success-bright' : 'bg-red-500'}`} />
                             <div className="v-grid absolute inset-0 opacity-20" />
 
-                            <div className="text-center space-y-10 w-full max-w-sm relative z-10">
+                            <div className="text-center space-y-[6vh] w-full max-w-sm relative z-10">
                                 {game.status === 'finished' ? (
-                                    <div className="animate-in zoom-in duration-1000 text-center space-y-8">
-                                        <div className="size-48 rounded-full bg-black/40 backdrop-blur-3xl flex items-center justify-center mx-auto border-4 border-white/20 shadow-[0_0_80px_rgba(255,255,255,0.2)] relative">
+                                    <div className="animate-in zoom-in duration-1000 text-center space-y-[4vh]">
+                                        <div className="size-[25vh] rounded-full bg-black/40 backdrop-blur-3xl flex items-center justify-center mx-auto border-[0.5vh] border-white/20 shadow-[0_0_8vh_rgba(255,255,255,0.2)] relative">
                                             {winnerId === player.id ? (
-                                                <Trophy size={100} className="text-primary animate-bounce" />
+                                                <Trophy size={100} className="text-primary animate-bounce w-[15vh] h-[15vh]" />
                                             ) : (
                                                 <div className="text-white/60 text-center leading-tight">
-                                                    <p className="text-[12px] font-display font-black tracking-widest uppercase">Fin de</p>
-                                                    <p className="text-3xl font-display font-black italic">Partida</p>
+                                                    <p className="text-[1.5vh] font-display font-black tracking-widest uppercase">Fin de</p>
+                                                    <p className="text-[4vh] font-display font-black italic">Partida</p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <h2 className="text-5xl md:text-7xl font-display font-black tracking-tighter text-white uppercase italic leading-none">
+                                        <div className="space-y-[1vh]">
+                                            <h2 className="text-[7vh] font-display font-black tracking-tighter text-white uppercase italic leading-none">
                                                 {winnerId === player.id ? '¡CAMPEÓN!' : 'Finalizado'}
                                             </h2>
-                                            <p className="text-[11px] font-display font-black text-white/50 tracking-[0.5em] uppercase">
+                                            <p className="text-[1.2vh] font-display font-black text-white/50 tracking-[0.5em] uppercase">
                                                 {winnerId === player.id ? 'Has dominado el tablero' : 'Gracias por participar'}
                                             </p>
                                         </div>
 
-                                        <div className="bg-black/30 backdrop-blur-md p-10 rounded-2xl border border-white/10 w-full shadow-2xl relative overflow-hidden">
-                                            <div className="absolute top-0 left-0 w-full h-[1px] bg-primary animate-scan z-0" />
-                                            <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2 relative z-10">Ranking Final</p>
-                                            <p className="text-7xl font-display font-black text-white tabular-nums tracking-tighter relative z-10">
-                                                #{winnerId === player.id ? '1' : 'Participante'}
+                                        <div className="bg-black/30 backdrop-blur-md p-[5vh] rounded-[3vh] border border-white/10 w-full shadow-2xl relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-[2px] bg-primary animate-scan z-0" />
+                                            <p className="text-[1.2vh] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-[1vh] relative z-10">Ranking Final</p>
+                                            <p className="text-[10vh] font-display font-black text-white tabular-nums tracking-tighter relative z-10 leading-none">
+                                                #{winnerId === player.id ? '1' : 'Podio'}
                                             </p>
-                                            <p className="text-2xl font-display font-black text-primary uppercase mt-4 opacity-80">{player?.score?.toLocaleString()} PTS</p>
+                                            <p className="text-[3vh] font-display font-black text-primary uppercase mt-[2vh] opacity-80">{player?.score?.toLocaleString()} PTS</p>
                                         </div>
 
-                                        <div className="pt-4">
-                                            <p className="text-[10px] font-display font-black text-white/40 tracking-[0.3em] uppercase animate-pulse">
+                                        <div className="pt-[2vh]">
+                                            <p className="text-[1.2vh] font-display font-black text-white/40 tracking-[0.3em] uppercase animate-pulse">
                                                 Saliendo en {exitCountdown}s...
                                             </p>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="size-40 rounded-2xl bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-2 border-white/20 shadow-2xl">
+                                        <div className="size-[20vh] rounded-[3vh] bg-black/20 backdrop-blur-xl flex items-center justify-center mx-auto border-[0.2vh] border-white/20 shadow-2xl">
                                             {!hasAnswered ? (
-                                                <Loader2 className="animate-spin text-white" size={64} />
+                                                <Loader2 className="animate-spin text-white w-[8vh] h-[8vh]" />
                                             ) : (
                                                 currentQuestion?.correct_option === playerAnswer
-                                                    ? <Sparkles size={80} className="text-white" />
-                                                    : <div className="text-white text-[10rem] font-display font-black leading-none">×</div>
+                                                    ? <Sparkles size={100} className="text-white w-[12vh] h-[12vh]" />
+                                                    : <div className="text-white text-[15vh] font-display font-black leading-none">×</div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <p className="text-[10px] font-display font-black text-white/50 tracking-[0.5em] uppercase">RESULTADOS</p>
-                                            <h2 className="text-6xl font-display font-black tracking-tighter text-white uppercase leading-none">
+                                        <div className="space-y-[2vh]">
+                                            <p className="text-[1.2vh] font-display font-black text-white/50 tracking-[0.5em] uppercase">RESULTADOS</p>
+                                            <h2 className="text-[8vh] font-display font-black tracking-tighter text-white uppercase leading-none">
                                                 {!hasAnswered
                                                     ? 'SIN DATOS'
                                                     : (currentQuestion?.correct_option === playerAnswer ? 'CORRECTO' : 'ERROR')}
                                             </h2>
-                                            <div className="h-1 w-20 bg-white/30 mx-auto" />
+                                            <div className="h-[0.5vh] w-[10vh] bg-white/30 mx-auto" />
                                         </div>
 
-                                        <div className="bg-black/30 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full shadow-2xl">
-                                            <p className="text-[10px] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-2">Puntuación Actual</p>
-                                            <p className="text-6xl font-display font-black text-white tabular-nums tracking-tighter">{player?.score?.toLocaleString()}</p>
+                                        <div className="bg-black/30 backdrop-blur-md p-[4vh] rounded-[3vh] border border-white/10 w-full shadow-2xl">
+                                            <p className="text-[1.2vh] font-display font-black text-white/40 tracking-[0.4em] uppercase mb-[1vh]">Puntuación Actual</p>
+                                            <p className="text-[8vh] font-display font-black text-white tabular-nums tracking-tighter leading-none">{player?.score?.toLocaleString()}</p>
                                         </div>
                                     </>
                                 )}
@@ -325,13 +325,13 @@ export default function Join() {
                     )}
                 </div>
 
-                <footer className="h-20 flex items-center justify-center relative z-10 border-t border-white/5 bg-surface-lowest/50">
-                    <div className="flex items-center gap-8 opacity-40">
-                        <p className="text-[9px] font-display font-black text-white tracking-[0.4em] uppercase">
+                <footer className="h-[10vh] flex items-center justify-center relative z-10 border-t border-white/5 bg-surface-lowest/50">
+                    <div className="flex items-center gap-[4vh] opacity-40">
+                        <p className="text-[1.2vh] font-display font-black text-white tracking-[0.4em] uppercase">
                             USER: {player?.nickname}
                         </p>
-                        <div className="w-[1px] h-3 bg-white/20" />
-                        <p className="text-[9px] font-display font-black text-white tracking-[0.4em] uppercase">
+                        <div className="w-[1px] h-[2vh] bg-white/20" />
+                        <p className="text-[1.2vh] font-display font-black text-white tracking-[0.4em] uppercase">
                             LINK: {game?.join_code}
                         </p>
                     </div>
@@ -341,36 +341,33 @@ export default function Join() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col p-6 font-body text-on-surface relative overflow-hidden v-grid">
+        <div className="h-[100dvh] w-screen bg-background flex flex-col p-[4vh] font-body text-on-surface relative overflow-hidden v-grid">
             {/* Ambient Atmosphere */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
-                <div className="absolute top-[20%] left-[-10%] w-[50%] h-[50%] bg-primary rounded-full blur-[120px]" />
-                <div className="absolute bottom-[20%] right-[-10%] w-[50%] h-[50%] bg-secondary rounded-full blur-[120px]" />
+                <div className="absolute top-[20%] left-[-10%] w-[50vw] h-[50vw] bg-primary rounded-full blur-[10vh]" />
+                <div className="absolute bottom-[20%] right-[-10%] w-[50vw] h-[50vw] bg-secondary rounded-full blur-[10vh]" />
             </div>
 
-            <main className="relative z-10 flex-1 flex flex-col items-center justify-center py-12">
-                <div className="w-full max-w-sm space-y-16">
-                    <div className="text-center space-y-4">
-                        <div className="inline-block glass px-4 py-1 rounded-sm border border-primary/20 mb-4">
-                            <p className="text-[10px] font-display font-black text-primary tracking-[0.5em] uppercase">LukeQUIZ</p>
-                        </div>
-                        <h1 className="text-7xl font-display font-black tracking-tighter text-white uppercase leading-none">
-                            Luke<span className="text-primary">QUIZ</span>
+            <main className="relative z-10 flex-1 flex flex-col items-center justify-center py-[2vh]">
+                <div className="w-full max-w-sm space-y-[4vh]">
+                    <div className="text-center space-y-[1vh]">
+                        <h1 className="text-[6vh] font-display font-black tracking-tighter text-white uppercase leading-none">
+                            Acceso al <span className="text-primary">Juego</span>
                         </h1>
-                        <p className="text-[9px] font-display font-bold tracking-[0.4em] text-on-surface-variant uppercase opacity-40">
-                            Acceso al Juego de Trivia
+                        <p className="text-[1.1vh] font-display font-bold tracking-[0.4em] text-on-surface-variant uppercase opacity-40">
+                            Ingresa el PIN para comenzar
                         </p>
                     </div>
 
-                    <form onSubmit={handleJoin} className="space-y-12">
-                        <div className="space-y-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-display font-black text-primary tracking-[0.3em] uppercase ml-1 flex items-center gap-3">
+                    <form onSubmit={handleJoin} className="space-y-[4vh]">
+                        <div className="space-y-[2vh]">
+                            <div className="space-y-[0.5vh]">
+                                <label className="text-[1.1vh] font-display font-black text-primary tracking-[0.3em] uppercase ml-1 flex items-center gap-[1vh]">
                                     <Key size={14} className="opacity-50" /> PIN_DE_JUEGO
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-2xl p-6 text-white font-display font-black text-6xl text-center focus:border-primary focus:bg-primary/5 focus:outline-none transition-all uppercase tracking-[0.3em] placeholder:opacity-5"
+                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-[2vh] p-[2vh] text-white font-display font-black text-[5vh] text-center focus:border-primary focus:bg-primary/5 focus:outline-none transition-all uppercase tracking-[0.3em] placeholder:opacity-5"
                                     placeholder="000000"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -379,13 +376,13 @@ export default function Join() {
                                 />
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-display font-black text-secondary tracking-[0.3em] uppercase ml-1 flex items-center gap-3">
+                            <div className="space-y-[0.5vh]">
+                                <label className="text-[1.1vh] font-display font-black text-secondary tracking-[0.3em] uppercase ml-1 flex items-center gap-[1vh]">
                                     <User size={14} className="opacity-50" /> APODO_JUGADOR
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-2xl p-6 text-white font-display font-black text-2xl focus:border-secondary focus:bg-secondary/5 focus:outline-none transition-all text-center uppercase tracking-widest"
+                                    className="w-full bg-surface-lowest border-2 border-white/10 rounded-[2vh] p-[1.5vh] text-white font-display font-black text-[2.5vh] focus:border-secondary focus:bg-secondary/5 focus:outline-none transition-all text-center uppercase tracking-widest"
                                     placeholder="Tu apodo..."
                                     value={nickname}
                                     onChange={(e) => setNickname(e.target.value)}
@@ -394,16 +391,16 @@ export default function Join() {
                                 />
                             </div>
 
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-display font-black text-white/30 tracking-[0.3em] uppercase ml-1">Selecciona tu Avatar</label>
-                                <div className="grid grid-cols-5 gap-3">
+                            <div className="space-y-[1vh]">
+                                <label className="text-[1.1vh] font-display font-black text-white/30 tracking-[0.3em] uppercase ml-1">Selecciona tu Avatar</label>
+                                <div className="grid grid-cols-5 gap-[1vh]">
                                     {EMOJIS.map((emoji) => (
                                         <button
                                             key={emoji}
                                             type="button"
                                             onClick={() => setSelectedEmoji(emoji)}
-                                            className={`text-3xl p-4 rounded-lg border-2 transition-all transform active:scale-90 flex items-center justify-center ${selectedEmoji === emoji
-                                                ? 'bg-primary/20 border-primary scale-105 shadow-[0_0_20px_rgba(236,72,153,0.2)]'
+                                            className={`text-[2.5vh] p-[1vh] rounded-[1vh] border-2 transition-all transform active:scale-90 flex items-center justify-center ${selectedEmoji === emoji
+                                                ? 'bg-primary/20 border-primary scale-105 shadow-[0_0_2vh_rgba(236,72,153,0.2)]'
                                                 : 'bg-surface-lowest border-white/5 hover:border-white/20'
                                                 }`}
                                         >
@@ -416,22 +413,22 @@ export default function Join() {
 
                         <button
                             type="submit"
-                            className="w-full bg-primary py-7 rounded-sm text-background font-display font-black text-xl tracking-[0.5rem] transition-all hover:bg-primary/90 active:scale-[0.98] flex items-center justify-center gap-6 group overflow-hidden relative"
+                            className="w-full bg-primary py-[2.5vh] rounded-[1vh] text-background font-display font-black text-[2vh] tracking-[0.5rem] transition-all hover:bg-primary/90 active:scale-[0.98] flex items-center justify-center gap-[2vh] group overflow-hidden relative"
                             disabled={loading}
                         >
                             <div className="absolute inset-0 scan-line opacity-20 pointer-events-none" />
                             {loading ? (
                                 <Loader2 className="animate-spin" />
                             ) : (
-                                <span className="relative z-10">ENTRAR AL JUEGO</span>
+                                <span className="relative z-10 transition-transform group-hover:scale-110">ENTRAR AL JUEGO</span>
                             )}
                         </button>
                     </form>
                 </div>
             </main>
 
-            <footer className="h-20 flex items-center justify-center relative z-10 border-t border-white/5 opacity-30">
-                <p className="text-[9px] font-display font-black tracking-[0.6em] uppercase">LukeQuiz 3.0 // Ingreso</p>
+            <footer className="h-[8vh] flex items-center justify-center relative z-10 border-t border-white/5 opacity-30">
+                <p className="text-[1vh] font-display font-black tracking-[0.6em] uppercase">Control Maestro // Acceso</p>
             </footer>
         </div>
     )

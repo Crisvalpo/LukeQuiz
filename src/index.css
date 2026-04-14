@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -22,7 +22,7 @@
   /* Custom gradients and glass effects integrated into theme */
   --color-glass: rgba(20, 11, 40, 0.6);
   --color-glass-stroke: linear-gradient(135deg, rgba(236, 72, 153, 0.4) 0%, rgba(6, 182, 212, 0.4) 50%, rgba(245, 158, 11, 0.4) 100%);
-  --color-nebula: radial-gradient(circle at 50% 50%, #2e1065 0%, #0b0118 100%);
+  --color-ambient: radial-gradient(circle at 50% 50%, #2e1065 0%, #0b0118 100%);
 
   --font-display: "Inter", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -135,7 +135,7 @@ h3,
 }
 
 .terminal-text {
-  font-family: 'Space Grotesk', monospace;
+  font-family: 'JetBrains Mono', monospace;
   text-transform: uppercase;
   letter-spacing: 0.2em;
 }
@@ -168,30 +168,31 @@ h3,
   left: 100%;
 }
 
-.nebula-card {
+.premium-card {
   background: var(--color-surface);
-  border-radius: 0.25rem;
-  border: 1px solid rgba(236, 72, 153, 0.1);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  transition: all 0.3s ease;
   overflow: hidden;
+  position: relative;
 }
 
-.nebula-card::before {
+.premium-card::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4);
+  inset: 0;
+  background: linear-gradient(45deg, transparent, rgba(236, 72, 153, 0.05), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
 }
 
-.nebula-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  border-color: rgba(236, 72, 153, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(236, 72, 153, 0.1);
+.premium-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-primary);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(236, 72, 153, 0.1);
 }
+
+
 
 .btn-vibrant {
   background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);

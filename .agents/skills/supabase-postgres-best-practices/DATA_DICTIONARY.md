@@ -54,6 +54,7 @@ Controla el estado de una partida en tiempo real.
 - **question_started_at** (timestamptz): Timestamp para sincronización del timer.
 - **settings** (jsonb): Configuraciones de la partida (ej: tempo).
 - **user_id** (uuid, FK): El usuario que inició la partida (auth.users).
+- **master_screen_id** (uuid, nullable): ID de sesión de la instancia de pantalla que tiene el control de la lógica.
 - **created_at** (timestamptz): Fecha de inicio.
 
 > [!IMPORTANT]

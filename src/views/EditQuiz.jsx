@@ -171,8 +171,14 @@ export default function EditQuiz() {
     }
 
     const handleGenerateAllTTS = async () => {
-        const toProcess = questions.filter(q => q.id && !String(q.id).startsWith('temp-') && (!q.audio_url || q.text !== q.last_tts_text))
-        if (toProcess.length === 0) return toast.success('Todo el contenido ya tiene audio')
+        const toProcess = questions.filter(q =>
+            q.id &&
+            !String(q.id).startsWith('temp-') &&
+            q.text &&
+            q.text.trim() !== '¿  ?' &&
+            (!q.audio_url || q.text !== q.last_tts_text)
+        )
+        if (toProcess.length === 0) return toast.success('Todo el contenido válido ya tiene audio')
 
         const results = await generateBatch(toProcess)
         if (results.length > 0) {
@@ -759,8 +765,8 @@ export default function EditQuiz() {
                                         )}
                                         <button
                                             onClick={() => handleIndividualTTS(currentIdx)}
-                                            disabled={loading || (q.audio_url && q.text === q.last_tts_text)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${q.audio_url && q.text === q.last_tts_text
+                                            disabled={loading || !q.text || q.text.trim() === '¿  ?' || (q.audio_url && q.text === q.last_tts_text)}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${loading || !q.text || q.text.trim() === '¿  ?' || (q.audio_url && q.text === q.last_tts_text)
                                                 ? 'bg-white/5 text-white/20 cursor-not-allowed'
                                                 : 'bg-secondary text-on-secondary hover:bg-secondary/80 active:scale-95'
                                                 }`}

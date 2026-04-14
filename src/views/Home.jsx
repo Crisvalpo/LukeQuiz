@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Plus, Play, Settings, Trash2, PlusCircle, Search, Library, User, LogOut, Ticket, Crown, Monitor } from 'lucide-react'
+import { Plus, Play, Settings, Trash2, PlusCircle, Search, Library, User, LogOut, Ticket, Crown, Monitor, HardDrive } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'
@@ -25,15 +25,34 @@ export default function Home() {
     }, [view, searchQuery, user])
 
     const fetchActiveGames = async () => {
-        if (!user) return
-        const { data } = await supabase
+        let guestGames = []
+        try {
+            const saved = localStorage.getItem('guest_games')
+            if (saved) guestGames = JSON.parse(saved)
+        } catch (e) { console.error('Error loading guest games', e) }
+
+        const { data: serverGames } = user ? await supabase
             .from('games')
             .select('*, quizzes(title)')
             .eq('user_id', user.id)
             .neq('status', 'finished')
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false }) : { data: [] }
 
-        if (data) setActiveGames(data)
+        // Fetch guest games from server to ensure they still exist and are active
+        let finalGuestGames = []
+        if (guestGames.length > 0) {
+            const { data: guestData } = await supabase
+                .from('games')
+                .select('*, quizzes(title)')
+                .in('id', guestGames)
+                .neq('status', 'finished')
+            if (guestData) finalGuestGames = guestData
+        }
+
+        const combined = [...(serverGames || []), ...finalGuestGames]
+        // Deduplicate and filter
+        const unique = Array.from(new Map(combined.map(g => [g.id, g])).values())
+        setActiveGames(unique)
     }
 
     const fetchQuizzes = async () => {
@@ -69,10 +88,6 @@ export default function Home() {
     }
 
     const startNewGame = async (quizId) => {
-        if (!user) {
-            toast.error('Debes iniciar sesión para comenzar una partida')
-            return
-        }
         const promise = new Promise(async (resolve, reject) => {
             const code = generateJoinCode()
             const { data: game, error } = await supabase
@@ -82,13 +97,20 @@ export default function Home() {
                     join_code: code,
                     status: 'waiting',
                     current_question_index: 0,
-                    user_id: user.id
+                    user_id: user?.id || null
                 })
                 .select()
                 .single()
 
             if (error) reject(error)
-            else resolve(game)
+            else {
+                if (!user) {
+                    const saved = localStorage.getItem('guest_games')
+                    const current = saved ? JSON.parse(saved) : []
+                    localStorage.setItem('guest_games', JSON.stringify([...current, game.id]))
+                }
+                resolve(game)
+            }
         })
 
         toast.promise(promise, {
@@ -182,10 +204,10 @@ export default function Home() {
                         {user ? (
                             <div className="flex items-center gap-4 bg-white/5 p-2 pr-6 rounded-2xl border border-white/10 group">
                                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-black border border-primary/20 uppercase relative">
-                                    {user.email[0]}
+                                    {user?.email?.[0]}
                                     {user.is_premium && (
                                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center border-2 border-surface animate-bounce shadow-lg shadow-amber-500/50">
-                                            < Ticket size={10} className="text-white" fill="white" />
+                                            <Ticket size={10} className="text-white" fill="white" />
                                         </div>
                                     )}
                                 </div>
@@ -197,6 +219,15 @@ export default function Home() {
                                     <p className="text-[12px] font-bold text-white/60 truncate max-w-[120px]">{user.email}</p>
                                 </div>
                                 <div className="flex gap-1 ml-2">
+                                    {user?.email === 'cristianluke@gmail.com' && (
+                                        <button
+                                            onClick={() => navigate('/admin')}
+                                            className="p-2 text-white/20 hover:text-primary transition-colors"
+                                            title="Panel Admin"
+                                        >
+                                            <HardDrive size={18} />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => setIsModalOpen(true)}
                                         className="p-2 text-white/20 hover:text-amber-500 transition-colors"
