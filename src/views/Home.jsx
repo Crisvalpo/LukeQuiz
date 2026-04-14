@@ -137,6 +137,13 @@ export default function Home() {
                     </div>
 
                     <div className="flex items-center gap-6">
+                        <button
+                            onClick={() => navigate('/tv')}
+                            className="hidden lg:flex items-center gap-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 px-6 py-4 rounded-xl font-display font-black text-[12px] tracking-[0.2em] transition-all border border-cyan-500/20 group"
+                        >
+                            <Monitor size={18} className="group-hover:scale-110 transition-transform" />
+                            MODO TV
+                        </button>
                         {user ? (
                             <div className="flex items-center gap-4 bg-white/5 p-2 pr-6 rounded-2xl border border-white/10 group">
                                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-black border border-primary/20 uppercase relative">
