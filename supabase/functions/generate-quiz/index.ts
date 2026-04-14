@@ -9,8 +9,10 @@ serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const body = await req.json();
-        const { topic, description, count } = body;
+        const authHeader = req.headers.get('Authorization');
+        console.log('Authorization header present:', !!authHeader);
+
+        const { topic, description, count } = await req.json();
         const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
         console.log(`Generando quiz para tema: "${topic}", cantidad: ${count}`);
@@ -45,7 +47,13 @@ serve(async (req: Request) => {
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: {
                                 response_mime_type: "application/json"
-                            }
+                            },
+                            safetySettings: [
+                                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+                                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+                            ]
                         }),
                     }
                 );

@@ -443,74 +443,96 @@ export default function Screen() {
                             </div>
                         </div>
                     </div>
-                )
-                }
+                )}
 
-                {
-                    game?.status === 'finished' && (
-                        <div className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative v-grid">
-                            <div className="mb-20 text-center z-10">
-                                <div className="flex items-center justify-center gap-4 mb-4">
-                                    <div className="h-[1px] w-20 bg-primary/40" />
-                                    <p className="text-xs font-display font-bold text-primary tracking-[1em] uppercase italic">Podio de Ganadores</p>
-                                    <div className="h-[1px] w-20 bg-primary/40" />
-                                </div>
-                                <h2 className="text-7xl font-display font-black tracking-tight leading-none text-white uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                                    Juego<br />
-                                    <span className="text-primary">Finalizado</span>
-                                </h2>
+                {game?.status === 'finished' && (
+                    <div className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative v-grid">
+                        <div className="mb-20 text-center z-10">
+                            <div className="flex items-center justify-center gap-4 mb-4">
+                                <div className="h-[1px] w-20 bg-primary/40" />
+                                <p className="text-xs font-display font-bold text-primary tracking-[1em] uppercase italic">Podio de Ganadores</p>
+                                <div className="h-[1px] w-20 bg-primary/40" />
                             </div>
-
-                            <div className="flex items-end justify-center gap-4 h-[400px] z-10 w-full max-w-5xl">
-                                {/* P2 */}
-                                {players[1] && (
-                                    <div className="flex flex-col items-center flex-1 max-w-[200px]">
-                                        <div className="mb-6 flex flex-col items-center gap-2">
-                                            <span className="text-5xl animate-float">{players[1].emoji}</span>
-                                            <div className="bg-secondary/40 px-3 py-1 rounded-sm border border-secondary/50 text-[8px] font-black text-white uppercase tracking-widest">SUB-CAMPEÓN</div>
-                                        </div>
-                                        <div className="bg-surface-lowest/80 border border-white/5 w-full h-[180px] rounded-xl flex flex-col items-center p-6 shadow-2xl relative overflow-hidden group">
-                                            <div className="absolute top-0 left-0 w-full h-[2px] bg-secondary opacity-40" />
-                                            <span className="font-display font-black truncate w-full text-lg uppercase text-white/70">{players[1].nickname}</span>
-                                            <p className="text-[4rem] font-display font-black text-white/10 absolute -bottom-4 -right-4 italic tracking-tighter">02</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {/* P1 */}
-                                {players[0] && (
-                                    <div className="flex flex-col items-center flex-1 max-w-[280px]">
-                                        <div className="mb-8 flex flex-col items-center gap-2">
-                                            <span className="text-8xl animate-float drop-shadow-[0_0_30px_rgba(236,72,153,0.4)]">{players[0].emoji}</span>
-                                            <div className="bg-primary px-4 py-1.5 rounded-sm text-[10px] font-black text-surface uppercase tracking-[0.4em] italic shadow-[0_0_20px_rgba(236,72,153,0.5)]">CAMPEÓN</div>
-                                        </div>
-                                        <div className="bg-primary/10 border border-primary/30 w-full h-[320px] rounded-2xl flex flex-col items-center p-8 shadow-2xl relative overflow-hidden">
-                                            <div className="absolute top-0 left-0 w-full h-[4px] bg-primary animate-pulse" />
-                                            <div className="scan-line absolute top-0 left-0 animate-scan opacity-20" />
-                                            <span className="font-display font-black truncate w-full text-4xl uppercase text-primary mb-2">{players[0].nickname}</span>
-                                            <span className="text-[10px] font-mono text-primary/60 tracking-[0.5em]">{players[0].score.toLocaleString()} PTS</span>
-                                            <p className="text-[12rem] font-display font-black text-primary/5 absolute -bottom-10 -right-10 italic tracking-tighter select-none">01</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {/* P3 */}
-                                {players[2] && (
-                                    <div className="flex flex-col items-center flex-1 max-w-[200px]">
-                                        <div className="mb-6 flex flex-col items-center gap-2">
-                                            <span className="text-5xl animate-float" style={{ animationDelay: '1s' }}>{players[2].emoji}</span>
-                                            <div className="bg-white/10 px-3 py-1 rounded-sm border border-white/20 text-[8px] font-black text-white uppercase tracking-widest">TERCER PUESTO</div>
-                                        </div>
-                                        <div className="bg-surface-lowest/80 border border-white/5 w-full h-[140px] rounded-2xl flex flex-col items-center p-6 shadow-2xl relative overflow-hidden group">
-                                            <div className="absolute top-0 left-0 w-full h-[2px] bg-white opacity-20" />
-                                            <span className="font-display font-black truncate w-full text-lg uppercase text-white/50">{players[2].nickname}</span>
-                                            <p className="text-[4rem] font-display font-black text-white/10 absolute -bottom-4 -right-4 italic tracking-tighter">03</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <h2 className="text-7xl font-display font-black tracking-tight leading-none text-white uppercase drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                Juego<br />
+                                <span className="text-primary">Finalizado</span>
+                            </h2>
                         </div>
-                    )
-                }
-            </main >
+
+                        <div className="flex items-end justify-center gap-4 h-[400px] z-10 w-full max-w-5xl">
+                            {/* P2 */}
+                            {players[1] && (
+                                <div className="flex flex-col items-center flex-1 max-w-[200px]">
+                                    <div className="mb-6 flex flex-col items-center gap-2">
+                                        <span className="text-5xl animate-float">{players[1].emoji}</span>
+                                        <div className="bg-secondary/40 px-3 py-1 rounded-sm border border-secondary/50 text-[8px] font-black text-white uppercase tracking-widest">SUB-CAMPEÓN</div>
+                                    </div>
+                                    <div className="bg-surface-lowest/80 border border-white/5 w-full h-[180px] rounded-xl flex flex-col items-center p-6 shadow-2xl relative overflow-hidden group">
+                                        <div className="absolute top-0 left-0 w-full h-[2px] bg-secondary opacity-40" />
+                                        <span className="font-display font-black truncate w-full text-lg uppercase text-white/70">{players[1].nickname}</span>
+                                        <p className="text-[4rem] font-display font-black text-white/10 absolute -bottom-4 -right-4 italic tracking-tighter">02</p>
+                                    </div>
+                                </div>
+                            )}
+                            {/* P1 */}
+                            {players[0] && (
+                                <div className="flex flex-col items-center flex-1 max-w-[280px]">
+                                    <div className="mb-8 flex flex-col items-center gap-2">
+                                        <span className="text-8xl animate-float drop-shadow-[0_0_30px_rgba(236,72,153,0.4)]">{players[0].emoji}</span>
+                                        <div className="bg-primary px-4 py-1.5 rounded-sm text-[10px] font-black text-surface uppercase tracking-[0.4em] italic shadow-[0_0_20px_rgba(236,72,153,0.5)]">CAMPEÓN</div>
+                                    </div>
+                                    <div className="bg-primary/10 border border-primary/30 w-full h-[320px] rounded-2xl flex flex-col items-center p-8 shadow-2xl relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-[4px] bg-primary animate-pulse" />
+                                        <div className="scan-line absolute top-0 left-0 animate-scan opacity-20" />
+                                        <span className="font-display font-black truncate w-full text-4xl uppercase text-primary mb-2">{players[0].nickname}</span>
+                                        <span className="text-[10px] font-mono text-primary/60 tracking-[0.5em]">{players[0].score.toLocaleString()} PTS</span>
+                                        <p className="text-[12rem] font-display font-black text-primary/5 absolute -bottom-10 -right-10 italic tracking-tighter select-none">01</p>
+                                    </div>
+                                </div>
+                            )}
+                            {/* P3 */}
+                            {players[2] && (
+                                <div className="flex flex-col items-center flex-1 max-w-[200px]">
+                                    <div className="mb-6 flex flex-col items-center gap-2">
+                                        <span className="text-5xl animate-float" style={{ animationDelay: '1s' }}>{players[2].emoji}</span>
+                                        <div className="bg-white/10 px-3 py-1 rounded-sm border border-white/20 text-[8px] font-black text-white uppercase tracking-widest">TERCER PUESTO</div>
+                                    </div>
+                                    <div className="bg-surface-lowest/80 border border-white/5 w-full h-[140px] rounded-2xl flex flex-col items-center p-6 shadow-2xl relative overflow-hidden group">
+                                        <div className="absolute top-0 left-0 w-full h-[2px] bg-white opacity-20" />
+                                        <span className="font-display font-black truncate w-full text-lg uppercase text-white/50">{players[2].nickname}</span>
+                                        <p className="text-[4rem] font-display font-black text-white/10 absolute -bottom-4 -right-4 italic tracking-tighter">03</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Winner's Magic Pass Loop */}
+                        {players[0] && (
+                            <div className="mt-12 z-20 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-1000">
+                                <div className="bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-amber-500/20 p-[1px] rounded-[2rem] shadow-[0_0_50px_rgba(236,72,153,0.2)]">
+                                    <div className="bg-surface-lowest/90 backdrop-blur-2xl px-12 py-6 rounded-[2rem] flex items-center gap-12 border border-white/5">
+                                        <div className="relative">
+                                            <div className="absolute -inset-4 bg-amber-500/20 blur-xl animate-pulse rounded-full" />
+                                            <Trophy size={48} className="text-amber-400 relative z-10" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[10px] font-display font-black text-amber-500 tracking-[0.4em] uppercase mb-1">Premio al Master de la Trivia</p>
+                                            <h3 className="text-2xl font-display font-black text-white italic tracking-tighter leading-none mb-1">Tu Pase Mágico está Listo</h3>
+                                            <p className="text-[11px] text-white/40 font-bold tracking-widest uppercase">Canjéalo en tu próxima partida para usar IA gratis</p>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="bg-white/5 border-2 border-dashed border-amber-500/50 px-8 py-3 rounded-xl">
+                                                <span className="text-3xl font-display font-black text-white tracking-[0.2em] italic">WINNER_{Math.random().toString(36).substring(2, 6).toUpperCase()}</span>
+                                            </div>
+                                            <p className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em]">Válido por 24 Horas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </main>
 
             <footer className="px-12 py-4 text-center text-on-surface-variant/20 text-[10px] font-display font-black tracking-[0.6em] uppercase relative z-20 border-t border-white/5 bg-black/20">
                 Estado: Sincronizado | Conexión en tiempo real | LukeQuiz v3.0 Master Control
@@ -554,7 +576,7 @@ export default function Screen() {
                     </button>
                 </div>
             </div>
-        </div >
+        </div>
     )
 }
 

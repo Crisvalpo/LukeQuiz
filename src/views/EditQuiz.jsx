@@ -5,17 +5,21 @@ import {
     ArrowLeft, Save, Plus, Trash2, Volume2, ImageIcon,
     Sparkles, Loader2, ChevronLeft, ChevronRight, CheckCircle2,
     FileText, X, FileQuestion, MessageSquare, Layout, Search, Link as LinkIcon,
-    Wand2, Play, RefreshCcw, Mic2
+    Wand2, Play, RefreshCcw, Mic2, Crown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAudioSync } from '../hooks/useAudioSync'
+import { useAuth } from '../lib/AuthContext'
+import PremiumModal from '../components/PremiumModal'
 
 export default function EditQuiz() {
+    const { user } = useAuth()
     const { quizId } = useParams()
     const navigate = useNavigate()
     const [quiz, setQuiz] = useState(null)
     const [questions, setQuestions] = useState([])
     const [currentIdx, setCurrentIdx] = useState(0)
+    const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false)
     const [loading, setLoading] = useState(true)
     const [showAiPanel, setShowAiPanel] = useState(false)
     const [showBulk, setShowBulk] = useState(false)
@@ -61,7 +65,7 @@ export default function EditQuiz() {
 
     const fetchQuizData = async () => {
         if (quizId === 'new') {
-            setQuiz({ title: '', description: '' })
+            setQuiz({ title: '', description: '', visibility: 'public' })
             setQuestions([{
                 quiz_id: null,
                 text: '¿  ?',
@@ -188,7 +192,9 @@ export default function EditQuiz() {
             if (quizId === 'new') {
                 const { data, error } = await supabase.from('quizzes').insert({
                     title: quiz.title || 'Sin título',
-                    description: quiz.description || ''
+                    description: quiz.description || '',
+                    user_id: user?.id,
+                    visibility: quiz.visibility || 'public'
                 }).select().single()
                 if (error) throw error
                 currentQuizId = data.id
@@ -197,7 +203,8 @@ export default function EditQuiz() {
             } else {
                 const { error } = await supabase.from('quizzes').update({
                     title: quiz.title,
-                    description: quiz.description
+                    description: quiz.description,
+                    visibility: quiz.visibility
                 }).eq('id', quizId)
                 if (error) throw error
             }
@@ -256,6 +263,10 @@ export default function EditQuiz() {
     }
 
     const handleIndividualTTS = async (idx) => {
+        if (!user?.is_premium) {
+            setIsPremiumModalOpen(true)
+            return
+        }
         const q = questions[idx];
         if (!q.text || q.text === '¿  ?') return toast.error('Ingresa texto válido');
         if (String(q.id).startsWith('temp-')) return toast.error('Guarda la pregunta antes de generar el audio');
@@ -279,13 +290,18 @@ export default function EditQuiz() {
             if (quizId === 'new') {
                 const { data: nQuiz, error: nErr } = await supabase.from('quizzes').insert({
                     title: quiz.title || 'Nuevo Quiz IA',
-                    description: quiz.description || ''
+                    description: quiz.description || '',
+                    user_id: user?.id,
+                    visibility: quiz.visibility || 'public'
                 }).select().single();
                 if (nErr) throw nErr;
                 activeQuizId = nQuiz.id;
                 window.history.replaceState(null, '', `/edit/${nQuiz.id}`);
                 // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
             }
+
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log('Invocando generate-quiz con sesión:', !!session);
 
             const { data, error } = await supabase.functions.invoke('generate-quiz', {
                 body: {
@@ -339,6 +355,10 @@ export default function EditQuiz() {
     }
 
     const handleOpenAiPanel = () => {
+        if (!user?.is_premium) {
+            setIsPremiumModalOpen(true)
+            return;
+        }
         if (!quiz?.title?.trim() || !quiz?.description?.trim()) {
             toast.error('Ingresa un Título y Descripción para darle contexto a la IA', {
                 style: { background: '#ec4899', color: '#fff', border: 'none' }
@@ -386,6 +406,29 @@ export default function EditQuiz() {
                             />
                         </div>
                     </div>
+
+                    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 ml-8">
+                        <button
+                            onClick={() => { setQuiz({ ...quiz, visibility: 'public' }); setIsDirty(true); }}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'public' ? 'bg-primary text-white' : 'text-white/20 hover:text-white/40'}`}
+                        >
+                            PÚBLICO
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (!user?.is_premium && quiz?.visibility !== 'private') {
+                                    setIsPremiumModalOpen(true)
+                                    return;
+                                }
+                                setQuiz({ ...quiz, visibility: 'private' });
+                                setIsDirty(true);
+                            }}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'private' ? 'bg-amber-500 text-black' : 'text-white/20 hover:text-white/40'} flex items-center gap-2`}
+                        >
+                            {(!user?.is_premium && quiz?.visibility !== 'private') && <Crown size={10} />}
+                            PRIVADO
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -396,15 +439,39 @@ export default function EditQuiz() {
                     </button>
 
                     {/* Botón Carga Masiva - IA */}
-                    <button onClick={handleOpenBulkPanel} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 rounded-lg text-xs font-bold hover:bg-white/10 transition-all text-white/60 overflow-hidden">
-                        <FileText size={16} /> <span className="hidden md:inline">CARGA MASIVA</span>
-                        <div className="absolute top-0 right-0 bg-cyan-500/20 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter text-cyan-400 opacity-50 group-hover:opacity-100 transition-opacity uppercase">IA</div>
+                    <button
+                        onClick={handleOpenBulkPanel}
+                        className={`group relative flex items-center gap-3 px-6 h-11 border rounded-lg text-xs font-bold transition-all overflow-hidden ${user?.is_premium
+                            ? 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                            : 'bg-white/5 border-amber-500/10 text-amber-500/40 grayscale opacity-70 cursor-not-allowed'
+                            }`}
+                    >
+                        {user?.is_premium ? <FileText size={16} /> : <Crown size={14} className="text-amber-500" />}
+                        <span className="hidden md:inline">CARGA MASIVA</span>
+                        <div className={`absolute top-0.5 right-0.5 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter transition-opacity uppercase ${user?.is_premium
+                            ? 'bg-cyan-500/20 text-cyan-400 opacity-50 group-hover:opacity-100'
+                            : 'bg-amber-500/10 text-amber-500 opacity-100'
+                            }`}>
+                            {user?.is_premium ? 'IA' : 'Premium'}
+                        </div>
                     </button>
 
                     {/* Botón Generar IA - MAGIA */}
-                    <button onClick={handleOpenAiPanel} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 rounded-lg text-xs font-bold hover:bg-white/10 transition-all text-secondary overflow-hidden">
-                        <Sparkles size={16} /> <span className="hidden md:inline">GENERAR IA</span>
-                        <div className="absolute top-0 right-0 bg-secondary/20 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter text-secondary opacity-50 group-hover:opacity-100 transition-opacity uppercase">Magia</div>
+                    <button
+                        onClick={handleOpenAiPanel}
+                        className={`group relative flex items-center gap-3 px-6 h-11 border rounded-lg text-xs font-bold transition-all overflow-hidden ${user?.is_premium
+                            ? 'bg-white/5 border-white/10 text-secondary hover:bg-white/10'
+                            : 'bg-white/5 border-amber-500/20 text-amber-500/50 grayscale opacity-80 cursor-not-allowed'
+                            }`}
+                    >
+                        {user?.is_premium ? <Sparkles size={16} /> : <Crown size={16} className="text-amber-500" />}
+                        <span className="hidden md:inline">GENERAR IA</span>
+                        <div className={`absolute top-0.5 right-0.5 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter transition-opacity uppercase ${user?.is_premium
+                            ? 'bg-secondary/20 text-secondary opacity-50 group-hover:opacity-100'
+                            : 'bg-amber-500/20 text-amber-500 opacity-100'
+                            }`}>
+                            {user?.is_premium ? 'Magia' : 'Premium'}
+                        </div>
                     </button>
 
                     {/* Botón Guardar - ICON ONLY */}
@@ -458,11 +525,20 @@ export default function EditQuiz() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-white/40 tracking-widest uppercase ml-1">VOZ NEURONAL</label>
+                                <label className="text-[10px] font-black text-white/40 tracking-widest uppercase ml-1 flex items-center gap-1">
+                                    VOZ NEURONAL
+                                    {!user?.is_premium && <Crown size={8} className="text-amber-500" />}
+                                </label>
                                 <div className="h-[54px] flex items-center justify-between px-4 bg-black/40 border border-white/10 rounded-xl">
                                     <Volume2 size={18} className={ttsEnabled ? "text-secondary" : "text-white/20"} />
                                     <button
-                                        onClick={() => setTtsEnabled(!ttsEnabled)}
+                                        onClick={() => {
+                                            if (!user?.is_premium) {
+                                                setIsPremiumModalOpen(true)
+                                                return
+                                            }
+                                            setTtsEnabled(!ttsEnabled)
+                                        }}
                                         className={`w-10 h-5 rounded-full relative transition-all ${ttsEnabled ? 'bg-secondary' : 'bg-white/10'}`}
                                     >
                                         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${ttsEnabled ? 'left-5.5' : 'left-0.5'}`} />
@@ -641,6 +717,7 @@ export default function EditQuiz() {
                                         >
                                             <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
                                             {q.audio_url && q.text !== q.last_tts_text ? "RE-VINCULAR" : "VINCULAR VOZ"}
+                                            {!user?.is_premium && <Crown size={10} />}
                                         </button>
                                     </div>
                                 </div>
@@ -860,6 +937,11 @@ export default function EditQuiz() {
                     </div>
                 </div>
             </footer>
+
+            <PremiumModal
+                isOpen={isPremiumModalOpen}
+                onClose={() => setIsPremiumModalOpen(false)}
+            />
         </div >
     )
 }

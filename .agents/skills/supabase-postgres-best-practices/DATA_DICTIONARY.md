@@ -10,6 +10,9 @@ Almacena la configuración principal de cada cuestionario.
 - **title** (text): Título del quiz comercial o educativo.
 - **description** (text, nullable): Descripción detallada del contenido.
 - **background_music_url** (text, nullable): Enlace al audio ambiental durante el juego.
+- **user_id** (uuid, FK): Propietario del quiz (public.profiles).
+- **visibility** (text): Visibilidad del quiz ('public' o 'private').
+- **is_ai_generated** (bool): Flag para indicar si fue creado por IA.
 - **created_at** (timestamptz): Fecha de creación del registro.
 
 > [!IMPORTANT]
@@ -102,6 +105,31 @@ Control de cuotas y costos de servicios externos (TTS).
 - **id** (text, PK): Identificador del periodo o servicio (ej: '2026-04').
 - **characters_used** (bigint): Total de caracteres procesados por Google Cloud TTS.
 - **updated_at** (timestamptz): Última actualización de la cuota.
+
+### 8. `profiles`
+**[NUEVA]** Información extendida de los usuarios.
+- **id** (uuid, PK): ID de usuario de auth.users.
+- **nickname** (text): Nombre público del creador.
+- **is_premium** (bool): Estado de suscripción premium (manual o permanente).
+- **premium_until** (timestamptz, nullable): Fecha de fin del acceso premium temporal (pases de 24h).
+- **ai_credits** (int): Créditos disponibles para generación IA.
+- **created_at** (timestamptz).
+
+### 9. `promo_codes`
+**[NUEVA]** Gestión de cupones y pases mágicos.
+- **id** (uuid, PK).
+- **code** (text, unique): Código alfanumérico.
+- **type** (text): 'magic_pass' o 'premium_trial'.
+- **expires_at** (timestamptz).
+- **used_by** (uuid, FK): Usuario que activó el código.
+
+### 10. `reports`
+**[NUEVA]** Sistema de moderación de contenido.
+- **id** (uuid, PK).
+- **quiz_id** (uuid, FK).
+- **user_id** (uuid, FK): Denunciante.
+- **reason** (text).
+- **status** (text): 'pending', 'reviewed', 'dismissed'.
 
 ---
 

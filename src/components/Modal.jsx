@@ -10,25 +10,25 @@ export default function Modal({ isOpen, onClose, title, children }) {
             <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade" onClick={onClose} />
 
             {/* Modal Container */}
-            <div className="w-full max-w-2xl relative z-10 animate-scale-in">
-                <div className="glass rounded-2xl overflow-hidden shadow-2xl">
+            <div className="w-full max-w-2xl relative z-10 animate-scale-in max-h-[90vh] flex flex-col">
+                <div className="glass rounded-2xl overflow-hidden shadow-2xl flex flex-col h-full">
 
                     {/* Header */}
-                    <div className="flex items-center justify-between p-10 border-b border-outline-variant/10">
+                    <div className="flex items-center justify-between p-6 px-10 border-b border-outline-variant/10 shrink-0">
                         <div>
-                            <p className="text-[10px] text-primary tracking-[0.4em] uppercase font-black mb-3 opacity-40">Creative Workshop / Input</p>
-                            <h2 className="text-4xl font-black italic tracking-tighter text-white">{title}</h2>
+                            <p className="text-[8px] text-primary tracking-[0.4em] uppercase font-black mb-1 opacity-40">LukeQUIZ / Premium</p>
+                            <h2 className="text-2xl font-black italic tracking-tighter text-white">{title}</h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="w-10 h-10 bg-surface-highest/50 hover:bg-surface-highest rounded-full text-on-surface-variant hover:text-white transition-all flex items-center justify-center border border-white/5 absolute top-6 right-6"
+                            className="w-10 h-10 bg-surface-highest/50 hover:bg-surface-highest rounded-full text-on-surface-variant hover:text-white transition-all flex items-center justify-center border border-white/5"
                         >
                             <X size={20} />
                         </button>
                     </div>
 
                     {/* Content */}
-                    <div className="p-10">
+                    <div className="p-10 overflow-y-auto custom-scrollbar">
                         {children}
                     </div>
                 </div>
