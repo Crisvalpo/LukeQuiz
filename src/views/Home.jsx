@@ -250,10 +250,10 @@ export default function Home() {
                         )}
                         <button
                             onClick={handleCreateQuiz}
-                            className="bg-primary hover:bg-primary-hover text-white px-[5vh] md:px-10 py-[2.5vh] md:py-5 rounded-[2vh] md:rounded-2xl font-display font-black flex items-center gap-[1.5vh] md:gap-4 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 group text-[1.5vh] md:text-[14px]"
+                            className="bg-primary hover:bg-primary-hover text-white p-[2vh] md:px-10 md:py-5 rounded-[1.5vh] md:rounded-2xl font-display font-black flex items-center justify-center gap-[1.5vh] md:gap-4 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 group text-[1.5vh] md:text-[14px]"
                         >
                             <Plus size={24} className="group-hover:rotate-90 transition-transform w-[3vh] h-[3vh] md:w-6 md:h-6" />
-                            <span className="tracking-widest uppercase">NUEVO</span>
+                            <span className="hidden md:block tracking-widest uppercase">NUEVO</span>
                         </button>
                     </div>
                 </header>
