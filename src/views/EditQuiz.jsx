@@ -16,6 +16,7 @@ export default function EditQuiz() {
     const { user } = useAuth()
     const { quizId } = useParams()
     const navigate = useNavigate()
+    const [activeQuizId, setActiveQuizId] = useState(quizId === 'new' ? null : quizId)
     const [quiz, setQuiz] = useState(null)
     const [questions, setQuestions] = useState([])
     const [currentIdx, setCurrentIdx] = useState(0)
@@ -39,8 +40,9 @@ export default function EditQuiz() {
     const [showMediaSearch, setShowMediaSearch] = useState(false)
 
     useEffect(() => {
-        console.log('EditQuiz Loaded - Version 1.1');
+        console.log('EditQuiz Loaded - Version 1.2');
         fetchQuizData()
+        if (quizId !== 'new') setActiveQuizId(quizId);
     }, [quizId])
 
     // Protección contra pérdida de datos
@@ -122,7 +124,7 @@ export default function EditQuiz() {
         setIsDirty(true)
         const newQ = {
             id: 'temp-' + crypto.randomUUID(),
-            quiz_id: quizId === 'new' ? null : quizId,
+            quiz_id: activeQuizId,
             text: '¿  ?',
             option_a: '',
             option_b: '',
@@ -195,10 +197,10 @@ export default function EditQuiz() {
         setLoading(true)
         const tid = toast.loading('Guardando...')
         try {
-            let currentQuizId = quizId
+            let workingQuizId = activeQuizId
 
             // 1. Guardar/Actualizar Quiz
-            if (quizId === 'new') {
+            if (!workingQuizId) {
                 const { data, error } = await supabase.from('quizzes').insert({
                     title: quiz.title || 'Sin título',
                     description: quiz.description || '',
@@ -206,7 +208,8 @@ export default function EditQuiz() {
                     visibility: quiz.visibility || 'public'
                 }).select().single()
                 if (error) throw error
-                currentQuizId = data.id
+                workingQuizId = data.id
+                setActiveQuizId(data.id)
                 // Actualizamos la URL sin recargar para no perder el estado
                 window.history.replaceState(null, '', `/edit/${data.id}`)
             } else {
@@ -214,7 +217,7 @@ export default function EditQuiz() {
                     title: quiz.title,
                     description: quiz.description,
                     visibility: quiz.visibility
-                }).eq('id', quizId)
+                }).eq('id', workingQuizId)
                 if (error) throw error
             }
 
@@ -225,7 +228,7 @@ export default function EditQuiz() {
 
                 // Sanitizar para el esquema de la DB (Solo las columnas que existen en la tabla)
                 const dbData = {
-                    quiz_id: currentQuizId,
+                    quiz_id: workingQuizId,
                     text: q.text || '',
                     option_a: q.option_a || '',
                     option_b: q.option_b || '',
@@ -259,9 +262,9 @@ export default function EditQuiz() {
             setIsDirty(false)
             toast.success('Cuestionario guardado', { id: tid })
 
-            // Redirigir si era nuevo
+            // Redirigir si era nuevo en la URL original
             if (quizId === 'new') {
-                navigate(`/edit/${currentQuizId}`, { replace: true })
+                navigate(`/edit/${workingQuizId}`, { replace: true })
             }
         } catch (e) {
             console.error(e)
@@ -295,8 +298,8 @@ export default function EditQuiz() {
         const tid = toast.loading('Consultando oráculo de la IA...')
         try {
             // 1. Si es un quiz nuevo, necesitamos un ID real PARA EL AUDIO (evitar carpeta /new/)
-            let activeQuizId = quizId;
-            if (quizId === 'new') {
+            let workingQuizId = activeQuizId;
+            if (!workingQuizId) {
                 const { data: nQuiz, error: nErr } = await supabase.from('quizzes').insert({
                     title: quiz.title || 'Nuevo Quiz IA',
                     description: quiz.description || '',
@@ -304,7 +307,8 @@ export default function EditQuiz() {
                     visibility: quiz.visibility || 'public'
                 }).select().single();
                 if (nErr) throw nErr;
-                activeQuizId = nQuiz.id;
+                workingQuizId = nQuiz.id;
+                setActiveQuizId(nQuiz.id);
                 window.history.replaceState(null, '', `/edit/${nQuiz.id}`);
                 // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
             }
@@ -333,7 +337,7 @@ export default function EditQuiz() {
                 correct_option: q.correct_option || 'A',
                 image_url: q.image_url || '',
                 id: 'temp-' + crypto.randomUUID(),
-                quiz_id: activeQuizId,
+                quiz_id: workingQuizId,
                 order_index: baseQuestions.length + i,
                 audio_url: '',
                 last_tts_text: q.text
@@ -343,7 +347,7 @@ export default function EditQuiz() {
                 toast.loading('Generando voces neuronales...', { id: tid })
                 for (let i = 0; i < newQuestions.length; i++) {
                     try {
-                        const url = await generateAudio(newQuestions[i], activeQuizId)
+                        const url = await generateAudio(newQuestions[i], workingQuizId)
                         newQuestions[i].audio_url = url
                     } catch (e) {
                         console.error(`Error TTS en pregunta ${i}:`, e)
@@ -499,14 +503,6 @@ export default function EditQuiz() {
                         </div>
                     </button>
 
-                    {/* Botón Guardar - ICON ONLY */}
-                    <button
-                        onClick={saveAll}
-                        title="GUARDAR TODO"
-                        className="flex items-center justify-center w-11 h-11 bg-primary text-white rounded-lg hover:bg-primary-hover transition-all shadow-lg shadow-primary/20 active:scale-90 shrink-0"
-                    >
-                        <Save size={18} />
-                    </button>
                 </div>
             </header>
 
