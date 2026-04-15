@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Plus, Play, Settings, Trash2, PlusCircle, Search, Library, User, LogOut, Ticket, Crown, Monitor, HardDrive } from 'lucide-react'
+import {
+    Plus, Play, Settings, Trash2, PlusCircle,
+    Search, Library, User, LogOut, Ticket,
+    Crown, Monitor, HardDrive
+} from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'

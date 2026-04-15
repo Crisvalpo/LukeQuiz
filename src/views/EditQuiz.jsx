@@ -58,10 +58,17 @@ export default function EditQuiz() {
             if (window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?')) {
                 navigate(to);
             }
-        } else {
-            navigate(to);
+            return;
         }
-    };
+        navigate(to);
+    }
+
+    // Auto-foco al cambiar de pregunta
+    useEffect(() => {
+        if (questionInputRef.current) {
+            questionInputRef.current.focus();
+        }
+    }, [currentIdx])
 
     const fetchQuizData = async () => {
         if (quizId === 'new') {
