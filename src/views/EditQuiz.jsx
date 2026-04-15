@@ -91,6 +91,14 @@ export default function EditQuiz() {
 
         try {
             const { data: qData } = await supabase.from('quizzes').select('*').eq('id', quizId).single()
+
+            // Verificación de Autoría (Seguridad Crítica)
+            if (qData && user && qData.user_id !== user.id) {
+                toast.error('No tienes permiso para editar esta trivia');
+                navigate('/');
+                return;
+            }
+
             const { data: qsData } = await supabase.from('questions').select('*').eq('quiz_id', quizId).order('order_index')
             setQuiz(qData)
             if (qsData && qsData.length > 0) {
@@ -319,6 +327,9 @@ export default function EditQuiz() {
                     topic: topic,
                     description: description,
                     count: count
+                },
+                headers: {
+                    Authorization: `Bearer ${session?.access_token}`
                 }
             })
             if (error) throw error
@@ -356,7 +367,7 @@ export default function EditQuiz() {
             setQuestions([...baseQuestions, ...newQuestions])
             setIsDirty(true)
             setShowAiPanel(false)
-            setCurrentIdx(0) // Ir a la primera pregunta generada
+            setCurrentIdx(baseQuestions.length) // Ir a la primera pregunta generada
             toast.success(`Protocolo completado: ${newQuestions.length} nuevas preguntas integradas`, { id: tid })
         } catch (e) {
             toast.error('Error IA: ' + e.message, { id: tid })
@@ -431,7 +442,7 @@ export default function EditQuiz() {
 
     return (
         <div
-            className="h-screen bg-surface-lowest text-white font-sans overflow-hidden flex flex-col relative pt-[12vh] md:pt-24"
+            className="h-screen bg-surface-lowest text-white font-sans overflow-hidden flex flex-col relative pt-[12vh] md:pt-28"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >

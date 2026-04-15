@@ -68,3 +68,9 @@ $$ LANGUAGE plpgsql;
 ## 🏎️ Cómo Ejecutar
 1. `npm install`
 2. `npm run dev`
+
+### ☁️ Exposición con Cloudflare (Opcional)
+Si necesitas probar la app desde dispositivos móviles fuera de tu red local:
+1. Instala `cloudflared`.
+2. Ejecuta: `cloudflared tunnel --url http://localhost:5173`
+3. Usa la URL generada (`.trycloudflare.com`) para acceder desde cualquier lugar.

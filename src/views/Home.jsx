@@ -205,7 +205,7 @@ export default function Home() {
                             <div className="flex items-center gap-[2vw] md:gap-4 bg-white/5 p-[1vh] md:p-2 pr-[2vh] md:pr-6 rounded-[2vh] md:rounded-2xl border border-white/10 group">
                                 <div className="w-[5vh] h-[5vh] md:w-12 md:h-12 rounded-[1.2vh] md:rounded-xl bg-primary/20 flex items-center justify-center text-primary font-black border border-primary/20 uppercase relative text-[2vh] md:text-base">
                                     {user?.email?.[0]}
-                                    {user.is_premium && (
+                                    {user?.is_premium && (
                                         <div className="absolute -top-1 -right-1 w-[2vh] h-[2vh] md:w-5 md:h-5 bg-amber-500 rounded-full flex items-center justify-center border-2 border-surface animate-bounce shadow-lg shadow-amber-500/50">
                                             <Ticket size={10} className="text-white" fill="white" />
                                         </div>
@@ -214,7 +214,7 @@ export default function Home() {
                                 <div className="hidden sm:block">
                                     <div className="flex items-center gap-2">
                                         <p className="text-[1.2vh] md:text-[10px] font-black tracking-widest text-primary uppercase leading-tight">Mi Cuenta</p>
-                                        {user.is_premium && <span className="text-[1vh] md:text-[8px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full font-black border border-amber-500/20">PREMIUM</span>}
+                                        {user?.is_premium && <span className="text-[1vh] md:text-[8px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full font-black border border-amber-500/20">PREMIUM</span>}
                                     </div>
                                     <p className="text-[1.4vh] md:text-[12px] font-bold text-white/60 truncate max-w-[100px] md:max-w-[120px]">{user.email}</p>
                                 </div>

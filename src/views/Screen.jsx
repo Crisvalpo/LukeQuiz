@@ -75,15 +75,25 @@ export default function Screen() {
             .eq('id', gameId)
     }
 
+    // 1. Gestión de Datos y Efectos de Estado (Consolidado)
     useEffect(() => {
         if (!game) return
+
+        // Carga inicial de preguntas si no existen
+        if (game.quiz_id && questions.length === 0) {
+            fetchQuestions(game.quiz_id)
+        }
+
+        // Acciones por cambio de estado
         if (game.status === 'question') {
             fetchQuestion(game.quiz_id, game.current_question_index)
         } else if (game.status === 'finished') {
-            confetti({ particleCount: 200, spread: 100, origin: { y: 0.7 }, colors: ['#8ff5ff', '#ac89ff', '#ff59e3'] })
-        }
-        if (game.quiz_id && questions.length === 0) {
-            fetchQuestions(game.quiz_id)
+            confetti({
+                particleCount: 200,
+                spread: 100,
+                origin: { y: 0.7 },
+                colors: ['#8ff5ff', '#ac89ff', '#ff59e3']
+            })
         }
     }, [game?.status, game?.current_question_index, game?.quiz_id])
 
