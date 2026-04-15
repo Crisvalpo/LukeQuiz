@@ -481,7 +481,15 @@ const BackgroundView = React.memo(({ status, imageUrl }) => {
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
             {status === 'question' && imageUrl ? (
                 <div key={imageUrl} className="absolute inset-0 z-0 transition-all duration-1000 animate-in fade-in zoom-in-110">
-                    <img src={imageUrl} className="w-full h-full object-cover opacity-30 blur-[2px]" alt="" />
+                    <img
+                        src={imageUrl}
+                        className="w-full h-full object-cover opacity-30 blur-[2px]"
+                        alt=""
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://placehold.co/600x400/111/fff?text=Imagen+Invalida';
+                        }}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
                 </div>
             ) : (
