@@ -21,6 +21,8 @@ export default function EditQuiz() {
     const [currentIdx, setCurrentIdx] = useState(0)
     const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false)
     const [loading, setLoading] = useState(true)
+    const touchStartRef = React.useRef(0)
+    const touchEndRef = React.useRef(0)
     const [showAiPanel, setShowAiPanel] = useState(false)
     const [showBulk, setShowBulk] = useState(false)
     const [isDirty, setIsDirty] = useState(false)
@@ -392,29 +394,49 @@ export default function EditQuiz() {
 
     const q = questions[currentIdx]
 
+    const handleTouchStart = (e) => {
+        touchStartRef.current = e.targetTouches[0].clientX;
+    }
+
+    const handleTouchEnd = (e) => {
+        touchEndRef.current = e.changedTouches[0].clientX;
+        const diff = touchStartRef.current - touchEndRef.current;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) { // Swipe Left -> Next
+                if (currentIdx < questions.length - 1) setCurrentIdx(currentIdx + 1);
+            } else { // Swipe Right -> Prev
+                if (currentIdx > 0) setCurrentIdx(currentIdx - 1);
+            }
+        }
+    }
+
     return (
-        <div className="h-screen bg-surface-lowest text-white font-sans overflow-hidden flex flex-col relative pt-24">
-            <header className="fixed top-0 left-0 right-0 h-24 bg-black/80 backdrop-blur-md border-b border-white/10 px-12 md:px-20 flex items-center justify-between z-50 shadow-2xl transition-all">
-                <div className="flex items-center gap-6">
-                    <button onClick={() => handleSafeNavigate('/')} className="p-3 hover:bg-white/10 rounded-full transition-all"><ArrowLeft size={22} /></button>
-                    <div className="flex flex-col flex-1 max-w-xl group/meta">
-                        <div className="flex flex-col border-l-2 border-white/5 pl-6 mt-1 hover:border-white/20 transition-all">
+        <div
+            className="h-screen bg-surface-lowest text-white font-sans overflow-hidden flex flex-col relative pt-[12vh] md:pt-24"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
+            <header className="fixed top-0 left-0 right-0 h-[10vh] md:h-24 bg-black/80 backdrop-blur-md border-b border-white/10 px-[4vw] md:px-20 flex items-center justify-between z-50 shadow-2xl transition-all">
+                <div className="flex items-center gap-[2vw] md:gap-6 flex-1 overflow-hidden">
+                    <button onClick={() => handleSafeNavigate('/')} className="p-[1.5vh] md:p-3 hover:bg-white/10 rounded-full transition-all shrink-0"><ArrowLeft size={18} className="md:w-[22px]" /></button>
+                    <div className="flex flex-col flex-1 min-w-0 group/meta">
+                        <div className="flex flex-col border-l-2 border-white/5 pl-[2vw] md:pl-6 mt-1 hover:border-white/20 transition-all overflow-hidden">
                             <input
                                 value={quiz?.title || ''}
                                 onChange={(e) => { setQuiz({ ...quiz, title: e.target.value }); setIsDirty(true); }}
-                                className={`bg-transparent border-none text-3xl font-display font-black text-white italic tracking-tight leading-none outline-none placeholder:text-white/20 w-full ${!quiz?.title?.trim() ? 'animate-pulse-input' : ''}`}
+                                className={`bg-transparent border-none text-[2.2vh] md:text-3xl font-display font-black text-white italic tracking-tight leading-none outline-none placeholder:text-white/20 w-full truncate ${!quiz?.title?.trim() ? 'animate-pulse-input' : ''}`}
                                 placeholder="Título de la trivia"
                             />
                             <input
                                 value={quiz?.description || ''}
                                 onChange={(e) => { setQuiz({ ...quiz, description: e.target.value }); setIsDirty(true); }}
-                                className={`bg-transparent border-none text-sm font-bold text-white/40 tracking-[0.2em] outline-none placeholder:text-white/10 w-full mt-2 ${!quiz?.description?.trim() ? 'animate-pulse-input' : ''}`}
+                                className={`bg-transparent border-none text-[1.2vh] md:text-sm font-bold text-white/40 tracking-[0.2em] outline-none placeholder:text-white/10 w-full mt-1 md:mt-2 truncate ${!quiz?.description?.trim() ? 'animate-pulse-input' : ''}`}
                                 placeholder="Añade una descripción..."
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 ml-8">
+                    <div className="hidden md:flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 ml-4 shrink-0">
                         <button
                             onClick={() => { setQuiz({ ...quiz, visibility: 'public' }); setIsDirty(true); }}
                             className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'public' ? 'bg-primary text-white' : 'text-white/20 hover:text-white/40'}`}
@@ -438,20 +460,21 @@ export default function EditQuiz() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-3 ml-6">
                     {/* Botón Nueva Pregunta - MANUAL */}
-                    <button onClick={addNewQuestion} className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/10 transition-all shadow-lg active:scale-95 overflow-hidden">
-                        <Plus size={18} /> <span className="hidden md:inline">NUEVA PREGUNTA</span>
+                    <button onClick={addNewQuestion} title="NUEVA PREGUNTA" className="group relative flex items-center justify-center gap-3 px-6 h-11 bg-white/5 border border-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/10 transition-all shadow-lg active:scale-95 overflow-hidden shrink-0">
+                        <Plus size={18} /> <span>NUEVA PREGUNTA</span>
                         <div className="absolute top-0 right-0 bg-white/20 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter text-white opacity-50 group-hover:opacity-100 transition-opacity uppercase">MANUAL</div>
                     </button>
 
                     {/* Botón Carga Masiva - IA */}
                     <button
                         onClick={handleOpenBulkPanel}
-                        className="group relative flex items-center gap-3 px-6 h-11 bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 rounded-lg text-xs font-bold transition-all overflow-hidden"
+                        title="CARGA MASIVA"
+                        className="group relative flex items-center justify-center gap-3 px-6 h-11 bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 rounded-lg text-xs font-bold transition-all overflow-hidden shrink-0"
                     >
                         <FileText size={16} />
-                        <span className="hidden md:inline">CARGA MASIVA</span>
+                        <span>CARGA MASIVA</span>
                         <div className="absolute top-0.5 right-0.5 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter transition-opacity uppercase bg-cyan-500/20 text-cyan-400 opacity-50 group-hover:opacity-100">
                             IA
                         </div>
@@ -460,13 +483,14 @@ export default function EditQuiz() {
                     {/* Botón Generar IA - MAGIA */}
                     <button
                         onClick={handleOpenAiPanel}
-                        className={`group relative flex items-center gap-3 px-6 h-11 border rounded-lg text-xs font-bold transition-all overflow-hidden ${user?.is_premium
+                        title="GENERAR IA"
+                        className={`group relative flex items-center justify-center gap-3 px-6 h-11 border rounded-lg text-xs font-bold transition-all overflow-hidden shrink-0 ${user?.is_premium
                             ? 'bg-white/5 border-white/10 text-secondary hover:bg-white/10'
                             : 'bg-white/5 border-amber-500/20 text-amber-500/50 grayscale opacity-80 cursor-not-allowed'
                             }`}
                     >
                         {user?.is_premium ? <Sparkles size={16} /> : <Crown size={16} className="text-amber-500" />}
-                        <span className="hidden md:inline">GENERAR IA</span>
+                        <span>GENERAR IA</span>
                         <div className={`absolute top-0.5 right-0.5 px-2 py-0.5 text-[8px] font-black rounded-bl-lg tracking-tighter transition-opacity uppercase ${user?.is_premium
                             ? 'bg-secondary/20 text-secondary opacity-50 group-hover:opacity-100'
                             : 'bg-amber-500/20 text-amber-500 opacity-100'
@@ -481,7 +505,7 @@ export default function EditQuiz() {
                         title="GUARDAR TODO"
                         className="flex items-center justify-center w-11 h-11 bg-primary text-white rounded-lg hover:bg-primary-hover transition-all shadow-lg shadow-primary/20 active:scale-90 shrink-0"
                     >
-                        <Save size={20} />
+                        <Save size={18} />
                     </button>
                 </div>
             </header>
@@ -715,82 +739,82 @@ export default function EditQuiz() {
                 </div>
             )}
 
-            <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-0 pb-24">
-                <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-hidden px-8 md:px-12 lg:px-24">
+            <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-0 pb-[10vh] md:pb-24">
+                <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-hidden px-[4vw] md:px-12 lg:px-24">
                     {questions.length > 0 && q ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch flex-1 overflow-y-auto h-full py-4 pr-2 custom-scrollbar">
-                            <div className="lg:col-span-1 space-y-4 bg-white/5 p-6 lg:p-8 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center h-full">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[4vh] lg:gap-12 items-stretch flex-1 overflow-y-auto h-full py-[2vh] md:py-4 pr-2 custom-scrollbar">
+                            <div className="lg:col-span-1 space-y-[2vh] md:space-y-4 bg-white/5 p-[3vh] md:p-8 rounded-[3vh] md:rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center h-full">
                                 <div>
                                     <textarea
                                         ref={questionInputRef}
                                         value={q.text}
                                         onChange={(e) => updateQuestion(currentIdx, { text: e.target.value })}
-                                        className="w-full bg-transparent text-xl lg:text-2xl font-black focus:outline-none resize-none placeholder:opacity-10 leading-tight transition-all"
+                                        className="w-full bg-transparent text-[2.5vh] md:text-2xl font-black focus:outline-none resize-none placeholder:opacity-10 leading-tight transition-all"
                                         placeholder="Escribe la pregunta aquí..."
                                         rows={3}
                                     />
                                 </div>
 
                                 {/* TTS Engine 2.0 - Control de Sincronización */}
-                                <div className="flex items-center justify-between p-3 bg-surface-lowest/60 rounded-2xl border border-white/5 backdrop-blur-md">
-                                    <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-between p-[1.5vh] md:p-3 bg-surface-lowest/60 rounded-[2vh] md:rounded-2xl border border-white/5 backdrop-blur-md">
+                                    <div className="flex items-center gap-[1.5vh] md:gap-3">
                                         {!q.audio_url ? (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 rounded-full border border-red-500/20">
-                                                <Mic2 size={12} className="text-red-500" />
-                                                <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Sin Audio</span>
+                                            <div className="flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.5vh] md:py-1 bg-red-500/10 rounded-full border border-red-500/20">
+                                                <Mic2 size={12} className="text-red-500 w-[1.5vh] h-[1.5vh] md:w-3 md:h-3" />
+                                                <span className="text-[1vh] md:text-[10px] font-black text-red-500 uppercase tracking-widest">Sin Audio</span>
                                             </div>
                                         ) : q.text !== q.last_tts_text ? (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/10 rounded-full border border-orange-500/20">
-                                                <RefreshCcw size={12} className="text-orange-500 animate-pulse" />
-                                                <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Desactualizado</span>
+                                            <div className="flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.5vh] md:py-1 bg-orange-500/10 rounded-full border border-orange-500/20">
+                                                <RefreshCcw size={12} className="text-orange-500 animate-pulse w-[1.5vh] h-[1.5vh] md:w-3 md:h-3" />
+                                                <span className="text-[1vh] md:text-[10px] font-black text-orange-500 uppercase tracking-widest">Desactualizado</span>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
-                                                <Volume2 size={12} className="text-green-500" />
-                                                <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Sincronizado</span>
+                                            <div className="flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.5vh] md:py-1 bg-green-500/10 rounded-full border border-green-500/20">
+                                                <Volume2 size={12} className="text-green-500 w-[1.5vh] h-[1.5vh] md:w-3 md:h-3" />
+                                                <span className="text-[1vh] md:text-[10px] font-black text-green-500 uppercase tracking-widest">Sincronizado</span>
                                             </div>
                                         )}
-                                        <span className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] hidden md:block">TTS Engine 2.0</span>
+                                        <span className="text-[0.9vh] md:text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] hidden md:block">TTS Engine 2.0</span>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-[1vh] md:gap-2">
                                         {q.audio_url && (
                                             <button
                                                 onClick={() => new Audio(q.audio_url).play()}
-                                                className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-all flex items-center justify-center"
+                                                className="p-[1vh] md:p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-white transition-all flex items-center justify-center"
                                                 title="Probar sonido"
                                             >
-                                                <Play size={16} fill="currentColor" />
+                                                <Play size={16} fill="currentColor" className="w-[1.8vh] h-[1.8vh] md:w-4 md:h-4" />
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleIndividualTTS(currentIdx)}
                                             disabled={loading || !q.text || q.text.trim() === '¿  ?' || (q.audio_url && q.text === q.last_tts_text)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all ${loading || !q.text || q.text.trim() === '¿  ?' || (q.audio_url && q.text === q.last_tts_text)
+                                            className={`flex items-center gap-[1vh] md:gap-2 px-[2vh] md:px-4 py-[1vh] md:py-2 rounded-[1.5vh] md:rounded-xl text-[1vh] md:text-[10px] font-black tracking-widest transition-all ${loading || !q.text || q.text.trim() === '¿  ?' || (q.audio_url && q.text === q.last_tts_text)
                                                 ? 'bg-white/5 text-white/20 cursor-not-allowed'
                                                 : 'bg-secondary text-on-secondary hover:bg-secondary/80 active:scale-95'
                                                 }`}
                                         >
-                                            <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
+                                            <RefreshCcw size={14} className={loading ? "animate-spin w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" : "w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5"} />
                                             {q.audio_url && q.text !== q.last_tts_text ? "RE-VINCULAR" : "VINCULAR VOZ"}
-                                            {!user?.is_premium && <Crown size={10} />}
+                                            {!user?.is_premium && <Crown size={10} className="w-[1.2vh] h-[1.2vh] md:w-2.5 md:h-2.5" />}
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-2 mt-4">
+                                <div className="grid grid-cols-1 gap-[1vh] md:gap-2 mt-[2vh] md:mt-4">
                                     {['A', 'B', 'C', 'D'].map(opt => (
-                                        <div key={opt} className={`flex items-center gap-3 p-1 pr-2 rounded-xl border-2 transition-all group ${q.correct_option === opt ? 'border-pink-500 bg-pink-500/10 shadow-[0_0_20px_rgba(236,72,153,0.1)]' : 'border-white/5 bg-white/5 hover:border-white/20'}`}>
+                                        <div key={opt} className={`flex items-center gap-[1.5vh] md:gap-3 p-[0.5vh] pr-[1vh] md:p-1 md:pr-2 rounded-[1.5vh] md:rounded-xl border-2 transition-all group ${q.correct_option === opt ? 'border-pink-500 bg-pink-500/10 shadow-[0_0_20px_rgba(236,72,153,0.1)]' : 'border-white/5 bg-white/5 hover:border-white/20'}`}>
                                             <button
                                                 onClick={() => updateQuestion(currentIdx, { correct_option: opt })}
-                                                className={`w-10 h-10 flex items-center justify-center rounded-lg text-base font-black transition-all shrink-0 ${q.correct_option === opt ? 'bg-pink-500 text-black scale-105' : 'bg-white/5 text-white/20 group-hover:bg-white/10'}`}
+                                                className={`w-[4.5vh] h-[4.5vh] md:w-10 md:h-10 flex items-center justify-center rounded-[1vh] md:rounded-lg text-[1.8vh] md:text-base font-black transition-all shrink-0 ${q.correct_option === opt ? 'bg-pink-500 text-black scale-105' : 'bg-white/5 text-white/20 group-hover:bg-white/10'}`}
                                             >
                                                 {opt}
                                             </button>
                                             <input
                                                 value={q[`option_${opt.toLowerCase()}`]}
                                                 onChange={(e) => updateQuestion(currentIdx, { [`option_${opt.toLowerCase()}`]: e.target.value })}
-                                                className="w-full bg-transparent text-sm font-bold focus:outline-none"
+                                                className="w-full bg-transparent text-[1.4vh] md:text-sm font-bold focus:outline-none"
                                                 placeholder={`Respuesta ${opt}...`}
                                             />
                                             <button
@@ -798,7 +822,7 @@ export default function EditQuiz() {
                                                 className={`flex items-center justify-center transition-all shrink-0 ${q.correct_option === opt ? 'text-pink-500' : 'text-white/10 hover:text-white/30'}`}
                                                 title="Marcar como correcta"
                                             >
-                                                <CheckCircle2 size={22} className={q.correct_option === opt ? 'drop-shadow-[0_0_8px_rgba(236,72,153,0.5)]' : ''} />
+                                                <CheckCircle2 size={22} className={`${q.correct_option === opt ? 'drop-shadow-[0_0_8px_rgba(236,72,153,0.5)]' : ''} w-[2.5vh] h-[2.5vh] md:w-5 md:h-5`} />
                                             </button>
                                         </div>
                                     ))}
@@ -806,47 +830,47 @@ export default function EditQuiz() {
                             </div>
 
                             {/* Media & Herramientas */}
-                            <div className="lg:col-span-1 flex flex-col gap-4 overflow-hidden h-full">
-                                <div className="aspect-video lg:aspect-auto lg:flex-1 min-h-[250px] bg-surface-lowest/40 rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
-                                    <div className="absolute top-4 left-4 z-20 flex gap-2">
-                                        <span className="text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 border border-cyan-400/20 px-3 py-1.5 rounded-full uppercase">VISTA PREVIA</span>
+                            <div className="lg:col-span-1 flex flex-col gap-[2vh] md:gap-4 lg:overflow-hidden lg:h-full">
+                                <div className="aspect-video lg:aspect-auto lg:flex-1 min-h-[20vh] md:min-h-[250px] bg-surface-lowest/40 rounded-[3vh] md:rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
+                                    <div className="absolute top-[2vh] left-[2vh] md:top-4 md:left-4 z-20 flex gap-2">
+                                        <span className="text-[0.9vh] md:text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 border border-cyan-400/20 px-[1.5vh] py-[0.8vh] md:px-3 md:py-1.5 rounded-full uppercase">VISTA PREVIA</span>
                                     </div>
-                                    <div className="absolute top-4 right-4 z-20">
+                                    <div className="absolute top-[2vh] right-[2vh] md:top-4 md:right-4 z-20">
                                         <button
                                             onClick={() => {
                                                 const newQs = questions.map((item, i) => ({ ...item, is_cover: i === currentIdx }))
                                                 setQuestions(newQs)
                                                 toast.success('Esta imagen será la portada del quiz')
                                             }}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all backdrop-blur-md ${q.is_cover ? 'bg-pink-500/90 text-white border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.3)]' : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/30'}`}
+                                            className={`flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.8vh] md:py-1.5 rounded-full border-2 transition-all backdrop-blur-md ${q.is_cover ? 'bg-pink-500/90 text-white border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.3)]' : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/30'}`}
                                             title="Usar como portada del quiz"
                                         >
-                                            <Layout size={14} />
-                                            <span className="text-[9px] font-black uppercase tracking-widest">{q.is_cover ? 'PORTADA ACTIVA' : 'USAR COMO PORTADA'}</span>
+                                            <Layout size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />
+                                            <span className="text-[0.9vh] md:text-[9px] font-black uppercase tracking-widest">{q.is_cover ? 'PORTADA ACTIVA' : 'USAR COMO PORTADA'}</span>
                                         </button>
                                     </div>
                                     {q.image_url ? (
-                                        <img src={q.image_url} alt="" className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-700" />
+                                        <img src={q.image_url} alt="" className="absolute inset-0 w-full h-full object-contain p-[2vh] md:p-4 group-hover:scale-110 transition-transform duration-700" />
                                     ) : (
-                                        <div className="flex flex-col items-center gap-4 opacity-10">
-                                            <ImageIcon size={80} strokeWidth={1} />
-                                            <span className="text-xs font-black tracking-widest">SIN IMAGEN</span>
+                                        <div className="flex flex-col items-center gap-[2vh] md:gap-4 opacity-10">
+                                            <ImageIcon size={80} strokeWidth={1} className="w-[10vh] h-[10vh] md:w-20 md:h-20" />
+                                            <span className="text-[1.2vh] md:text-xs font-black tracking-widest uppercase">SIN IMAGEN</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col gap-3">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-cyan-400/10 rounded-xl text-cyan-400"><ImageIcon size={20} /></div>
+                                <div className="bg-white/5 p-[2vh] md:p-4 rounded-[2.5vh] md:rounded-2xl border border-white/5 flex flex-col gap-[1.5vh] md:gap-3">
+                                    <div className="flex items-center gap-[1.5vh] md:gap-4">
+                                        <div className="p-[1vh] md:p-2 bg-cyan-400/10 rounded-[1vh] md:rounded-xl text-cyan-400"><ImageIcon size={20} className="w-[2vh] h-[2vh] md:w-5 md:h-5" /></div>
                                         <input
                                             id="media-url-input"
-                                            className="flex-1 bg-transparent text-sm font-mono text-cyan-400 outline-none placeholder:text-cyan-400/20"
+                                            className="flex-1 bg-transparent text-[1.2vh] md:text-sm font-mono text-cyan-400 outline-none placeholder:text-cyan-400/20"
                                             value={q.image_url || ''}
                                             onChange={e => updateQuestion(currentIdx, { image_url: e.target.value })}
                                             placeholder="Introduce URL de imagen..."
                                         />
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <button onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(`${quiz?.title} ${q.text}`)}&tbm=isch`, '_blank')} className="flex items-center justify-center gap-2 py-2.5 bg-white/5 rounded-xl text-[9px] font-black hover:bg-white/10 transition-all uppercase tracking-widest border border-white/5"><Search size={14} />Buscar</button>
+                                    <div className="grid grid-cols-3 gap-[1vh] md:gap-2">
+                                        <button onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(`${quiz?.title} ${q.text}`)}&tbm=isch`, '_blank')} className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-white/5 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-white/10 transition-all uppercase tracking-widest border border-white/5"><Search size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />Buscar</button>
                                         <button
                                             type="button"
                                             onClick={async () => {
@@ -873,78 +897,73 @@ export default function EditQuiz() {
                                                     toast.error('Bloqueado por el navegador. Usa Ctrl+V');
                                                 }
                                             }}
-                                            className="flex items-center justify-center gap-2 py-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20"
+                                            className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-cyan-500/10 text-cyan-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20"
                                         >
-                                            <LinkIcon size={14} />Pegar
+                                            <LinkIcon size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />Pegar
                                         </button>
-                                        <button onClick={() => updateQuestion(currentIdx, { image_url: '', media_type: 'none' })} className="flex items-center justify-center gap-2 py-2.5 bg-red-500/10 text-red-500 rounded-xl text-[9px] font-black hover:bg-red-500/20 transition-all uppercase tracking-widest border border-red-500/10"><Trash2 size={14} />Limpiar</button>
+                                        <button onClick={() => updateQuestion(currentIdx, { image_url: '', media_type: 'none' })} className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-red-500/10 text-red-500 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-red-500/20 transition-all uppercase tracking-widest border border-red-500/10"><Trash2 size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />Limpiar</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="max-w-5xl mx-auto">
-                            <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <div className="flex items-center gap-8 border-l border-white/10 pl-8">
-                                    <div className="flex flex-col">
-                                        <h2 className="text-xl font-display font-black text-white italic tracking-tight leading-none uppercase">Configuración</h2>
-                                    </div>
-                                </div>
-                                <h2 className="text-5xl font-black text-white italic tracking-tighter mb-4">
+                        <div className="max-w-5xl mx-auto w-full px-[4vw]">
+                            <div className="text-center mb-[4vh] md:mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <h2 className="text-[4vh] md:text-5xl font-black text-white italic tracking-tighter mb-[1vh] md:mb-4">
                                     Configurar<span className="text-primary not-italic">Trivia</span>
                                 </h2>
-                                <p className="text-on-surface-variant font-bold uppercase tracking-[0.4em] text-xs opacity-40">Elige un método para cargar preguntas</p>
+                                <p className="text-on-surface-variant font-bold uppercase tracking-[0.4em] text-[1vh] md:text-xs opacity-40">Elige un método para cargar preguntas</p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-[2vh] md:gap-8 h-full overflow-y-auto pr-2 custom-scrollbar max-h-[60vh] md:max-h-none">
                                 {/* Opción 1: Manual */}
                                 <button
                                     onClick={addNewQuestion}
-                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
+                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-[3vh] md:rounded-4xl p-[3vh] md:p-10 flex flex-col items-center text-center gap-[2vh] md:gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
                                 >
-                                    <div className="absolute top-6 right-6">
-                                        <span className="text-[9px] font-black px-3 py-1 rounded-full bg-white/5 text-white/40 border border-white/10 tracking-widest">MANUAL</span>
+                                    <div className="absolute top-[2vh] right-[2vh] md:top-6 md:right-6">
+                                        <span className="text-[0.9vh] md:text-[9px] font-black px-[1.5vh] py-[0.5vh] md:px-3 md:py-1 rounded-full bg-white/5 text-white/40 border border-white/10 tracking-widest uppercase">MANUAL</span>
                                     </div>
-                                    <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center text-white/20 group-hover:text-white group-hover:bg-white/10 transition-all">
-                                        <Plus size={40} />
+                                    <div className="w-[8vh] h-[8vh] md:w-20 md:h-20 rounded-[2vh] md:rounded-2xl bg-white/5 flex items-center justify-center text-white/20 group-hover:text-white group-hover:bg-white/10 transition-all">
+                                        <Plus size={40} className="w-[5vh] h-[5vh] md:w-10 md:h-10" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-xl font-black text-white tracking-tight">Carga Tradicional</h3>
-                                        <p className="text-xs text-on-surface-variant leading-relaxed opacity-40">Crea tus propios desafíos paso a paso con control total.</p>
+                                    <div className="space-y-[0.5vh] md:space-y-2">
+                                        <h3 className="text-[2vh] md:text-xl font-black text-white tracking-tight leading-none">Carga Tradicional</h3>
+                                        <p className="text-[1.2vh] md:text-xs text-on-surface-variant leading-relaxed opacity-40">Crea tus desafíos paso a paso con control total.</p>
                                     </div>
                                 </button>
 
                                 {/* Opción 2: Masiva */}
                                 <button
                                     onClick={handleOpenBulkPanel}
-                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
+                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-white/5 rounded-[3vh] md:rounded-4xl p-[3vh] md:p-10 flex flex-col items-center text-center gap-[2vh] md:gap-6 hover:bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl"
                                 >
-                                    <div className="absolute top-6 right-6">
-                                        <span className="text-[9px] font-black px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 tracking-widest uppercase">Prompt IA</span>
+                                    <div className="absolute top-[2vh] right-[2vh] md:top-6 md:right-6">
+                                        <span className="text-[0.9vh] md:text-[9px] font-black px-[1.5vh] py-[0.5vh] md:px-3 md:py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 tracking-widest uppercase">Prompt IA</span>
                                     </div>
-                                    <div className="w-20 h-20 rounded-2xl bg-cyan-500/5 flex items-center justify-center text-cyan-400/40 group-hover:text-cyan-400 group-hover:bg-cyan-500/10 transition-all">
-                                        <FileText size={40} />
+                                    <div className="w-[8vh] h-[8vh] md:w-20 md:h-20 rounded-[2vh] md:rounded-2xl bg-cyan-500/5 flex items-center justify-center text-cyan-400/40 group-hover:text-cyan-400 group-hover:bg-cyan-500/10 transition-all">
+                                        <FileText size={40} className="w-[5vh] h-[5vh] md:w-10 md:h-10" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-xl font-black text-white tracking-tight">Carga Masiva</h3>
-                                        <p className="text-xs text-on-surface-variant leading-relaxed opacity-40">Pega tu documento o lista y estructúralo rápidamente.</p>
+                                    <div className="space-y-[0.5vh] md:space-y-2">
+                                        <h3 className="text-[2vh] md:text-xl font-black text-white tracking-tight leading-none">Carga Masiva</h3>
+                                        <p className="text-[1.2vh] md:text-xs text-on-surface-variant leading-relaxed opacity-40">Pega tu documento y estructúralo rápidamente.</p>
                                     </div>
                                 </button>
 
                                 {/* Opción 3: Generar con IA */}
                                 <button
                                     onClick={handleOpenAiPanel}
-                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-primary/20 rounded-4xl p-10 flex flex-col items-center text-center gap-6 hover:bg-primary/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl shadow-primary/10"
+                                    className="group relative bg-surface-lowest/40 backdrop-blur-xl border border-primary/20 rounded-[3vh] md:rounded-4xl p-[3vh] md:p-10 flex flex-col items-center text-center gap-[2vh] md:gap-6 hover:bg-primary/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl shadow-primary/10"
                                 >
-                                    <div className="absolute top-6 right-6">
-                                        <span className="text-[9px] font-black px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 tracking-widest uppercase animate-pulse">IA GENERADOR</span>
+                                    <div className="absolute top-[2vh] right-[2vh] md:top-6 md:right-6">
+                                        <span className="text-[0.9vh] md:text-[9px] font-black px-[1.5vh] py-[0.5vh] md:px-3 md:py-1 rounded-full bg-primary/20 text-primary border border-primary/30 tracking-widest uppercase animate-pulse">IA GENERADOR</span>
                                     </div>
-                                    <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-all">
-                                        <Sparkles size={40} />
+                                    <div className="w-[8vh] h-[8vh] md:w-20 md:h-20 rounded-[2vh] md:rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-all">
+                                        <Sparkles size={40} className="w-[5vh] h-[5vh] md:w-10 md:h-10" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-xl font-black text-white tracking-tight">Generar con IA</h3>
-                                        <p className="text-xs text-on-surface-variant leading-relaxed opacity-60">Deja que la Inteligencia Artificial cree una trivia por ti.</p>
+                                    <div className="space-y-[0.5vh] md:space-y-2">
+                                        <h3 className="text-[2vh] md:text-xl font-black text-white tracking-tight leading-none">Generar con IA</h3>
+                                        <p className="text-[1.2vh] md:text-xs text-on-surface-variant leading-relaxed opacity-60">Deja que la IA cree una trivia por ti.</p>
                                     </div>
                                 </button>
                             </div>
@@ -953,43 +972,99 @@ export default function EditQuiz() {
                 </div>
             </main >
 
-            <footer className="fixed bottom-0 left-0 right-0 h-22 bg-black/90 backdrop-blur-xl border-t border-white/10 px-8 z-50">
-                <div className="max-w-[1600px] mx-auto w-full h-full flex items-center justify-between gap-8">
-                    {/* Navegación */}
-                    {questions && questions.length > 0 ? (
-                        <div className="flex items-center gap-4 shrink-0">
+            <footer className="fixed bottom-0 left-0 right-0 h-[12vh] md:h-24 bg-black/90 backdrop-blur-xl border-t border-white/10 px-[2vw] md:px-12 z-50">
+                <div className="max-w-[1700px] mx-auto w-full h-full flex items-center justify-between gap-4">
+                    {/* VISTA MÓVIL: Una sola fila de todas las acciones */}
+                    <div className="flex md:hidden items-center justify-between w-full h-full gap-2 px-2 overflow-x-auto no-scrollbar">
+                        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 shrink-0">
                             <button
-                                onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
-                                disabled={currentIdx === 0}
-                                className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
+                                onClick={() => { setQuiz({ ...quiz, visibility: 'public' }); setIsDirty(true); }}
+                                className={`px-2 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all ${quiz?.visibility === 'public' ? 'bg-primary text-white' : 'text-white/20 hover:text-white/40'}`}
                             >
-                                <ChevronLeft size={24} />
+                                PUB
                             </button>
-                            <div className="px-5 py-2.5 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-4 text-center min-w-[110px] justify-center">
-                                <span className="text-xl font-black text-pink-500">{currentIdx + 1}</span>
-                                <div className="h-5 w-[1.5px] bg-white/10" />
-                                <span className="text-[9px] font-black text-white/40 tracking-widest">{questions.length} TOTAL</span>
-                            </div>
                             <button
-                                onClick={() => setCurrentIdx(Math.min(questions.length - 1, currentIdx + 1))}
-                                disabled={currentIdx === questions.length - 1}
-                                className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
+                                onClick={() => {
+                                    if (!user?.is_premium && quiz?.visibility !== 'private') {
+                                        setIsPremiumModalOpen(true)
+                                        return;
+                                    }
+                                    setQuiz({ ...quiz, visibility: 'private' });
+                                    setIsDirty(true);
+                                }}
+                                className={`px-2 py-1.5 rounded-lg text-[10px] font-black tracking-widest transition-all ${quiz?.visibility === 'private' ? 'bg-amber-500 text-black' : 'text-white/20 hover:text-white/40'}`}
                             >
-                                <ChevronRight size={24} />
+                                PRIV
                             </button>
                         </div>
-                    ) : null}
 
-                    {/* Espaciador Central */}
-                    <div className="flex-1"></div>
-
-                    {/* Acciones de Quiz */}
-                    <div className="flex items-center gap-4 shrink-0">
-                        {questions && questions.length > 0 ? (
-                            <button onClick={deleteCurrent} className="w-12 h-12 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-2xl transition-all border border-red-500/10" title="Eliminar pregunta">
-                                <Trash2 size={22} />
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={addNewQuestion} className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 active:scale-95 transition-all">
+                                <Plus size={24} />
                             </button>
+                            <button onClick={handleOpenBulkPanel} className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 text-white/60 rounded-xl hover:bg-white/10 active:scale-95 transition-all">
+                                <FileText size={20} />
+                            </button>
+                            <button
+                                onClick={handleOpenAiPanel}
+                                className={`w-12 h-12 flex items-center justify-center border rounded-xl active:scale-95 transition-all ${user?.is_premium ? 'bg-white/5 border-white/10 text-secondary' : 'bg-white/5 border-amber-500/20 text-amber-500/50 grayscale'}`}
+                            >
+                                {user?.is_premium ? <Sparkles size={20} /> : <Crown size={20} />}
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="px-3 py-2 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center min-w-[50px]">
+                                <span className="text-sm font-black text-pink-500 leading-none">{currentIdx + 1}</span>
+                                <span className="text-[8px] font-black text-white/20 tracking-tighter uppercase">{questions.length}</span>
+                            </div>
+                            <button onClick={deleteCurrent} className="w-12 h-12 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 rounded-xl transition-all border border-red-500/10 hover:text-white">
+                                <Trash2 size={24} />
+                            </button>
+                            <button onClick={saveAll} className="w-12 h-12 flex items-center justify-center bg-primary text-white rounded-xl hover:bg-primary-hover transition-all shadow-lg active:scale-90">
+                                <Save size={24} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* VISTA DESKTOP (Sin cambios en lógica, solo consistencia) */}
+                    <div className="hidden md:flex items-center justify-between w-full h-full">
+                        {questions && questions.length > 0 ? (
+                            <div className="flex items-center gap-4 shrink-0">
+                                <button
+                                    onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
+                                    disabled={currentIdx === 0}
+                                    className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
+                                >
+                                    <ChevronLeft size={24} />
+                                </button>
+                                <div className="px-5 py-2.5 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-4 text-center min-w-[110px] justify-center">
+                                    <span className="text-xl font-black text-pink-500 leading-none">{currentIdx + 1}</span>
+                                    <div className="h-5 w-[1.5px] bg-white/10" />
+                                    <span className="text-[9px] font-black text-white/40 tracking-widest uppercase">{questions.length} TOTAL</span>
+                                </div>
+                                <button
+                                    onClick={() => setCurrentIdx(Math.min(questions.length - 1, currentIdx + 1))}
+                                    disabled={currentIdx === questions.length - 1}
+                                    className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-10 transition-all border border-white/5"
+                                >
+                                    <ChevronRight size={24} />
+                                </button>
+                            </div>
                         ) : null}
+
+                        <div className="flex-1"></div>
+
+                        <div className="flex items-center gap-4 shrink-0">
+                            {questions && questions.length > 0 ? (
+                                <button onClick={deleteCurrent} className="w-12 h-12 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 rounded-2xl transition-all border border-red-500/10 hover:text-white" title="Eliminar pregunta">
+                                    <Trash2 size={22} strokeWidth={2.5} />
+                                </button>
+                            ) : null}
+                            <button onClick={saveAll} className="h-12 px-8 bg-primary text-white rounded-2xl font-black text-xs tracking-[0.2em] hover:bg-primary-hover transition-all shadow-lg shadow-primary/20 active:scale-95 flex items-center gap-3">
+                                <Save size={18} /> GUARDAR TODO
+                            </button>
+                        </div>
                     </div>
                 </div>
             </footer>
