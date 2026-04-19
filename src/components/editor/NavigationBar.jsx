@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Save, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Plus, Trash2, FileText, Sparkles } from 'lucide-react';
 
 const NavigationBar = ({
     currentIdx,
@@ -8,6 +8,8 @@ const NavigationBar = ({
     onPrev,
     onNext,
     onAddNewQuestion,
+    onOpenBulkPanel,
+    onOpenAiPanel,
     onDelete,
     onSave
 }) => {
@@ -54,9 +56,24 @@ const NavigationBar = ({
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onAddNewQuestion}
-                            className="md:hidden flex h-10 w-10 bg-white/5 border border-white/5 items-center justify-center rounded-xl active:scale-95 transition-all text-white/60"
+                            title="NUEVA PREGUNTA"
+                            className="md:hidden flex h-10 w-10 bg-white/5 border border-white/10 items-center justify-center rounded-xl active:scale-95 transition-all text-white/60"
                         >
                             <Plus size={20} />
+                        </button>
+                        <button
+                            onClick={onOpenBulkPanel}
+                            title="CARGA MASIVA"
+                            className="md:hidden flex h-10 w-10 bg-white/5 border border-white/10 items-center justify-center rounded-xl active:scale-95 transition-all text-cyan-400"
+                        >
+                            <FileText size={18} />
+                        </button>
+                        <button
+                            onClick={onOpenAiPanel}
+                            title="GENERAR IA"
+                            className="md:hidden flex h-10 w-10 bg-secondary/10 border border-secondary/20 items-center justify-center rounded-xl active:scale-95 transition-all text-secondary"
+                        >
+                            <Sparkles size={18} />
                         </button>
                         {totalQuestions > 1 && (
                             <button

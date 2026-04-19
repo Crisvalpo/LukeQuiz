@@ -100,7 +100,8 @@ export default function EditQuiz() {
             const { data: qData } = await supabase.from('quizzes').select('*').eq('id', quizId).single()
 
             // Verificación de Autoría (Seguridad Crítica)
-            if (qData && user && qData.user_id !== user.id) {
+            const isAdmin = user?.email === 'cristianluke@gmail.com';
+            if (qData && user && qData.user_id !== user.id && !isAdmin) {
                 toast.error('No tienes permiso para editar esta trivia');
                 navigate('/');
                 return;
@@ -515,6 +516,8 @@ export default function EditQuiz() {
                 onPrev={() => setCurrentIdx(prev => Math.max(0, prev - 1))}
                 onNext={() => setCurrentIdx(prev => Math.min(questions.length - 1, prev + 1))}
                 onAddNewQuestion={addNewQuestion}
+                onOpenBulkPanel={handleOpenBulkPanel}
+                onOpenAiPanel={handleOpenAiPanel}
                 onDelete={deleteCurrent}
                 onSave={saveAll}
             />

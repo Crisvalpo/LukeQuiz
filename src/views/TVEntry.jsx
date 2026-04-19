@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Monitor, Loader2, ChevronLeft, Keyboard } from 'lucide-react'
 import { toast } from 'sonner'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'
+import CastButton from '../components/CastButton'
 
 export default function TVEntry() {
     const [code, setCode] = useState('')
@@ -16,6 +17,18 @@ export default function TVEntry() {
         if (inputRef.current) {
             inputRef.current.focus()
         }
+
+        // Attempt to lock orientation to landscape
+        const lockOrientation = async () => {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape')
+                }
+            } catch (err) {
+                console.log('Orientation lock not possible without fullscreen or not supported:', err)
+            }
+        }
+        lockOrientation()
     }, [])
 
     const handleSumbit = async (e) => {
@@ -62,23 +75,15 @@ export default function TVEntry() {
 
             <div className="w-full max-w-[70vw] space-y-[4vh] relative z-10 text-center flex flex-col items-center">
                 <div className="space-y-[3vh] w-full">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="absolute top-0 left-0 p-[2vh] text-white/20 hover:text-white transition-colors flex items-center gap-[1vh] text-[1.2vh] font-black uppercase tracking-widest"
-                    >
-                        <ChevronLeft size={16} /> Inicio
-                    </button>
-
-                    <LogoLukeQuiz className="w-[30vw] h-auto mx-auto" />
-
-                    <div className="flex flex-col items-center gap-[2vh]">
-                        <div className="inline-flex items-center gap-[1.5vh] bg-secondary/10 px-[3vh] py-[1vh] rounded-full border border-secondary/20">
+                    <div className="flex flex-col items-center gap-[1vh] mb-[4vh]">
+                        <div className="inline-flex items-center gap-[1.5vh] bg-secondary/10 px-[3vh] py-[1vh] rounded-full border border-secondary/20 mb-[2vh]">
                             <Monitor size={18} className="text-secondary" />
-                            <p className="text-[1.2vh] font-display font-black text-secondary tracking-[0.4em] uppercase">Modo TV / Proyector</p>
+                            <p className="text-[1.2vh] font-display font-black text-secondary tracking-[0.4em] uppercase">Proyección Profesional</p>
                         </div>
-                        <h1 className="text-[6vh] font-display font-black tracking-tighter uppercase leading-none italic">
+                        <h1 className="text-[7vh] font-display font-black tracking-tighter uppercase leading-none italic">
                             Conecta tu <span className="text-secondary">Pantalla</span>
                         </h1>
+                        <p className="text-white/20 text-[1.4vh] font-bold tracking-[0.3em] uppercase mt-[1vh]">Ingresa el PIN de la partida para comenzar</p>
                     </div>
                 </div>
 
@@ -119,9 +124,33 @@ export default function TVEntry() {
                 </form>
             </div>
 
-            <footer className="absolute bottom-[4vh] left-0 right-0 opacity-10 text-[1.2vh] font-display font-black tracking-[0.5em] uppercase text-center pointer-events-none">
-                LukeQuiz // Professional Trivia Projection
+            <footer className="absolute bottom-0 left-0 right-0 p-[4vh] flex items-center justify-between border-t border-white/5 bg-black/20 backdrop-blur-xl">
+                <button
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-[1vh] text-white/40 hover:text-primary transition-all font-display font-black text-[1.2vh] tracking-[0.3em] uppercase group"
+                >
+                    <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                    Volver al Inicio
+                </button>
+
+                <p className="absolute left-1/2 -translate-x-1/2 text-[1vh] font-display font-black tracking-[0.6em] text-white/10 uppercase pointer-events-none">
+                    LukeQuiz // Professional Projection Mode
+                </p>
+
+                <div className="flex items-center gap-[2vh]">
+                    <p className="text-[1vh] font-black tracking-widest text-white/20 uppercase">Transmitir Pantalla</p>
+                    <CastButton url={window.location.href} />
+                </div>
             </footer>
+
+            {/* Orientation Lock Overlay */}
+            <div className="tv-landscape-lock">
+                <div className="rotate-icon">
+                    <div className="absolute inset-2 border-2 border-white/20 rounded-sm" />
+                </div>
+                <h2 className="text-[3vh] font-black mb-[2vh] uppercase tracking-[0.2em] text-primary">Gira tu Pantalla</h2>
+                <p className="text-white/60 font-medium uppercase tracking-[0.2em] text-[1.5vh]">Esta vista solo funciona en modo horizontal</p>
+            </div>
         </div>
     )
 }

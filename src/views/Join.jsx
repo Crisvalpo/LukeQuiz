@@ -23,17 +23,25 @@ export default function Join() {
 
     useEffect(() => {
         const stored = localStorage.getItem('kahoot_player')
+        const urlCode = searchParams.get('code')
         if (stored) {
             const p = JSON.parse(stored)
-            validateSession(p)
+            validateSession(p, urlCode)
         }
     }, [])
 
-    const validateSession = async (p) => {
+    const validateSession = async (p, urlCode) => {
         setLoading(true)
         const { data: playerExists } = await supabase.from('players').select('*, games(*)').eq('id', p.id).single()
 
-        if (playerExists && (playerExists.games?.status !== 'finished' || playerExists.games?.status === 'finished')) {
+        // Si hay un código en la URL, verificar que coincida con la sesión guardada
+        if (playerExists && urlCode && playerExists.games?.join_code !== urlCode.toUpperCase()) {
+            localStorage.removeItem('kahoot_player')
+            setLoading(false)
+            return
+        }
+
+        if (playerExists && playerExists.games) {
             setPlayer(playerExists)
             setGame(playerExists.games)
             setJoined(true)

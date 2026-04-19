@@ -23,6 +23,8 @@ export default function Home() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const navigate = useNavigate()
 
+    const isAdmin = user?.email === 'cristianluke@gmail.com'
+
     useEffect(() => {
         fetchQuizzes()
         if (user) fetchActiveGames()
@@ -121,8 +123,7 @@ export default function Home() {
             loading: 'Iniciando partida...',
             success: (game) => {
                 fetchActiveGames()
-                window.open(`/screen/${game.id}`, '_blank')
-                navigate(`/host/${game.id}`)
+                navigate(`/screen/${game.id}`)
                 return '¡Partida Iniciada!'
             },
             error: 'Error al iniciar el juego'
@@ -142,8 +143,7 @@ export default function Home() {
     }
 
     const resumeGame = (gameId) => {
-        window.open(`/screen/${gameId}`, '_blank')
-        navigate(`/host/${gameId}`)
+        navigate(`/screen/${gameId}`)
     }
 
     const deleteQuiz = async (id, title) => {
@@ -196,10 +196,10 @@ export default function Home() {
                         <LogoLukeQuiz className="w-[60vw] md:w-80 h-auto md:-ml-3 mx-auto md:mx-0" />
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-[2vh] md:gap-6">
+                    <div className="flex items-center justify-center md:justify-end gap-[1vh] md:gap-4 lg:gap-6 flex-nowrap">
                         <button
                             onClick={() => navigate('/tv')}
-                            className="flex items-center gap-[1.5vh] md:gap-3 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[3vh] md:px-6 py-[2vh] md:py-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                            className="flex items-center gap-[1vh] md:gap-3 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[2vh] md:px-6 py-[1.5vh] md:py-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
                         >
                             <Monitor size={18} className="group-hover:scale-110 transition-transform" />
                             MODO TV
@@ -247,17 +247,17 @@ export default function Home() {
                         ) : (
                             <button
                                 onClick={() => navigate('/login')}
-                                className="bg-white/5 hover:bg-white/10 text-white px-[4vh] md:px-8 py-[2vh] md:py-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.4vh] md:text-[12px] tracking-widest transition-all border border-white/10"
+                                className="bg-white/5 hover:bg-white/10 text-white px-[3vh] md:px-8 py-[1.5vh] md:py-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.4vh] md:text-[12px] tracking-widest transition-all border border-white/10"
                             >
                                 INICIAR SESIÓN
                             </button>
                         )}
                         <button
                             onClick={handleCreateQuiz}
-                            className="bg-primary hover:bg-primary-hover text-white p-[2vh] md:px-10 md:py-5 rounded-[1.5vh] md:rounded-2xl font-display font-black flex items-center justify-center gap-[1.5vh] md:gap-4 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 group text-[1.5vh] md:text-[14px]"
+                            className="bg-primary hover:bg-primary-hover text-white p-[1.5vh] md:px-6 lg:px-10 md:py-4 lg:py-5 rounded-[1.5vh] md:rounded-2xl font-display font-black flex items-center justify-center gap-[1.5vh] md:gap-3 lg:gap-4 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 group text-[1.5vh] md:text-[14px] whitespace-nowrap"
                         >
-                            <Plus size={24} className="group-hover:rotate-90 transition-transform w-[3vh] h-[3vh] md:w-6 md:h-6" />
-                            <span className="hidden md:block tracking-widest uppercase">NUEVO</span>
+                            <Plus size={24} className="group-hover:rotate-90 transition-transform w-[3vh] h-[3vh] md:w-5 md:h-5 lg:w-6 lg:h-6" />
+                            <span className="hidden md:block tracking-widest uppercase text-[1.2vh] md:text-[12px] lg:text-[14px]">NUEVO</span>
                         </button>
                     </div>
                 </header>
@@ -359,7 +359,7 @@ export default function Home() {
                                                             @{q.profiles?.nickname || 'Autor'}
                                                         </span>
                                                         <div className="flex gap-[1vh] md:gap-2">
-                                                            {user && q.user_id === user.id && (
+                                                            {user && (q.user_id === user.id || isAdmin) && (
                                                                 <>
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}

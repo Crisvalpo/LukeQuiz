@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, X, Loader2, Wand2, Volume2, Crown } from 'lucide-react';
 
 const AiPanel = ({
@@ -14,6 +14,13 @@ const AiPanel = ({
     const [topic, setTopic] = useState(initialTopic);
     const [count, setCount] = useState(5);
     const [ttsEnabled, setTtsEnabled] = useState(false);
+
+    // Sincronizar con el contexto del editor cuando se abre el panel
+    useEffect(() => {
+        if (isOpen) {
+            setTopic(initialTopic || '');
+        }
+    }, [isOpen, initialTopic]);
 
     if (!isOpen) return null;
 

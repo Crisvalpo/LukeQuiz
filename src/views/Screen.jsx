@@ -10,6 +10,19 @@ import LogoLukeQuiz from '../components/LogoLukeQuiz'
 export default function Screen() {
     const { gameId } = useParams()
     const { game, players, loading } = useGameRoom(gameId)
+
+    useEffect(() => {
+        const lockOrientation = async () => {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape')
+                }
+            } catch (err) {
+                console.log('Orientation lock not possible without fullscreen or not supported:', err)
+            }
+        }
+        lockOrientation()
+    }, [])
     const [currentQuestion, setCurrentQuestion] = useState(null)
     const audioRef = useRef(null)
     const [audioUnlocked, setAudioUnlocked] = useState(false)
@@ -25,7 +38,10 @@ export default function Screen() {
     }
 
     useEffect(() => {
-        if (game?.status === 'question' && currentQuestion?.audio_url && audioRef.current) {
+        if (game?.status === 'question' &&
+            currentQuestion?.audio_url &&
+            currentQuestion.order_index === game.current_question_index &&
+            audioRef.current) {
             audioRef.current.load()
             const playPromise = audioRef.current.play()
             if (playPromise !== undefined) {
@@ -40,14 +56,19 @@ export default function Screen() {
             audioRef.current.pause()
             audioRef.current.currentTime = 0
         }
-    }, [currentQuestion?.id, game?.status])
+    }, [currentQuestion?.id, game?.status, game?.current_question_index])
 
     const [timeLeft, setTimeLeft] = useState(0)
     const [isUpdating, setIsUpdating] = useState(false)
     const [questions, setQuestions] = useState([])
-    const [isAutoPilot, setIsAutoPilot] = useState(true)
+    const isAutoPilot = game?.is_autopilot ?? true
     const screenSessionId = useRef(crypto.randomUUID())
     const [isMaster, setIsMaster] = useState(false)
+    const playersRef = useRef(players)
+
+    useEffect(() => {
+        playersRef.current = players
+    }, [players])
 
     // Claim Master Status
     useEffect(() => {
@@ -109,7 +130,8 @@ export default function Screen() {
             .on('postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'answers', filter: `question_id=eq.${currentQuestion.id}` },
                 payload => {
-                    const isSessionPlayer = players.some(p => p.id === payload.new.player_id)
+                    // Usamos la Ref para evitar que la suscripción se reinicie cada vez que cambian los jugadores (scores)
+                    const isSessionPlayer = playersRef.current.some(p => p.id === payload.new.player_id)
                     if (isSessionPlayer) {
                         setAnswers(prev => {
                             if (prev.some(a => a.id === payload.new.id)) return prev
@@ -120,9 +142,10 @@ export default function Screen() {
             )
             .subscribe()
         return () => { supabase.removeChannel(answerSub) }
-    }, [currentQuestion?.id, game?.status, players])
+    }, [currentQuestion?.id, game?.status])
 
     const fetchQuestion = async (quizId, index) => {
+        setCurrentQuestion(null) // Reset para evitar audio fantasma de pregunta anterior
         const { data: qs } = await supabase.from('questions').select('*').eq('quiz_id', quizId).eq('order_index', index).single()
         if (qs) {
             setCurrentQuestion(qs)
@@ -152,7 +175,8 @@ export default function Screen() {
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
 
-            if (remaining <= 0 && !isUpdating && isAutoPilot && isMaster) {
+            // CUALQUIER dispositivo puede intentar avanzar si es auto-pilot
+            if (remaining <= 0 && !isUpdating && isAutoPilot) {
                 handleNext()
             }
         }
@@ -160,7 +184,7 @@ export default function Screen() {
         calculateTime()
         const timer = setInterval(calculateTime, 1000)
         return () => clearInterval(timer)
-    }, [game?.status, game?.question_started_at, currentQuestion?.id, isUpdating, isAutoPilot, isMaster])
+    }, [game?.status, game?.question_started_at, currentQuestion?.id, isUpdating, isAutoPilot])
 
     useEffect(() => {
         if (!game || !questions.length) return
@@ -168,12 +192,13 @@ export default function Screen() {
 
         if (game.status === 'question') {
             const checkAnswers = () => {
-                if (answers.length > 0 && answers.length === players.length && isMaster) {
+                // Si todos respondieron, intentamos avanzar (sin importar el rol de Master)
+                if (answers.length > 0 && answers.length >= players.length) {
                     handleNext()
                 }
             }
             timer = setInterval(checkAnswers, 1000)
-        } else if (isAutoPilot && game.status === 'results' && isMaster) {
+        } else if (isAutoPilot && game.status === 'results') {
             timer = setTimeout(() => handleNext(), 8000)
         }
 
@@ -183,23 +208,45 @@ export default function Screen() {
                 clearTimeout(timer)
             }
         }
-    }, [isAutoPilot, game?.status, answers.length, players.length, isMaster])
+    }, [isAutoPilot, game?.status, answers.length, players.length])
 
     const updateStatus = async (status, indexOffset = 0) => {
+        if (isUpdating) return
         setIsUpdating(true)
-        if (status === 'results') {
-            await supabase.rpc('process_scores', {
-                p_game_id: gameId,
-                p_question_id: currentQuestion.id
-            })
+
+        // Estado local actual para validación idempotente
+        const currentStatus = game.status
+        const currentIndex = game.current_question_index
+
+        try {
+            if (status === 'results') {
+                const currentQ = questions[currentIndex]
+                if (currentQ) {
+                    await supabase.rpc('process_scores', {
+                        p_game_id: gameId,
+                        p_question_id: currentQ.id
+                    })
+                }
+            }
+
+            const updates = {
+                status,
+                current_question_index: (currentIndex + indexOffset),
+                question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
+            }
+
+            // ACTUALIZACIÓN IDEMPOTENTE: solo si el estado no ha sido cambiado por otro dispositivo
+            const { error } = await supabase
+                .from('games')
+                .update(updates)
+                .eq('id', gameId)
+                .eq('status', currentStatus)
+                .eq('current_question_index', currentIndex)
+
+            if (error) console.error('Error updating status:', error)
+        } finally {
+            setIsUpdating(false)
         }
-        const updates = {
-            status,
-            current_question_index: (game.current_question_index + indexOffset),
-            question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
-        }
-        await supabase.from('games').update(updates).eq('id', gameId)
-        setIsUpdating(false)
     }
 
     const handleNext = () => {
@@ -295,7 +342,7 @@ export default function Screen() {
                             </div>
                             <div className="space-y-[1vh] text-center">
                                 <p className="text-[2vh] font-display font-black text-white uppercase tracking-tight">O ingresa en:</p>
-                                <p className="text-[3vh] font-display font-black text-primary italic lowercase tracking-tighter">lukequiz.com/join</p>
+                                <p className="text-[3vh] font-display font-black text-primary italic lowercase tracking-tighter">quiz.lukeapp.me/join</p>
                             </div>
                         </div>
 
@@ -450,8 +497,8 @@ export default function Screen() {
                 Estado: Sincronizado | Conexión en tiempo real | LukeQuiz v3.1 Master Control
             </footer>
 
-            {/* Floating Master HUD */}
-            <div className="fixed bottom-[5vh] left-1/2 -translate-x-1/2 z-[100] group">
+            {/* Floating Master HUD - Ahora en la parte superior */}
+            <div className="fixed top-[5vh] left-1/2 -translate-x-1/2 z-[100] group">
                 <div className="flex items-center gap-[3vw] bg-surface-lowest/90 backdrop-blur-3xl p-[2vh] rounded-[5vh] border border-white/10 opacity-10 group-hover:opacity-100 transition-all shadow-[0_3vh_10vh_rgba(0,0,0,0.8)]">
                     <div className="flex flex-col pl-[2vh]">
                         <p className="text-[1vh] font-black text-white/30 tracking-[0.4em] uppercase leading-none mb-[0.5vh]">Control Maestro</p>
@@ -460,7 +507,12 @@ export default function Screen() {
                         </p>
                     </div>
                     <div className="h-[4vh] w-[1px] bg-white/10" />
-                    <button onClick={() => setIsAutoPilot(!isAutoPilot)} className={`p-[1.5vh] rounded-[1.5vh] border ${isAutoPilot ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/40 border-white/10'}`}>
+                    <button
+                        onClick={() => {
+                            supabase.from('games').update({ is_autopilot: !isAutoPilot }).eq('id', gameId)
+                        }}
+                        className={`p-[1.5vh] rounded-[1.5vh] border ${isAutoPilot ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/40 border-white/10'}`}
+                    >
                         <Activity size={20} className={isAutoPilot ? 'animate-pulse' : ''} />
                     </button>
                     {!isMaster ? (
@@ -482,7 +534,16 @@ export default function Screen() {
                     )}
                 </div>
             </div>
-        </div >
+
+            {/* Orientation Lock Overlay */}
+            <div className="tv-landscape-lock">
+                <div className="rotate-icon">
+                    <div className="absolute inset-2 border-2 border-white/20 rounded-sm" />
+                </div>
+                <h2 className="text-2xl font-black mb-4 uppercase tracking-widest text-primary">Gira tu Pantalla</h2>
+                <p className="text-white/60 font-medium uppercase tracking-widest text-sm">Esta vista solo funciona en modo horizontal</p>
+            </div>
+        </div>
     )
 }
 

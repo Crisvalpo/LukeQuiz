@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Crown, HardDrive, Key, Copy, Plus, RefreshCcw, LogOut, Home, CheckCircle, Trash2, Users, FileText, ShieldAlert, Eye, EyeOff } from 'lucide-react'
+import { Crown, HardDrive, Key, Copy, Plus, RefreshCcw, LogOut, Home, CheckCircle, Trash2, Users, FileText, ShieldAlert, Eye, EyeOff, Settings } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -280,12 +280,22 @@ export default function Admin() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => deleteQuiz(quiz.id, quiz.title)}
-                                                className="p-2 text-white/10 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => navigate(`/edit/${quiz.id}`)}
+                                                    className="p-2 text-white/10 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                                                    title="Editar"
+                                                >
+                                                    <Settings size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteQuiz(quiz.id, quiz.title)}
+                                                    className="p-2 text-white/10 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

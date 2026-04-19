@@ -5,14 +5,18 @@ import { Play, SkipForward, BarChart2, CheckCircle, Users, Trophy, Loader2, Acti
 import { calculateScore } from '../utils/helpers'
 import { toast } from 'sonner'
 import { useGameRoom } from '../hooks/useGameRoom'
+import CastButton from '../components/CastButton'
 
 export default function Host() {
     const { gameId } = useParams()
     const { game, setGame, players, loading } = useGameRoom(gameId)
     const [questions, setQuestions] = useState([])
     const [answerCount, setAnswerCount] = useState(0)
-    const [isAutoPilot, setIsAutoPilot] = useState(true)
+    const isAutoPilot = game?.is_autopilot ?? true
     const [selectedTempo, setSelectedTempo] = useState(10)
+    const [timeLeft, setTimeLeft] = useState(0)
+    const sessionId = useRef(crypto.randomUUID())
+    const [isMaster, setIsMaster] = useState(false)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -21,40 +25,92 @@ export default function Host() {
             fetchCounts()
         }
 
+        const lockOrientation = async () => {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape')
+                }
+            } catch (err) {
+                console.log('Orientation lock not possible without fullscreen or not supported:', err)
+            }
+        }
+        lockOrientation()
+
         const channel = supabase.channel(`host_counts_${gameId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'answers' }, () => {
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'answers'
+            }, () => {
                 fetchCounts()
             })
             .subscribe()
 
         return () => channel.unsubscribe()
-    }, [gameId, game?.quiz_id])
+    }, [gameId, game?.quiz_id, players.length])
+
+    // Claim Master Status (Host takes priority)
+    useEffect(() => {
+        if (!game || !gameId) return
+
+        const claimMaster = async () => {
+            // El Host siempre intenta tomar el control si el master actual no es él
+            if (game.master_screen_id !== sessionId.current) {
+                await supabase
+                    .from('games')
+                    .update({ master_screen_id: sessionId.current })
+                    .eq('id', gameId)
+            }
+        }
+
+        claimMaster()
+        setIsMaster(game.master_screen_id === sessionId.current)
+    }, [game?.master_screen_id, gameId])
 
     useEffect(() => {
         if (!game || !questions.length) return
         let timer
 
-        // El Host SOLO avanza por respuestas completas para mayor agilidad.
-        // El tiempo de la pregunta lo controla el Screen (Maestro) para evitar dobles saltos.
-        if (game.status === 'question') {
-            const checkAnswers = () => {
-                if (answerCount > 0 && answerCount === players.length) {
+        // Time-based advancement (AutoPilot fallback)
+        if (game.status === 'question' && game.question_started_at) {
+            const calculateTime = () => {
+                const start = new Date(game.question_started_at).getTime()
+                const now = Date.now()
+                const elapsed = Math.floor((now - start) / 1000)
+                const tempo = parseInt(game.settings?.tempo) || 20
+                const remaining = Math.max(0, tempo - elapsed)
+                setTimeLeft(remaining)
+
+                // CUALQUIER dispositivo puede intentar avanzar si es auto-pilot
+                if (remaining <= 0 && isAutoPilot) {
                     handleNext()
                 }
             }
-            timer = setInterval(checkAnswers, 1000)
+            calculateTime()
+            timer = setInterval(calculateTime, 1000)
         } else if (isAutoPilot && game.status === 'results') {
-            // El Host puede mantener el auto-pilot para los resultados
             timer = setTimeout(() => handleNext(), 8000)
+        } else {
+            setTimeLeft(0)
+        }
+
+        // Answer-based advancement
+        let answerTimer
+        if (game.status === 'question') {
+            answerTimer = setInterval(() => {
+                // If everyone answered, any device can trigger next
+                if (answerCount > 0 && answerCount >= players.length) {
+                    handleNext()
+                }
+            }, 1000)
         }
 
         return () => {
-            if (timer) {
-                clearInterval(timer)
-                clearTimeout(timer)
-            }
+            if (timer) clearInterval(timer)
+            if (timer) clearTimeout(timer)
+            if (answerTimer) clearInterval(answerTimer)
         }
-    }, [isAutoPilot, game?.status, answerCount, players.length])
+    }, [isAutoPilot, game?.status, game?.question_started_at, answerCount, players.length])
 
     const fetchQuestions = async (qId) => {
         const { data: qs } = await supabase.from('questions').select('*').eq('quiz_id', qId).order('order_index', { ascending: true })
@@ -65,21 +121,46 @@ export default function Host() {
         if (!game || !questions.length) return
         const currentQ = questions[game.current_question_index]
         if (!currentQ) return
-        const { count } = await supabase.from('answers').select('*', { count: 'exact', head: true }).eq('question_id', currentQ.id)
+
+        // Filtramos por IDS de jugadores de ESTA partida para evitar contar respuestas de partidas anteriores del mismo quiz
+        const { count } = await supabase
+            .from('answers')
+            .select('*', { count: 'exact', head: true })
+            .eq('question_id', currentQ.id)
+            .in('player_id', players.map(p => p.id))
+
         setAnswerCount(count || 0)
     }
 
     const updateStatus = async (status, indexOffset = 0) => {
+        // Guardamos el estado actual para la validación idempotente
+        const currentStatus = game.status
+        const currentIndex = game.current_question_index
+
         const promise = new Promise(async (resolve, reject) => {
             if (status === 'results') await processScores()
+
             const updates = {
                 status,
-                current_question_index: (game.current_question_index + indexOffset),
+                current_question_index: (currentIndex + indexOffset),
                 question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
             }
-            const { data, error } = await supabase.from('games').update(updates).eq('id', gameId).select().single()
-            if (error) reject(error)
-            else {
+
+            // ACTUALIZACIÓN IDEMPOTENTE: solo si el estado y el índice no han cambiado
+            const { data, error } = await supabase
+                .from('games')
+                .update(updates)
+                .eq('id', gameId)
+                .eq('status', currentStatus)
+                .eq('current_question_index', currentIndex)
+                .select()
+                .single()
+
+            if (error) {
+                // Si el error es porque no encontró la fila (porque alguien más la actualizó), resolvemos silenciosamente
+                if (error.code === 'PGRST116') resolve(null)
+                else reject(error)
+            } else {
                 setGame(data)
                 resolve(data)
             }
@@ -105,7 +186,8 @@ export default function Host() {
                 toast.error('SE NECESITAN AL MENOS 2 JUGADORES')
                 return
             }
-            await supabase.from('games').update({ settings: { tempo: selectedTempo } }).eq('id', gameId)
+            const newSettings = { ...game.settings, tempo: selectedTempo }
+            await supabase.from('games').update({ settings: newSettings }).eq('id', gameId)
             updateStatus('question', 0)
         } else if (game.status === 'question') {
             updateStatus('results', 0)
@@ -146,7 +228,8 @@ export default function Host() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-[1vh]">
+                <div className="flex items-center gap-[1.5vh]">
+                    <CastButton gameId={gameId} />
                     <div className="bg-white/5 px-[2vh] py-[1vh] rounded-[1vh] border border-white/10 text-center">
                         <p className="text-[0.8vh] font-black text-white/40 uppercase tracking-widest mb-[0.2vh]">PIN TV</p>
                         <p className="text-[2.5vh] font-display font-black text-primary leading-none">{game?.join_code}</p>
@@ -164,7 +247,9 @@ export default function Host() {
                     </div>
                 </div>
                 <button
-                    onClick={() => setIsAutoPilot(!isAutoPilot)}
+                    onClick={() => {
+                        supabase.from('games').update({ is_autopilot: !isAutoPilot }).eq('id', gameId)
+                    }}
                     className={`flex-1 p-[1.5vh] transition-colors ${isAutoPilot ? 'bg-primary/5' : 'bg-transparent'}`}
                 >
                     <div className="flex items-center gap-[1.5vh] bg-black/40 px-[2.5vh] py-[1vh] rounded-[1.5vh] border border-white/10">
