@@ -89,7 +89,7 @@ export default function Host() {
             calculateTime()
             timer = setInterval(calculateTime, 1000)
         } else if (isAutoPilot && game.status === 'results') {
-            timer = setTimeout(() => handleNext(), 8000)
+            timer = setTimeout(() => handleNext(), 4000)
         } else {
             setTimeLeft(0)
         }

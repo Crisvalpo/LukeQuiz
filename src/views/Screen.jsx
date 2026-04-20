@@ -58,6 +58,22 @@ export default function Screen() {
         }
     }, [currentQuestion?.id, game?.status, game?.current_question_index])
 
+    useEffect(() => {
+        if (game?.status === 'results' && currentQuestion && audioUnlocked) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel()
+                const correctOptStr = currentQuestion.correct_option?.toLowerCase()
+                const correctText = currentQuestion[`option_${correctOptStr}`]
+                if (correctText) {
+                    const utterance = new SpeechSynthesisUtterance(`Correcto. ${correctText}`)
+                    utterance.lang = 'es-ES'
+                    utterance.rate = 1.05
+                    window.speechSynthesis.speak(utterance)
+                }
+            }
+        }
+    }, [game?.status, currentQuestion?.id, audioUnlocked])
+
     const [timeLeft, setTimeLeft] = useState(0)
     const [isUpdating, setIsUpdating] = useState(false)
     const [questions, setQuestions] = useState([])
@@ -199,7 +215,7 @@ export default function Screen() {
             }
             timer = setInterval(checkAnswers, 1000)
         } else if (isAutoPilot && game.status === 'results') {
-            timer = setTimeout(() => handleNext(), 8000)
+            timer = setTimeout(() => handleNext(), 4000)
         }
 
         return () => {
