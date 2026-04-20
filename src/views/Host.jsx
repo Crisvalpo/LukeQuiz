@@ -89,7 +89,8 @@ export default function Host() {
             calculateTime()
             timer = setInterval(calculateTime, 1000)
         } else if (isAutoPilot && game.status === 'results') {
-            timer = setTimeout(() => handleNext(), 15000) // Fallback de seguridad
+            timer = setTimeout(() => handleNext(), 5500)
+
         } else {
             setTimeLeft(0)
         }
@@ -247,8 +248,8 @@ export default function Host() {
                     </div>
                 </div>
                 <button
-                    onClick={() => {
-                        supabase.from('games').update({ is_autopilot: !isAutoPilot }).eq('id', gameId)
+                    onClick={async () => {
+                        await supabase.from('games').update({ is_autopilot: !isAutoPilot }).eq('id', gameId)
                     }}
                     className={`flex-1 p-[1.5vh] transition-colors ${isAutoPilot ? 'bg-primary/5' : 'bg-transparent'}`}
                 >

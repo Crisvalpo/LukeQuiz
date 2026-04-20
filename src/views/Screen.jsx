@@ -70,17 +70,10 @@ export default function Screen() {
                     utterance.rate = 1.15
 
                     if (game?.is_autopilot ?? true) {
-                        utterance.onend = () => {
-                            setTimeout(() => {
-                                handleNext()
-                            }, 1500)
-                        }
-                        utterance.onerror = () => {
-                            setTimeout(() => handleNext(), 3000)
-                        }
+                        // Reproducimos sin intervenir en la secuencia lógica,
+                        // para evitar estancamientos por GC del navegador.
+                        window.speechSynthesis.speak(utterance)
                     }
-
-                    window.speechSynthesis.speak(utterance)
                 }
             }
         }
@@ -227,9 +220,7 @@ export default function Screen() {
             }
             timer = setInterval(checkAnswers, 1000)
         } else if (isAutoPilot && game.status === 'results') {
-            // El avance principal ahora corre a cargo del onend de SpeechSynthesis.
-            // Esto es un fallback profundo por seguridad en caso el sistema falle.
-            timer = setTimeout(() => handleNext(), 12000)
+            timer = setTimeout(() => handleNext(), 5500)
         }
 
         return () => {
@@ -538,8 +529,8 @@ export default function Screen() {
                     </div>
                     <div className="h-[4vh] w-[1px] bg-white/10" />
                     <button
-                        onClick={() => {
-                            supabase.from('games').update({ is_autopilot: !isAutoPilot }).eq('id', gameId)
+                        onClick={async () => {
+                            await supabase.from('games').update({ is_autopilot: !isAutoPilot }).eq('id', gameId)
                         }}
                         className={`p-[1.5vh] rounded-[1.5vh] border ${isAutoPilot ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 text-white/40 border-white/10'}`}
                     >
