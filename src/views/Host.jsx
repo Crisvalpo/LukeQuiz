@@ -81,8 +81,8 @@ export default function Host() {
                 const remaining = Math.max(0, tempo - elapsed)
                 setTimeLeft(remaining)
 
-                // CUALQUIER dispositivo puede intentar avanzar si es auto-pilot
-                if (remaining <= 0 && isAutoPilot) {
+                // CUALQUIER dispositivo obliga el avance al acabarse el tiempo, sin importar el modo
+                if (remaining <= 0) {
                     handleNext()
                 }
             }

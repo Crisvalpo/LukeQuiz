@@ -196,8 +196,8 @@ export default function Screen() {
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
 
-            // CUALQUIER dispositivo puede intentar avanzar si es auto-pilot
-            if (remaining <= 0 && !isUpdating && isAutoPilot) {
+            // CUALQUIER dispositivo obliga el avance al acabarse el tiempo
+            if (remaining <= 0 && !isUpdating) {
                 handleNext()
             }
         }
@@ -403,14 +403,17 @@ export default function Screen() {
                             <div className="flex-1 overflow-y-auto py-[2vh] custom-scrollbar">
                                 <div className="space-y-[1.5vh]">
                                     {sortedPlayers.map((p, i) => (
-                                        <div key={p.id} className={`flex items-center gap-[1.5vh] p-[1.5vh] rounded-[1vh] border-l ${i === 0 ? 'bg-primary/10 border-primary' : 'bg-white/5 border-white/5'}`}>
-                                            <div className="w-[3vh] h-[3vh] rounded-[0.5vh] flex items-center justify-center font-display font-black text-[1vh] bg-black/60 text-white/50 border border-white/5">
+                                        <div key={p.id} className={`flex items-center gap-[1.5vh] p-[1.5vh] rounded-[1.5vh] border-l-[0.5vh] transition-all duration-[1500ms] transform hover:scale-105 relative overflow-hidden ${i === 0 ? 'bg-primary/10 border-primary shadow-[0_0_2vh_rgba(236,72,153,0.3)] scale-[1.02]' : 'bg-white/5 border-white/5 opacity-90'}`}>
+                                            {i === 0 && <div className="absolute top-0 right-0 w-[10vh] h-[10vh] bg-primary/20 blur-[3vh] animate-pulse" />}
+                                            <div className="relative z-10 w-[3vh] h-[3vh] rounded-[0.5vh] flex items-center justify-center font-display font-black text-[1.2vh] bg-black/60 text-white/50 border border-white/5">
                                                 {String(i + 1).padStart(2, '0')}
                                             </div>
-                                            <span className="text-[2.5vh]">{p.emoji}</span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[1.5vh] font-display font-black truncate uppercase text-white tracking-tight">{p.nickname}</p>
-                                                <p className="text-[1.2vh] text-primary font-black uppercase tracking-widest opacity-80">{p.score.toLocaleString()} PTS</p>
+                                            <span className="relative z-10 text-[3vh] drop-shadow-md">{p.emoji}</span>
+                                            <div className="relative z-10 flex-1 min-w-0">
+                                                <p className="text-[1.8vh] font-display font-black truncate uppercase text-white tracking-tight">{p.nickname}</p>
+                                                <p className="text-[2.2vh] text-primary font-black uppercase tracking-widest drop-shadow-[0_0_1vh_rgba(236,72,153,0.5)] transition-all duration-1000 tabular-nums">
+                                                    {p.score.toLocaleString()} PTS
+                                                </p>
                                             </div>
                                         </div>
                                     ))}
