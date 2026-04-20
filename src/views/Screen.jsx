@@ -65,14 +65,26 @@ export default function Screen() {
                 const correctOptStr = currentQuestion.correct_option?.toLowerCase()
                 const correctText = currentQuestion[`option_${correctOptStr}`]
                 if (correctText) {
-                    const utterance = new SpeechSynthesisUtterance(`Correcto. ${correctText}`)
+                    const utterance = new SpeechSynthesisUtterance(`La correcta es: ${correctText}`)
                     utterance.lang = 'es-ES'
-                    utterance.rate = 1.05
+                    utterance.rate = 1.15
+
+                    if (game?.is_autopilot ?? true) {
+                        utterance.onend = () => {
+                            setTimeout(() => {
+                                handleNext()
+                            }, 1500)
+                        }
+                        utterance.onerror = () => {
+                            setTimeout(() => handleNext(), 3000)
+                        }
+                    }
+
                     window.speechSynthesis.speak(utterance)
                 }
             }
         }
-    }, [game?.status, currentQuestion?.id, audioUnlocked])
+    }, [game?.status, currentQuestion?.id, audioUnlocked, game?.is_autopilot])
 
     const [timeLeft, setTimeLeft] = useState(0)
     const [isUpdating, setIsUpdating] = useState(false)
@@ -215,7 +227,9 @@ export default function Screen() {
             }
             timer = setInterval(checkAnswers, 1000)
         } else if (isAutoPilot && game.status === 'results') {
-            timer = setTimeout(() => handleNext(), 4000)
+            // El avance principal ahora corre a cargo del onend de SpeechSynthesis.
+            // Esto es un fallback profundo por seguridad en caso el sistema falle.
+            timer = setTimeout(() => handleNext(), 12000)
         }
 
         return () => {
