@@ -86,6 +86,7 @@ export default function Screen() {
     const screenSessionId = useRef(crypto.randomUUID())
     const [isMaster, setIsMaster] = useState(false)
     const playersRef = useRef(players)
+    const handleNextRef = useRef(null)
 
     useEffect(() => {
         playersRef.current = players
@@ -182,9 +183,10 @@ export default function Screen() {
         }
     }
 
+    // --- Timer: reloj de pregunta (quita isUpdating de deps para no reiniciarse en mid-transition) ---
     useEffect(() => {
         if (game?.status !== 'question' || !currentQuestion || !game.question_started_at) {
-            setTimeLeft(0);
+            setTimeLeft(0)
             return
         }
 
@@ -195,34 +197,35 @@ export default function Screen() {
             const tempo = parseInt(game.settings?.tempo) || 20
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
-
-            // CUALQUIER dispositivo obliga el avance al acabarse el tiempo
-            if (remaining <= 0 && !isUpdating) {
-                handleNext()
-            }
+            // Usa ref para llamar siempre la versión más reciente sin stale closure
+            if (remaining <= 0) handleNextRef.current?.()
         }
 
         calculateTime()
         const timer = setInterval(calculateTime, 1000)
         return () => clearInterval(timer)
-    }, [game?.status, game?.question_started_at, currentQuestion?.id, isUpdating, isAutoPilot])
+    }, [game?.status, game?.question_started_at, currentQuestion?.id])
 
-    // --- Timer: avance por respuestas (todos contestaron) ---
+    // --- Timer: avance cuando todos responden (usa ref para evitar stale closure) ---
     useEffect(() => {
         if (!game || !questions.length || game.status !== 'question') return
-        const checkAnswers = () => {
-            if (answers.length > 0 && answers.length >= players.length) {
-                handleNext()
-            }
+        // Si ya respondieron todos no hace falta el interval
+        if (players.length > 0 && answers.length >= players.length) {
+            handleNextRef.current?.()
+            return
         }
-        const intervalId = setInterval(checkAnswers, 1000)
+        const intervalId = setInterval(() => {
+            if (players.length > 0 && answers.length >= players.length) {
+                handleNextRef.current?.()
+            }
+        }, 1000)
         return () => clearInterval(intervalId)
     }, [game?.status, answers.length, players.length])
 
-    // --- Timer: autopilot en pantalla de resultados ---
+    // --- Timer: autopilot en pantalla de resultados (usa ref) ---
     useEffect(() => {
         if (!isAutoPilot || game?.status !== 'results') return
-        const timeoutId = setTimeout(() => handleNext(), 5500)
+        const timeoutId = setTimeout(() => handleNextRef.current?.(), 5500)
         return () => clearTimeout(timeoutId)
     }, [isAutoPilot, game?.status, game?.current_question_index])
 
@@ -279,6 +282,8 @@ export default function Screen() {
             }
         }
     }
+    // Mantiene el ref siempre con la versión más reciente (para timers con stale closure)
+    handleNextRef.current = handleNext
 
     useEffect(() => {
         const handleKeyDown = (e) => {
