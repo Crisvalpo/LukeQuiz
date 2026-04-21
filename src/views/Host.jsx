@@ -67,51 +67,41 @@ export default function Host() {
         setIsMaster(game.master_screen_id === sessionId.current)
     }, [game?.master_screen_id, gameId])
 
+    // --- Timer: reloj de pregunta y avance forzoso al llegar a 0 ---
     useEffect(() => {
-        if (!game || !questions.length) return
-        let timer
-
-        // Time-based advancement (AutoPilot fallback)
-        if (game.status === 'question' && game.question_started_at) {
-            const calculateTime = () => {
-                const start = new Date(game.question_started_at).getTime()
-                const now = Date.now()
-                const elapsed = Math.floor((now - start) / 1000)
-                const tempo = parseInt(game.settings?.tempo) || 20
-                const remaining = Math.max(0, tempo - elapsed)
-                setTimeLeft(remaining)
-
-                // CUALQUIER dispositivo obliga el avance al acabarse el tiempo, sin importar el modo
-                if (remaining <= 0) {
-                    handleNext()
-                }
-            }
-            calculateTime()
-            timer = setInterval(calculateTime, 1000)
-        } else if (isAutoPilot && game.status === 'results') {
-            timer = setTimeout(() => handleNext(), 5500)
-
-        } else {
+        if (!game || !questions.length || game.status !== 'question' || !game.question_started_at) {
             setTimeLeft(0)
+            return
         }
+        const calculateTime = () => {
+            const start = new Date(game.question_started_at).getTime()
+            const now = Date.now()
+            const elapsed = Math.floor((now - start) / 1000)
+            const tempo = parseInt(game.settings?.tempo) || 20
+            const remaining = Math.max(0, tempo - elapsed)
+            setTimeLeft(remaining)
+            if (remaining <= 0) handleNext()
+        }
+        calculateTime()
+        const intervalId = setInterval(calculateTime, 1000)
+        return () => clearInterval(intervalId)
+    }, [game?.status, game?.question_started_at, questions.length])
 
-        // Answer-based advancement
-        let answerTimer
-        if (game.status === 'question') {
-            answerTimer = setInterval(() => {
-                // If everyone answered, any device can trigger next
-                if (answerCount > 0 && answerCount >= players.length) {
-                    handleNext()
-                }
-            }, 1000)
-        }
+    // --- Timer: autopilot en results ---
+    useEffect(() => {
+        if (!isAutoPilot || game?.status !== 'results') return
+        const timeoutId = setTimeout(() => handleNext(), 5500)
+        return () => clearTimeout(timeoutId)
+    }, [isAutoPilot, game?.status, game?.current_question_index])
 
-        return () => {
-            if (timer) clearInterval(timer)
-            if (timer) clearTimeout(timer)
-            if (answerTimer) clearInterval(answerTimer)
-        }
-    }, [isAutoPilot, game?.status, game?.question_started_at, answerCount, players.length])
+    // --- Timer: avance por respuestas (todos contestaron) ---
+    useEffect(() => {
+        if (!game || !questions.length || game.status !== 'question') return
+        const intervalId = setInterval(() => {
+            if (answerCount > 0 && answerCount >= players.length) handleNext()
+        }, 1000)
+        return () => clearInterval(intervalId)
+    }, [game?.status, answerCount, players.length])
 
     const fetchQuestions = async (qId) => {
         const { data: qs } = await supabase.from('questions').select('*').eq('quiz_id', qId).order('order_index', { ascending: true })

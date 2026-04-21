@@ -207,29 +207,24 @@ export default function Screen() {
         return () => clearInterval(timer)
     }, [game?.status, game?.question_started_at, currentQuestion?.id, isUpdating, isAutoPilot])
 
+    // --- Timer: avance por respuestas (todos contestaron) ---
     useEffect(() => {
-        if (!game || !questions.length) return
-        let timer
-
-        if (game.status === 'question') {
-            const checkAnswers = () => {
-                // Si todos respondieron, intentamos avanzar (sin importar el rol de Master)
-                if (answers.length > 0 && answers.length >= players.length) {
-                    handleNext()
-                }
-            }
-            timer = setInterval(checkAnswers, 1000)
-        } else if (isAutoPilot && game.status === 'results') {
-            timer = setTimeout(() => handleNext(), 5500)
-        }
-
-        return () => {
-            if (timer) {
-                clearInterval(timer)
-                clearTimeout(timer)
+        if (!game || !questions.length || game.status !== 'question') return
+        const checkAnswers = () => {
+            if (answers.length > 0 && answers.length >= players.length) {
+                handleNext()
             }
         }
-    }, [isAutoPilot, game?.status, answers.length, players.length])
+        const intervalId = setInterval(checkAnswers, 1000)
+        return () => clearInterval(intervalId)
+    }, [game?.status, answers.length, players.length])
+
+    // --- Timer: autopilot en pantalla de resultados ---
+    useEffect(() => {
+        if (!isAutoPilot || game?.status !== 'results') return
+        const timeoutId = setTimeout(() => handleNext(), 5500)
+        return () => clearTimeout(timeoutId)
+    }, [isAutoPilot, game?.status, game?.current_question_index])
 
     const updateStatus = async (status, indexOffset = 0) => {
         if (isUpdating) return
