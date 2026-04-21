@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import {
     Plus, Play, Settings, Trash2, PlusCircle,
     Search, Library, User, LogOut, Ticket,
-    Crown, Monitor, HardDrive
+    Crown, Monitor, HardDrive, Gamepad2
 } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
@@ -197,13 +197,25 @@ export default function Home() {
                     </div>
 
                     <div className="flex items-center justify-center md:justify-end gap-[1vh] md:gap-4 lg:gap-6 flex-nowrap">
-                        <button
-                            onClick={() => navigate('/tv')}
-                            className="flex items-center gap-[1vh] md:gap-3 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[2vh] md:px-6 py-[1.5vh] md:py-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
-                        >
-                            <Monitor size={18} className="group-hover:scale-110 transition-transform" />
-                            MODO TV
-                        </button>
+                        {/* MODO TV + MODO JUEGO: solo íconos en mobile, ícono+texto en desktop */}
+                        <div className="flex items-center gap-[0.8vh] md:gap-2">
+                            <button
+                                onClick={() => navigate('/tv')}
+                                title="Modo TV"
+                                className="flex items-center gap-[1vh] md:gap-2 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[1.5vh] md:px-4 py-[1.5vh] md:py-3 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                            >
+                                <Monitor size={18} className="group-hover:scale-110 transition-transform shrink-0" />
+                                <span className="hidden md:block">MODO TV</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/join')}
+                                title="Modo Juego"
+                                className="flex items-center gap-[1vh] md:gap-2 bg-white/5 border border-secondary/20 hover:bg-secondary/5 text-secondary px-[1.5vh] md:px-4 py-[1.5vh] md:py-3 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                            >
+                                <Gamepad2 size={18} className="group-hover:scale-110 transition-transform shrink-0" />
+                                <span className="hidden md:block">MODO JUEGO</span>
+                            </button>
+                        </div>
 
                         {user ? (
                             <div className="flex items-center gap-[2vw] md:gap-4 bg-white/5 p-[1vh] md:p-2 pr-[2vh] md:pr-6 rounded-[2vh] md:rounded-2xl border border-white/10 group">
