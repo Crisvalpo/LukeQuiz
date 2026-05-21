@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Play, SkipForward, BarChart2, CheckCircle, Users, Trophy, Loader2, Activity, Settings, Zap, Headphones, Home } from 'lucide-react'
@@ -18,6 +18,24 @@ export default function Host() {
     const sessionId = useRef(crypto.randomUUID())
     const [isMaster, setIsMaster] = useState(false)
     const navigate = useNavigate()
+    const [clockOffset, setClockOffset] = useState(0)
+
+    useEffect(() => {
+        const syncClock = async () => {
+            try {
+                const start = Date.now()
+                const { data, error } = await supabase.rpc('get_server_time')
+                if (!error && data) {
+                    const serverTime = new Date(data).getTime()
+                    const latency = (Date.now() - start) / 2
+                    setClockOffset(serverTime + latency - Date.now())
+                }
+            } catch (e) {
+                console.error('Error syncing clock:', e)
+            }
+        }
+        syncClock()
+    }, [])
 
     useEffect(() => {
         if (game) {
@@ -75,33 +93,33 @@ export default function Host() {
         }
         const calculateTime = () => {
             const start = new Date(game.question_started_at).getTime()
-            const now = Date.now()
+            const now = Date.now() + clockOffset
             const elapsed = Math.floor((now - start) / 1000)
             const tempo = parseInt(game.settings?.tempo) || 20
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
-            if (remaining <= 0) handleNext()
+            if (remaining <= 0 && isMaster) handleNext()
         }
         calculateTime()
         const intervalId = setInterval(calculateTime, 1000)
         return () => clearInterval(intervalId)
-    }, [game?.status, game?.question_started_at, questions.length])
+    }, [game?.status, game?.question_started_at, questions.length, clockOffset, isMaster])
 
     // --- Timer: autopilot en results ---
     useEffect(() => {
-        if (!isAutoPilot || game?.status !== 'results') return
+        if (!isAutoPilot || game?.status !== 'results' || !isMaster) return
         const timeoutId = setTimeout(() => handleNext(), 5500)
         return () => clearTimeout(timeoutId)
-    }, [isAutoPilot, game?.status, game?.current_question_index])
+    }, [isAutoPilot, game?.status, game?.current_question_index, isMaster])
 
     // --- Timer: avance por respuestas (todos contestaron) ---
     useEffect(() => {
         if (!game || !questions.length || game.status !== 'question') return
         const intervalId = setInterval(() => {
-            if (answerCount > 0 && answerCount >= players.length) handleNext()
+            if (answerCount > 0 && answerCount >= players.length && isMaster) handleNext()
         }, 1000)
         return () => clearInterval(intervalId)
-    }, [game?.status, answerCount, players.length])
+    }, [game?.status, answerCount, players.length, isMaster])
 
     const fetchQuestions = async (qId) => {
         const { data: qs } = await supabase.from('questions').select('*').eq('quiz_id', qId).order('order_index', { ascending: true })
@@ -131,20 +149,15 @@ export default function Host() {
         const promise = new Promise(async (resolve, reject) => {
             if (status === 'results') await processScores()
 
-            const updates = {
-                status,
-                current_question_index: (currentIndex + indexOffset),
-                question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
-            }
-
-            // ACTUALIZACIÓN IDEMPOTENTE: solo si el estado y el índice no han cambiado
+            // Usamos RPC para actualizar de forma atómica e idempotente garantizando el tiempo del servidor Postgres
             const { data, error } = await supabase
-                .from('games')
-                .update(updates)
-                .eq('id', gameId)
-                .eq('status', currentStatus)
-                .eq('current_question_index', currentIndex)
-                .select()
+                .rpc('update_game_status', {
+                    p_game_id: gameId,
+                    p_status: status,
+                    p_index_offset: indexOffset,
+                    p_current_status: currentStatus,
+                    p_current_index: currentIndex
+                })
                 .single()
 
             if (error) {

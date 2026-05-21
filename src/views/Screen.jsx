@@ -81,6 +81,24 @@ export default function Screen() {
 
     const [timeLeft, setTimeLeft] = useState(0)
     const [isUpdating, setIsUpdating] = useState(false)
+    const [clockOffset, setClockOffset] = useState(0)
+
+    useEffect(() => {
+        const syncClock = async () => {
+            try {
+                const start = Date.now()
+                const { data, error } = await supabase.rpc('get_server_time')
+                if (!error && data) {
+                    const serverTime = new Date(data).getTime()
+                    const latency = (Date.now() - start) / 2
+                    setClockOffset(serverTime + latency - Date.now())
+                }
+            } catch (e) {
+                console.error('Error syncing clock:', e)
+            }
+        }
+        syncClock()
+    }, [])
     const [questions, setQuestions] = useState([])
     const isAutoPilot = game?.is_autopilot ?? true
     const screenSessionId = useRef(crypto.randomUUID())
@@ -192,42 +210,42 @@ export default function Screen() {
 
         const calculateTime = () => {
             const start = new Date(game.question_started_at).getTime()
-            const now = Date.now()
+            const now = Date.now() + clockOffset
             const elapsed = Math.floor((now - start) / 1000)
             const tempo = parseInt(game.settings?.tempo) || 20
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
             // Usa ref para llamar siempre la versión más reciente sin stale closure
-            if (remaining <= 0) handleNextRef.current?.()
+            if (remaining <= 0 && isMaster) handleNextRef.current?.()
         }
 
         calculateTime()
         const timer = setInterval(calculateTime, 1000)
         return () => clearInterval(timer)
-    }, [game?.status, game?.question_started_at, currentQuestion?.id])
+    }, [game?.status, game?.question_started_at, currentQuestion?.id, clockOffset, isMaster])
 
     // --- Timer: avance cuando todos responden (usa ref para evitar stale closure) ---
     useEffect(() => {
         if (!game || !questions.length || game.status !== 'question') return
         // Si ya respondieron todos no hace falta el interval
-        if (players.length > 0 && answers.length >= players.length) {
+        if (players.length > 0 && answers.length >= players.length && isMaster) {
             handleNextRef.current?.()
             return
         }
         const intervalId = setInterval(() => {
-            if (players.length > 0 && answers.length >= players.length) {
+            if (players.length > 0 && answers.length >= players.length && isMaster) {
                 handleNextRef.current?.()
             }
         }, 1000)
         return () => clearInterval(intervalId)
-    }, [game?.status, answers.length, players.length])
+    }, [game?.status, answers.length, players.length, isMaster])
 
     // --- Timer: autopilot en pantalla de resultados (usa ref) ---
     useEffect(() => {
-        if (!isAutoPilot || game?.status !== 'results') return
+        if (!isAutoPilot || game?.status !== 'results' || !isMaster) return
         const timeoutId = setTimeout(() => handleNextRef.current?.(), 5500)
         return () => clearTimeout(timeoutId)
-    }, [isAutoPilot, game?.status, game?.current_question_index])
+    }, [isAutoPilot, game?.status, game?.current_question_index, isMaster])
 
     const updateStatus = async (status, indexOffset = 0) => {
         if (isUpdating) return
@@ -248,19 +266,15 @@ export default function Screen() {
                 }
             }
 
-            const updates = {
-                status,
-                current_question_index: (currentIndex + indexOffset),
-                question_started_at: status === 'question' ? new Date().toISOString() : game.question_started_at
-            }
-
-            // ACTUALIZACIÓN IDEMPOTENTE: solo si el estado no ha sido cambiado por otro dispositivo
+            // Usamos RPC para actualizar de forma atómica e idempotente garantizando el tiempo del servidor Postgres
             const { error } = await supabase
-                .from('games')
-                .update(updates)
-                .eq('id', gameId)
-                .eq('status', currentStatus)
-                .eq('current_question_index', currentIndex)
+                .rpc('update_game_status', {
+                    p_game_id: gameId,
+                    p_status: status,
+                    p_index_offset: indexOffset,
+                    p_current_status: currentStatus,
+                    p_current_index: currentIndex
+                })
 
             if (error) console.error('Error updating status:', error)
         } finally {
