@@ -8,44 +8,53 @@ export const AuthProvider = ({ children }) => {
     const [session, setSession] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    const fetchProfile = async (userId) => {
-        const { data, error } = await supabase
+    const fetchProfile = async (authUser) => {
+        const { data } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', userId)
+            .eq('id', authUser.id)
             .single()
 
         if (data) {
             const now = new Date()
             const premiumUntil = data.premium_until ? new Date(data.premium_until) : null
             const isPremiumActive = data.is_premium || (premiumUntil && premiumUntil > now)
-
-            setUser(prev => prev ? { ...prev, ...data, is_premium: isPremiumActive } : null)
+            // Always merge with the authUser passed in, never rely on stale prev state
+            setUser({ ...authUser, ...data, is_premium: isPremiumActive })
+        } else {
+            // Profile may not exist yet (new user), keep the base auth user
+            setUser(authUser)
         }
     }
 
     const refreshProfile = async () => {
         if (user?.id) {
-            await fetchProfile(user.id)
+            await fetchProfile(user)
         }
     }
 
     useEffect(() => {
-        // Check active sessions and sets the user
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        // Check active sessions on mount
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session)
             const currentUser = session?.user ?? null
-            setUser(currentUser)
-            if (currentUser) fetchProfile(currentUser.id)
+            if (currentUser) {
+                await fetchProfile(currentUser)
+            } else {
+                setUser(null)
+            }
             setLoading(false)
         })
 
-        // Listen for changes on auth state (logged in, signed out, etc.)
+        // Listen for auth state changes (login, logout, token refresh, OAuth callback)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session)
             const currentUser = session?.user ?? null
-            setUser(currentUser)
-            if (currentUser) fetchProfile(currentUser.id)
+            if (currentUser) {
+                await fetchProfile(currentUser)
+            } else {
+                setUser(null)
+            }
             setLoading(false)
         })
 
