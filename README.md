@@ -38,9 +38,9 @@ RETURNS void AS $$
 DECLARE
   current_correct_option TEXT;
   current_time_limit INT;
-  game_start_at TIMESTAMP;
+  game_start_at TIMESTAMPTZ;
 BEGIN
-  SELECT correct_option, time_limit INTO current_correct_option, current_time_limit
+  SELECT correct_option, COALESCE(time_limit, 10) INTO current_correct_option, current_time_limit
   FROM questions WHERE id = p_question_id;
 
   SELECT question_started_at INTO game_start_at
@@ -48,7 +48,10 @@ BEGIN
 
   UPDATE players
   SET score = score + (
-    1000 + ROUND(GREATEST(0, (current_time_limit - EXTRACT(EPOCH FROM (a.answered_at - game_start_at)))) / current_time_limit * 500)
+    1000 + ROUND(
+      GREATEST(0, (current_time_limit - EXTRACT(EPOCH FROM (a.answered_at - game_start_at)))) 
+      / COALESCE(NULLIF(current_time_limit, 0), 10) * 500
+    )
   )
   FROM answers a
   WHERE a.player_id = players.id
@@ -57,6 +60,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 ```
+
 
 ## 🏗️ Mejoras Implementadas
 - **Tailwind CSS + Glassmorphism**: Estilos optimizados y consistentes.
