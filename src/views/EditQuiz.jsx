@@ -166,6 +166,9 @@ export default function EditQuiz() {
             // Limpia el audio antes de borrar el registro (Garantiza mantenimiento)
             if (q.audio_url) await removeAudio(q.id)
 
+            // Elimina respuestas asociadas para evitar error de llave foránea (answers_question_id_fkey)
+            await supabase.from('answers').delete().eq('question_id', q.id)
+
             const { error } = await supabase.from('questions').delete().eq('id', q.id)
             if (error) return toast.error('Error al eliminar pregunta')
         }
@@ -225,6 +228,7 @@ export default function EditQuiz() {
                 if (error) throw error
                 workingQuizId = data.id
                 setActiveQuizId(data.id)
+                setQuiz(data)
                 // Actualizamos la URL sin recargar para no perder el estado
                 window.history.replaceState(null, '', `/edit/${data.id}`)
             } else {
@@ -238,7 +242,12 @@ export default function EditQuiz() {
 
             // 2. Guardar Preguntas (Bulk Upsert)
             const questionsToUpsert = questions.map((q, i) => {
+                const realId = q.id && String(q.id).startsWith('temp-')
+                    ? q.id.replace('temp-', '')
+                    : q.id;
+
                 const dbData = {
+                    id: realId,
                     quiz_id: workingQuizId,
                     text: q.text || '',
                     option_a: q.option_a || '',
@@ -254,11 +263,6 @@ export default function EditQuiz() {
                     is_cover: q.is_cover || false
                 }
 
-                // Si no es un ID temporal, lo incluimos para que Supabase haga UPDATE
-                if (q.id && !String(q.id).startsWith('temp-')) {
-                    dbData.id = q.id
-                }
-
                 return dbData
             })
 
@@ -270,7 +274,9 @@ export default function EditQuiz() {
             if (upsertError) throw upsertError
 
             if (upsertData) {
-                setQuestions(upsertData.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
+                // Ordenar las preguntas devueltas por order_index para mantener el orden en el UI
+                const sortedQuestions = [...upsertData].sort((a, b) => a.order_index - b.order_index)
+                setQuestions(sortedQuestions.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
             }
 
             setIsDirty(false)
@@ -323,6 +329,7 @@ export default function EditQuiz() {
                 if (nErr) throw nErr;
                 workingQuizId = nQuiz.id;
                 setActiveQuizId(nQuiz.id);
+                setQuiz(nQuiz);
                 window.history.replaceState(null, '', `/edit/${nQuiz.id}`);
                 // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
             }
