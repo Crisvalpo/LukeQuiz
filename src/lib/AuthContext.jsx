@@ -35,6 +35,10 @@ export const AuthProvider = ({ children }) => {
     }
 
     useEffect(() => {
+        // Failsafe: si getSession se cuelga (p. ej. lock de auth atascado),
+        // nunca dejar la app bloqueada en loading
+        const failsafe = setTimeout(() => setLoading(false), 4000)
+
         // Check active sessions on mount
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session)
@@ -59,12 +63,18 @@ export const AuthProvider = ({ children }) => {
             setLoading(false)
         })
 
-        return () => subscription.unsubscribe()
+        return () => {
+            clearTimeout(failsafe)
+            subscription.unsubscribe()
+        }
     }, [])
 
     return (
         <AuthContext.Provider value={{ user, session, loading, refreshProfile }}>
-            {!loading && children}
+            {/* Renderizar SIEMPRE: bloquear toda la app en `loading` dejaba
+                pantalla negra si la sesión tardaba. Las rutas protegidas ya
+                manejan `loading` por su cuenta (ProtectedRoute). */}
+            {children}
         </AuthContext.Provider>
     )
 }
