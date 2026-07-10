@@ -135,11 +135,15 @@ export default function Host() {
     // --- Timer: avance por respuestas (todos contestaron) ---
     useEffect(() => {
         if (!game || !questions.length || game.status !== 'question') return
+        // Solo cuentan los jugadores presentes ANTES de iniciar la pregunta
+        // (los que llegan tarde no bloquean el avance automático)
+        const startedAt = game.question_started_at ? new Date(game.question_started_at).getTime() : null
+        const expected = players.filter(p => !startedAt || !p.created_at || new Date(p.created_at).getTime() <= startedAt).length
         const intervalId = setInterval(() => {
-            if (answerCount > 0 && answerCount >= players.length && isMaster) handleNextRef.current?.()
+            if (expected > 0 && answerCount >= expected && isMaster) handleNextRef.current?.()
         }, 1000)
         return () => clearInterval(intervalId)
-    }, [game?.status, answerCount, players.length, isMaster])
+    }, [game?.status, game?.question_started_at, answerCount, players.length, isMaster])
 
     const fetchQuestions = async (qId) => {
         const { data: qs } = await supabase.from('questions').select('*').eq('quiz_id', qId).order('order_index', { ascending: true })

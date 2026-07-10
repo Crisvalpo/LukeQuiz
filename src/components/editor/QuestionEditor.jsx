@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Mic2, RefreshCcw, Volume2, Play, CheckCircle2,
-    Crown, ImageIcon, Layout, Search, Link as LinkIcon, Trash2
+    Crown, ImageIcon, Layout, Search, Link as LinkIcon, Trash2, Loader2, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../../lib/supabase';
 
 const QuestionEditor = ({
     question: q,
@@ -17,6 +18,31 @@ const QuestionEditor = ({
     onHandleIndividualTTS,
     questionInputRef
 }) => {
+    const [searching, setSearching] = useState(false);
+    const [pickerImages, setPickerImages] = useState(null);
+
+    const searchImages = async () => {
+        const query = (q?.text && q.text.trim() !== '¿  ?') ? q.text : quiz?.title;
+        if (!query?.trim()) return toast.error('Escribe la pregunta primero');
+        setSearching(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('search-images', {
+                body: { query, count: 6 }
+            });
+            if (error) throw error;
+            if (!data?.results?.length) {
+                toast.error('Sin resultados. Prueba con otras palabras');
+                return;
+            }
+            setPickerImages(data.results);
+        } catch (e) {
+            console.error('search-images:', e);
+            toast.error('Error buscando imágenes');
+        } finally {
+            setSearching(false);
+        }
+    };
+
     if (!q) return null;
 
     return (
@@ -128,6 +154,33 @@ const QuestionEditor = ({
                             <span className="text-[0.9vh] md:text-[9px] font-black uppercase tracking-widest">{q.is_cover ? 'PORTADA ACTIVA' : 'USAR COMO PORTADA'}</span>
                         </button>
                     </div>
+                    {/* Picker de imágenes reales (Pexels vía edge function) */}
+                    {pickerImages && (
+                        <div className="absolute inset-0 z-30 bg-black/95 backdrop-blur-md p-[2vh] md:p-4 overflow-y-auto custom-scrollbar">
+                            <div className="flex justify-between items-center mb-[1.5vh] md:mb-3">
+                                <span className="text-[1vh] md:text-[10px] font-black uppercase tracking-widest text-cyan-400">Elige una imagen</span>
+                                <button onClick={() => setPickerImages(null)} className="text-white/40 hover:text-white transition-colors">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-[1vh] md:gap-2">
+                                {pickerImages.map(img => (
+                                    <button
+                                        key={img.id}
+                                        onClick={() => {
+                                            onUpdateQuestion(currentIdx, { image_url: img.url, media_type: 'image' });
+                                            setPickerImages(null);
+                                            toast.success('Imagen asignada');
+                                        }}
+                                        className="relative rounded-[1vh] md:rounded-lg overflow-hidden border-2 border-white/10 hover:border-cyan-400 transition-all aspect-video group/img"
+                                        title={img.alt || ''}
+                                    >
+                                        <img src={img.thumb} alt={img.alt || ''} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform" loading="lazy" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {q.image_url ? (
                         <img
                             src={q.image_url}
@@ -157,7 +210,14 @@ const QuestionEditor = ({
                         />
                     </div>
                     <div className="grid grid-cols-3 gap-[1vh] md:gap-2">
-                        <button onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(`${quiz?.title} ${q.text}`)}&tbm=isch`, '_blank')} className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-white/5 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-white/10 transition-all uppercase tracking-widest border border-white/5"><Search size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />Buscar</button>
+                        <button
+                            onClick={searchImages}
+                            disabled={searching}
+                            className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-cyan-500/10 text-cyan-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20 disabled:opacity-50"
+                        >
+                            {searching ? <Loader2 size={14} className="animate-spin w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" /> : <Search size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />}
+                            Buscar
+                        </button>
                         <button
                             type="button"
                             onClick={async () => {

@@ -126,7 +126,9 @@ export default function Home() {
                 navigate(`/screen/${game.id}`)
                 return '¡Partida Iniciada!'
             },
-            error: 'Error al iniciar el juego'
+            error: (err) => err?.code === '42501'
+                ? 'Este quiz está pendiente de revisión de contenido (guárdalo de nuevo en el editor)'
+                : 'Error al iniciar el juego'
         })
     }
 

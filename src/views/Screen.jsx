@@ -6,6 +6,7 @@ import { Users, Trophy, Loader2, Activity, SkipForward } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { useGameRoom } from '../hooks/useGameRoom'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'
+import { audioDirector } from '../lib/audioDirector'
 
 export default function Screen() {
     const { gameId } = useParams()
@@ -29,6 +30,12 @@ export default function Screen() {
     const [answers, setAnswers] = useState([])
 
     const unlockAudio = () => {
+        // Desbloquea el motor de SFX del presentador (requiere gesto del usuario)
+        const wasReady = audioDirector.ready
+        audioDirector.ensure()
+        if (!wasReady && audioDirector.ready && game?.status === 'waiting') {
+            audioDirector.say('bienvenida')
+        }
         if (audioUnlocked) return
         const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
         silentAudio.play().then(() => {
@@ -68,11 +75,16 @@ export default function Screen() {
                     const utterance = new SpeechSynthesisUtterance(`La correcta es: ${correctText}`)
                     utterance.lang = 'es-ES'
                     utterance.rate = 1.15
+                    // Ducking: los SFX bajan mientras habla la voz
+                    utterance.onstart = () => audioDirector.setVoiceDucking(true)
+                    utterance.onend = () => audioDirector.setVoiceDucking(false)
 
                     if (game?.is_autopilot ?? true) {
+                        // Espera a que terminen bocina + sting para no solaparse.
                         // Reproducimos sin intervenir en la secuencia lógica,
                         // para evitar estancamientos por GC del navegador.
-                        window.speechSynthesis.speak(utterance)
+                        const speakTimer = setTimeout(() => window.speechSynthesis.speak(utterance), 1300)
+                        return () => clearTimeout(speakTimer)
                     }
                 }
             }
@@ -148,7 +160,18 @@ export default function Screen() {
         // Acciones por cambio de estado
         if (game.status === 'question') {
             fetchQuestion(game.quiz_id, game.current_question_index)
+            // Aviso de última pregunta (voz pregrabada, opcional)
+            if (questions.length > 0 && game.current_question_index === questions.length - 1) {
+                audioDirector.say('ultima_pregunta')
+            }
+        } else if (game.status === 'results') {
+            // Bocina de cierre + sting de resultados (estilo concurso)
+            audioDirector.timeUp()
+            setTimeout(() => audioDirector.resultsSting(), 700)
         } else if (game.status === 'finished') {
+            audioDirector.podium()
+            // La voz entra cuando la fanfarria ya remató
+            setTimeout(() => audioDirector.say('campeon'), 1300)
             confetti({
                 particleCount: 200,
                 spread: 100,
@@ -215,6 +238,8 @@ export default function Screen() {
             const tempo = parseInt(game.settings?.tempo) || 20
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
+            // Tic-tac de reloj estilo concurso (se intensifica en los últimos 5s)
+            audioDirector.tick(remaining)
             // Usa ref para llamar siempre la versión más reciente sin stale closure
             if (remaining <= 0 && isMaster) handleNextRef.current?.()
         }
@@ -233,18 +258,23 @@ export default function Screen() {
         // saltaba directo a resultados sin dar tiempo a elegir alternativa.
         if (!currentQuestion || currentQuestion.order_index !== game.current_question_index) return
 
+        // Solo cuentan los jugadores presentes ANTES de iniciar la pregunta:
+        // los que se unen tarde no responden esta ronda y no bloquean el avance
+        const startedAt = game.question_started_at ? new Date(game.question_started_at).getTime() : null
+        const expected = players.filter(p => !startedAt || !p.created_at || new Date(p.created_at).getTime() <= startedAt).length
+
         // Si ya respondieron todos no hace falta el interval
-        if (players.length > 0 && answers.length >= players.length && isMaster) {
+        if (expected > 0 && answers.length >= expected && isMaster) {
             handleNextRef.current?.()
             return
         }
         const intervalId = setInterval(() => {
-            if (players.length > 0 && answers.length >= players.length && isMaster) {
+            if (expected > 0 && answers.length >= expected && isMaster) {
                 handleNextRef.current?.()
             }
         }, 1000)
         return () => clearInterval(intervalId)
-    }, [game?.status, game?.current_question_index, currentQuestion?.id, answers.length, players.length, isMaster])
+    }, [game?.status, game?.current_question_index, game?.question_started_at, currentQuestion?.id, answers.length, players.length, isMaster])
 
     // --- Timer: autopilot en pantalla de resultados (usa ref) ---
     useEffect(() => {
@@ -414,7 +444,15 @@ export default function Screen() {
 
                 {(game?.status === 'question' || game?.status === 'results') && currentQuestion && (
                     <div className="flex-1 flex overflow-hidden">
-                        <audio key={currentQuestion?.id} ref={audioRef} src={currentQuestion?.audio_url} hidden />
+                        <audio
+                            key={currentQuestion?.id}
+                            ref={audioRef}
+                            src={currentQuestion?.audio_url}
+                            onPlay={() => audioDirector.setVoiceDucking(true)}
+                            onEnded={() => audioDirector.setVoiceDucking(false)}
+                            onPause={() => audioDirector.setVoiceDucking(false)}
+                            hidden
+                        />
                         <aside className="w-[25vw] bg-surface-lowest/80 backdrop-blur-3xl flex flex-col h-full p-[3vh] border-r border-white/5 shadow-2xl relative">
                             <div className="flex items-center gap-[1vh] mb-[2vh]">
                                 <div className="w-[1vh] h-[1vh] rounded-full bg-secondary animate-pulse" />

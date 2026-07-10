@@ -114,6 +114,23 @@ export default function Join() {
         return () => clearInterval(timer)
     }, [exitCountdown])
 
+    // Timer local en el teléfono (apremio visual para juego a distancia sin TV compartida)
+    const [phoneTimeLeft, setPhoneTimeLeft] = useState(null)
+    useEffect(() => {
+        if (game?.status !== 'question' || !game?.question_started_at) {
+            setPhoneTimeLeft(null)
+            return
+        }
+        const tempo = parseInt(game.settings?.tempo) || 20
+        const calc = () => {
+            const elapsed = Math.floor((Date.now() - new Date(game.question_started_at).getTime()) / 1000)
+            setPhoneTimeLeft(Math.max(0, tempo - elapsed))
+        }
+        calc()
+        const id = setInterval(calc, 1000)
+        return () => clearInterval(id)
+    }, [game?.status, game?.question_started_at])
+
     const fetchQuestion = async (quizId, index, playerId) => {
         const { data } = await supabase.from('questions').select('*').eq('quiz_id', quizId).eq('order_index', index).single()
         if (data) {
@@ -168,7 +185,11 @@ export default function Join() {
         setJoined(true)
         setLoading(false)
         localStorage.setItem('kahoot_player', JSON.stringify(newPlayer))
-        toast.success('¡Te has unido al juego!')
+        if (gameData.status !== 'waiting') {
+            toast.success('¡Te has unido! Entras en la siguiente pregunta')
+        } else {
+            toast.success('¡Te has unido al juego!')
+        }
     }
 
     const submitAnswer = async (option) => {
@@ -231,9 +252,21 @@ export default function Join() {
 
                     {game?.status === 'question' && (
                         <div className="flex-1 flex flex-col pt-[2vh]">
-                            <div className="mb-[4vh]">
+                            {/* Barra de tiempo local (juego a distancia) */}
+                            {phoneTimeLeft !== null && (
+                                <div className="h-[0.8vh] w-full bg-white/10 rounded-full overflow-hidden mb-[2vh]">
+                                    <div
+                                        className={`h-full transition-all duration-1000 ease-linear ${phoneTimeLeft <= 5 ? 'bg-destructive' : 'bg-primary'}`}
+                                        style={{ width: `${(phoneTimeLeft / (parseInt(game?.settings?.tempo) || 20)) * 100}%` }}
+                                    />
+                                </div>
+                            )}
+                            <div className="mb-[3vh]">
                                 <p className="text-[1.2vh] font-display font-black text-primary tracking-[0.5em] uppercase mb-[0.5vh]">Estado: JUGANDO</p>
-                                <h2 className="text-[5vh] font-display font-black tracking-tighter uppercase text-white leading-none">Tu Respuesta</h2>
+                                {/* Pregunta visible en el teléfono: imprescindible cuando cada casa juega sin TV compartida */}
+                                <h2 className={`font-display font-black tracking-tighter text-white leading-tight ${(currentQuestion?.text?.length || 0) > 80 ? 'text-[2.5vh]' : 'text-[3.5vh]'}`}>
+                                    {currentQuestion?.text || 'Tu Respuesta'}
+                                </h2>
                                 {hasAnswered && (
                                     <div className="mt-[2vh] inline-flex items-center gap-[1vh] bg-success/10 text-success px-[3vh] py-[1vh] rounded-[0.5vh] font-display font-black text-[1.2vh] uppercase tracking-widest border border-success/20 animate-fade">
                                         <CheckCircle2 size={12} /> Respuesta enviada con éxito
@@ -241,6 +274,15 @@ export default function Join() {
                                 )}
                             </div>
 
+                            {/* Late join: si aún no hay pregunta cargada (te uniste a mitad de ronda),
+                                muestra espera en vez de botones muertos */}
+                            {!currentQuestion ? (
+                                <div className="flex-1 flex flex-col items-center justify-center pb-[4vh] text-center">
+                                    <Loader2 className="animate-spin text-secondary mb-[3vh]" size={40} />
+                                    <p className="text-[1.8vh] font-display font-black text-white uppercase tracking-widest mb-[1vh]">Ronda en curso</p>
+                                    <p className="text-[1.2vh] font-bold text-white/40 uppercase tracking-[0.2em]">Entras en la siguiente pregunta</p>
+                                </div>
+                            ) : (
                             <div className="flex-1 grid grid-cols-1 gap-[2vh] pb-[4vh]">
                                 {[
                                     { id: 'A', icon: 'A', color: 'option-A' },
@@ -258,11 +300,14 @@ export default function Join() {
                                                 : 'hover:scale-[1.02] active:scale-95 border-white/10'}`}
                                     >
                                         <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity" />
-                                        <span className="text-[8vh] font-display font-black text-white relative z-10">{opt.id}</span>
-                                        <span className="text-[4vh] font-black text-white/30 relative z-10">{opt.icon}</span>
+                                        <span className="text-[6vh] font-display font-black text-white relative z-10 shrink-0">{opt.id}</span>
+                                        <span className="text-[2.2vh] font-black text-white/90 relative z-10 text-right flex-1 ml-[3vh] leading-tight">
+                                            {currentQuestion?.[`option_${opt.id.toLowerCase()}`] || ''}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
+                            )}
                         </div>
                     )}
 

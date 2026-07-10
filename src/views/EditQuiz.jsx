@@ -280,7 +280,26 @@ export default function EditQuiz() {
             }
 
             setIsDirty(false)
-            toast.success('Cuestionario guardado', { id: tid })
+
+            // Moderación automática (contexto familiar/educativo):
+            // el quiz queda 'pending' al guardarse y solo se publica/juega si es aprobado
+            toast.loading('Revisando contenido...', { id: tid })
+            try {
+                const { data: mod, error: modError } = await supabase.functions.invoke('moderate-quiz', {
+                    body: { quizId: workingQuizId }
+                })
+                if (modError) throw modError
+                if (mod?.status === 'approved') {
+                    toast.success('Cuestionario guardado y aprobado', { id: tid })
+                } else if (mod?.status === 'rejected') {
+                    toast.error(`Contenido rechazado: ${mod.motivo || 'no apto para contexto familiar'}. El quiz no será visible ni jugable.`, { id: tid, duration: 8000 })
+                } else {
+                    toast.warning('Guardado. Pendiente de revisión de contenido', { id: tid })
+                }
+            } catch (modErr) {
+                console.error('Error en moderación:', modErr)
+                toast.warning('Guardado. Pendiente de revisión de contenido', { id: tid })
+            }
 
             // Redirigir si era nuevo en la URL original
             if (quizId === 'new') {
@@ -359,12 +378,29 @@ export default function EditQuiz() {
                 option_c: q.option_c || '',
                 option_d: q.option_d || '',
                 correct_option: q.correct_option || 'A',
-                image_url: q.image_url || '',
+                image_url: '', // Las URLs que inventa la IA suelen ser 404: se reemplazan con Pexels abajo
                 id: 'temp-' + crypto.randomUUID(),
                 quiz_id: workingQuizId,
                 order_index: baseQuestions.length + i,
                 audio_url: '',
                 last_tts_text: q.text
+            }))
+
+            // Imágenes REALES por keyword vía Pexels (edge function search-images)
+            toast.loading('Buscando imágenes para las preguntas...', { id: tid })
+            await Promise.all(newQuestions.map(async (nq, i) => {
+                const kw = data[i]?.keyword || nq.text
+                try {
+                    const { data: imgData } = await supabase.functions.invoke('search-images', {
+                        body: { query: kw, count: 1 }
+                    })
+                    if (imgData?.results?.[0]?.url) {
+                        nq.image_url = imgData.results[0].url
+                        nq.media_type = 'image'
+                    }
+                } catch (e) {
+                    console.error(`Sin imagen para "${kw}":`, e)
+                }
             }))
 
             if (ttsEnabled) {
