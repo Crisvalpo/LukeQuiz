@@ -283,11 +283,13 @@ export default function EditQuiz() {
 
             // Moderación automática (contexto familiar/educativo):
             // el quiz queda 'pending' al guardarse y solo se publica/juega si es aprobado
-            toast.loading('Revisando contenido...', { id: tid })
+            toast.loading('Guardado. Revisando contenido (unos segundos)...', { id: tid })
             try {
-                const { data: mod, error: modError } = await supabase.functions.invoke('moderate-quiz', {
-                    body: { quizId: workingQuizId }
-                })
+                // Timeout de 20s: la revisión jamás deja el guardado colgado
+                const { data: mod, error: modError } = await Promise.race([
+                    supabase.functions.invoke('moderate-quiz', { body: { quizId: workingQuizId } }),
+                    new Promise((resolve) => setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 20000))
+                ])
                 if (modError) throw modError
                 if (mod?.status === 'approved') {
                     toast.success('Cuestionario guardado y aprobado', { id: tid })
