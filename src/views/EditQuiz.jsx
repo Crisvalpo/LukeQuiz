@@ -280,28 +280,31 @@ export default function EditQuiz() {
             }
 
             setIsDirty(false)
+            // Guardado instantáneo: la moderación NO bloquea el flujo del usuario
+            toast.success('Cuestionario guardado', { id: tid })
 
-            // Moderación automática (contexto familiar/educativo):
-            // el quiz queda 'pending' al guardarse y solo se publica/juega si es aprobado
-            toast.loading('Guardado. Revisando contenido (unos segundos)...', { id: tid })
-            try {
-                // Timeout de 20s: la revisión jamás deja el guardado colgado
-                const { data: mod, error: modError } = await Promise.race([
-                    supabase.functions.invoke('moderate-quiz', { body: { quizId: workingQuizId } }),
-                    new Promise((resolve) => setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 20000))
-                ])
-                if (modError) throw modError
-                if (mod?.status === 'approved') {
-                    toast.success('Cuestionario guardado y aprobado', { id: tid })
-                } else if (mod?.status === 'rejected') {
-                    toast.error(`Contenido rechazado: ${mod.motivo || 'no apto para contexto familiar'}. El quiz no será visible ni jugable.`, { id: tid, duration: 8000 })
-                } else {
-                    toast.warning('Guardado. Pendiente de revisión de contenido', { id: tid })
+            // Moderación en segundo plano (fire-and-forget): el quiz queda 'pending'
+            // hasta aprobarse; el resultado llega en un toast aparte segundos después.
+            ;(async () => {
+                const modTid = toast.loading('Revisando contenido en segundo plano...')
+                try {
+                    const { data: mod, error: modError } = await Promise.race([
+                        supabase.functions.invoke('moderate-quiz', { body: { quizId: workingQuizId } }),
+                        new Promise((resolve) => setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 20000))
+                    ])
+                    if (modError) throw modError
+                    if (mod?.status === 'approved') {
+                        toast.success('Contenido aprobado', { id: modTid, duration: 3000 })
+                    } else if (mod?.status === 'rejected') {
+                        toast.error(`Contenido rechazado: ${mod.motivo || 'no apto para contexto familiar'}. El quiz no será visible ni jugable.`, { id: modTid, duration: 10000 })
+                    } else {
+                        toast.warning('Quiz pendiente de revisión (guarda de nuevo para reintentar)', { id: modTid, duration: 5000 })
+                    }
+                } catch (modErr) {
+                    console.error('Error en moderación:', modErr)
+                    toast.warning('Quiz pendiente de revisión (guarda de nuevo para reintentar)', { id: modTid, duration: 5000 })
                 }
-            } catch (modErr) {
-                console.error('Error en moderación:', modErr)
-                toast.warning('Guardado. Pendiente de revisión de contenido', { id: tid })
-            }
+            })()
 
             // Redirigir si era nuevo en la URL original
             if (quizId === 'new') {
