@@ -44,11 +44,15 @@ export default function TVEntry() {
         setLoading(true)
         console.log('Verifying PIN:', code.toUpperCase())
         try {
+            // Partida activa más reciente con ese código (evita error si el código se reutilizó)
             const { data, error } = await supabase
                 .from('games')
                 .select('id')
                 .eq('join_code', code.toUpperCase())
-                .single()
+                .neq('status', 'finished')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
 
             if (error || !data) {
                 toast.error('CÓDIGO INVÁLIDO')

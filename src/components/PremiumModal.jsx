@@ -38,38 +38,26 @@ export default function PremiumModal({ isOpen, onClose }) {
         setIsRedeeming(true)
 
         try {
-            const { data: codeData, error: searchError } = await supabase
-                .from('promo_codes')
-                .select('*')
-                .eq('code', promoCode.toUpperCase().trim())
-                .is('used_at', null)
-                .single()
+            // Vía segura: RPC atómico en el servidor (SECURITY DEFINER).
+            // Ver supabase/2026-07-09_security_scoring_fixes.sql
+            const { data, error } = await supabase.rpc('redeem_promo_code', {
+                p_code: promoCode.toUpperCase().trim()
+            })
 
-            if (searchError || !codeData) {
-                toast.error('Código inválido o ya utilizado')
-                setIsRedeeming(false)
-                return
+            let result
+            if (error && (error.code === 'PGRST202' || /redeem_promo_code/i.test(error.message || ''))) {
+                // El RPC no existe todavía en la DB: usar flujo legado (cliente)
+                result = await legacyRedeem()
+            } else if (error) {
+                throw error
+            } else {
+                result = data?.ok ? { ok: true } : { ok: false, message: data?.message || 'Código inválido o ya utilizado' }
             }
 
-            // Actualizar perfil
-            const now = new Date()
-            const newPremiumUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ premium_until: newPremiumUntil.toISOString() })
-                .eq('id', user.id)
-
-            if (updateError) throw updateError
-
-            // Marcar código como usado
-            await supabase
-                .from('promo_codes')
-                .update({
-                    used_at: new Date().toISOString(),
-                    used_by: user.id
-                })
-                .eq('id', codeData.id)
+            if (!result.ok) {
+                toast.error(result.message)
+                return
+            }
 
             toast.success('¡Pase de 24 horas activado!', {
                 icon: <Crown className="text-amber-500" />
@@ -83,6 +71,33 @@ export default function PremiumModal({ isOpen, onClose }) {
         } finally {
             setIsRedeeming(false)
         }
+    }
+
+    // Fallback legado (canje del lado del cliente — inseguro).
+    // Solo se usa mientras el RPC redeem_promo_code no esté instalado en la base de datos.
+    const legacyRedeem = async () => {
+        const { data: codeData, error: searchError } = await supabase
+            .from('promo_codes')
+            .select('*')
+            .eq('code', promoCode.toUpperCase().trim())
+            .is('used_at', null)
+            .single()
+
+        if (searchError || !codeData) return { ok: false, message: 'Código inválido o ya utilizado' }
+
+        const newPremiumUntil = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ premium_until: newPremiumUntil.toISOString() })
+            .eq('id', user.id)
+        if (updateError) throw updateError
+
+        await supabase
+            .from('promo_codes')
+            .update({ used_at: new Date().toISOString(), used_by: user.id })
+            .eq('id', codeData.id)
+
+        return { ok: true }
     }
 
     return (

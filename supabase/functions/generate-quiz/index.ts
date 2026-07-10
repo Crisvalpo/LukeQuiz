@@ -1,31 +1,66 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const jsonResponse = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
     try {
-        const authHeader = req.headers.get('Authorization');
-        console.log('Authorization header present:', !!authHeader);
+        // --- Verificación de usuario y premium (server-side) ---
+        const authHeader = req.headers.get('Authorization')
+        const token = authHeader?.replace('Bearer ', '')
+        if (!token) return jsonResponse({ error: 'No autorizado' }, 401)
+
+        const admin = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        )
+
+        const { data: { user }, error: authError } = await admin.auth.getUser(token)
+        if (authError || !user) return jsonResponse({ error: 'Sesión inválida' }, 401)
+
+        const { data: profile } = await admin
+            .from('profiles')
+            .select('is_premium, premium_until')
+            .eq('id', user.id)
+            .maybeSingle()
+
+        const isPremium = profile?.is_premium ||
+            (profile?.premium_until && new Date(profile.premium_until) > new Date())
+        if (!isPremium) {
+            return jsonResponse({ error: 'Función exclusiva Premium', error_code: 'PREMIUM_REQUIRED' }, 403)
+        }
+        // --- Fin verificación ---
 
         const { topic, description, count } = await req.json();
         const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
-        console.log(`Generando quiz para tema: "${topic}", cantidad: ${count}`);
+        // Límites defensivos para evitar abuso de cuota
+        const safeCount = Math.min(Math.max(parseInt(count) || 5, 1), 20)
+        const safeTopic = String(topic || '').slice(0, 200)
+        const safeDescription = String(description || '').slice(0, 500)
+
+        console.log(`Generando quiz para tema: "${safeTopic}", cantidad: ${safeCount} (user: ${user.id})`);
 
         if (!GEMINI_API_KEY) {
             console.error('Error: GEMINI_API_KEY no encontrada en los secretos de Supabase');
             throw new Error('Configuración incompleta: GEMINI_API_KEY no encontrada');
         }
 
-        const prompt = `ACTÚA COMO UN API DE DATOS. 
-        TEMA PRINCIPAL: "${topic}". 
-        CONTEXTO ADICIONAL: "${description || 'No se proporcionó contexto extra'}".
-        CANTIDAD DE PREGUNTAS: ${count || 5}. 
+        const prompt = `ACTÚA COMO UN API DE DATOS.
+        TEMA PRINCIPAL: "${safeTopic}".
+        CONTEXTO ADICIONAL: "${safeDescription || 'No se proporcionó contexto extra'}".
+        CANTIDAD DE PREGUNTAS: ${safeCount}.
         IDIOMA: ESPAÑOL.
         REGLA CRÍTICA 1: RESPONDE ÚNICAMENTE CON UN ARRAY JSON. SIN SALUDOS, SIN COMENTARIOS.
         REGLA CRÍTICA 2: Las preguntas deben ser EXTREMADAMENTE CORTAS (MÁXIMO 12 PALABRAS). Este es un concurso de TV rápido, no un examen escrito.
@@ -94,9 +129,6 @@ serve(async (req: Request) => {
 
     } catch (error: any) {
         console.error('Error final en la Edge Function:', error.message);
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 500, // Cambiado a 500 para mayor claridad en el cliente
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: error.message }, 500);
     }
 })

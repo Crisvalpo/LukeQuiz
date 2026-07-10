@@ -42,11 +42,20 @@ export default function Join() {
         }
 
         if (playerExists && playerExists.games) {
+            // No restaurar sesiones de partidas terminadas: dejaban al jugador
+            // atrapado en una pantalla de color fija (había que borrar el historial)
+            if (playerExists.games.status === 'finished') {
+                localStorage.removeItem('kahoot_player')
+                setLoading(false)
+                return
+            }
             setPlayer(playerExists)
             setGame(playerExists.games)
             setJoined(true)
-            if (playerExists.games?.status === 'question') {
-                fetchQuestion(playerExists.games.quiz_id, playerExists.games.current_question_index)
+            if (playerExists.games.status === 'question' || playerExists.games.status === 'results') {
+                // Pasamos el id explícitamente: el estado `player` aún no está actualizado aquí.
+                // También en 'results' para que la pantalla muestre datos y no un color vacío.
+                fetchQuestion(playerExists.games.quiz_id, playerExists.games.current_question_index, playerExists.id)
             }
         } else {
             localStorage.removeItem('kahoot_player')
@@ -62,7 +71,7 @@ export default function Join() {
                         setGame(payload.new)
                         if (payload.new.status === 'question') {
                             setPlayerAnswer(null)
-                            fetchQuestion(payload.new.quiz_id, payload.new.current_question_index)
+                            fetchQuestion(payload.new.quiz_id, payload.new.current_question_index, player.id)
                         }
                         if (payload.new.status === 'results' || payload.new.status === 'finished') {
                             const { data: p } = await supabase.from('players').select('*').eq('id', player.id).single()
@@ -91,7 +100,8 @@ export default function Join() {
 
             return () => channel.unsubscribe()
         }
-    }, [joined, player])
+        // player?.id (no el objeto completo) evita resuscribirse en cada actualización de puntaje
+    }, [joined, player?.id])
 
     useEffect(() => {
         if (exitCountdown === null) return
@@ -104,11 +114,12 @@ export default function Join() {
         return () => clearInterval(timer)
     }, [exitCountdown])
 
-    const fetchQuestion = async (quizId, index) => {
+    const fetchQuestion = async (quizId, index, playerId) => {
         const { data } = await supabase.from('questions').select('*').eq('quiz_id', quizId).eq('order_index', index).single()
         if (data) {
             setCurrentQuestion(data)
-            const { data: answered } = await supabase.from('answers').select('id, selected_option').eq('player_id', player.id).eq('question_id', data.id).maybeSingle()
+            if (!playerId) { setHasAnswered(false); return }
+            const { data: answered } = await supabase.from('answers').select('id, selected_option').eq('player_id', playerId).eq('question_id', data.id).maybeSingle()
             if (answered) {
                 setHasAnswered(true)
                 setPlayerAnswer(answered.selected_option)
@@ -123,20 +134,19 @@ export default function Join() {
         if (!nickname.trim()) return
         setLoading(true)
 
+        // Buscamos la partida ACTIVA más reciente con ese código (evita error de .single()
+        // si un código se reutilizó en partidas ya terminadas)
         const { data: gameData, error: gameError } = await supabase
             .from('games')
             .select('id, status, quiz_id, current_question_index')
             .eq('join_code', code.toUpperCase())
-            .single()
+            .neq('status', 'finished')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
 
         if (gameError || !gameData) {
-            toast.error('Código Inválido: No se encontró el juego')
-            setLoading(false)
-            return
-        }
-
-        if (gameData.status === 'finished') {
-            toast.error('El juego ya ha terminado')
+            toast.error('Código Inválido: No se encontró un juego activo')
             setLoading(false)
             return
         }
@@ -329,6 +339,15 @@ export default function Join() {
                                     </>
                                 )}
                             </div>
+
+                            {/* Escape universal: si la partida quedó abandonada, el jugador
+                                siempre puede salir sin tener que borrar el historial */}
+                            <button
+                                onClick={() => { localStorage.removeItem('kahoot_player'); window.location.href = '/join' }}
+                                className="absolute bottom-[3vh] left-1/2 -translate-x-1/2 text-[1.2vh] font-display font-black text-white/40 hover:text-white tracking-[0.4em] uppercase underline underline-offset-4 transition-colors"
+                            >
+                                Salir del juego
+                            </button>
                         </div>
                     )}
                 </div>

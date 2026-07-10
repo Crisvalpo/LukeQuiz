@@ -9,11 +9,12 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true)
 
     const fetchProfile = async (authUser) => {
+        // maybeSingle: evita error cuando el perfil aún no existe (usuario nuevo)
         const { data } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', authUser.id)
-            .single()
+            .maybeSingle()
 
         if (data) {
             const now = new Date()

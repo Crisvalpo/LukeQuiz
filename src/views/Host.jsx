@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Play, SkipForward, BarChart2, CheckCircle, Users, Trophy, Loader2, Activity, Settings, Zap, Headphones, Home } from 'lucide-react'
-import { calculateScore } from '../utils/helpers'
 import { toast } from 'sonner'
 import { useGameRoom } from '../hooks/useGameRoom'
 import CastButton from '../components/CastButton'
@@ -17,8 +16,18 @@ export default function Host() {
     const [timeLeft, setTimeLeft] = useState(0)
     const sessionId = useRef(crypto.randomUUID())
     const [isMaster, setIsMaster] = useState(false)
+    const [isUpdating, setIsUpdating] = useState(false)
     const navigate = useNavigate()
     const [clockOffset, setClockOffset] = useState(0)
+
+    // Refs para evitar stale closures en la suscripción realtime y los timers
+    const gameRef = useRef(null)
+    const questionsRef = useRef([])
+    const playersRef = useRef([])
+    const handleNextRef = useRef(null)
+    gameRef.current = game
+    questionsRef.current = questions
+    playersRef.current = players
 
     useEffect(() => {
         const syncClock = async () => {
@@ -38,11 +47,10 @@ export default function Host() {
     }, [])
 
     useEffect(() => {
-        if (game) {
-            fetchQuestions(game.quiz_id)
-            fetchCounts()
-        }
+        if (game?.quiz_id) fetchQuestions(game.quiz_id)
+    }, [game?.quiz_id])
 
+    useEffect(() => {
         const lockOrientation = async () => {
             try {
                 if (screen.orientation && screen.orientation.lock) {
@@ -59,13 +67,24 @@ export default function Host() {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'answers'
-            }, () => {
-                fetchCounts()
+            }, (payload) => {
+                // Solo refrescar si la respuesta pertenece a la pregunta actual de ESTA partida
+                const g = gameRef.current
+                const currentQ = questionsRef.current[g?.current_question_index]
+                if (currentQ && payload.new?.question_id === currentQ.id) {
+                    fetchCounts()
+                }
             })
             .subscribe()
 
-        return () => channel.unsubscribe()
-    }, [gameId, game?.quiz_id, players.length])
+        return () => { supabase.removeChannel(channel) }
+    }, [gameId])
+
+    // Resetear y recalcular el contador al cambiar de pregunta / estado / jugadores
+    useEffect(() => {
+        setAnswerCount(0)
+        if (game?.status === 'question') fetchCounts()
+    }, [game?.status, game?.current_question_index, questions.length, players.length])
 
     // Claim Master Status (Host takes priority)
     useEffect(() => {
@@ -98,7 +117,8 @@ export default function Host() {
             const tempo = parseInt(game.settings?.tempo) || 20
             const remaining = Math.max(0, tempo - elapsed)
             setTimeLeft(remaining)
-            if (remaining <= 0 && isMaster) handleNext()
+            // Ref para llamar siempre la versión más reciente sin stale closure
+            if (remaining <= 0 && isMaster) handleNextRef.current?.()
         }
         calculateTime()
         const intervalId = setInterval(calculateTime, 1000)
@@ -108,7 +128,7 @@ export default function Host() {
     // --- Timer: autopilot en results ---
     useEffect(() => {
         if (!isAutoPilot || game?.status !== 'results' || !isMaster) return
-        const timeoutId = setTimeout(() => handleNext(), 5500)
+        const timeoutId = setTimeout(() => handleNextRef.current?.(), 5500)
         return () => clearTimeout(timeoutId)
     }, [isAutoPilot, game?.status, game?.current_question_index, isMaster])
 
@@ -116,7 +136,7 @@ export default function Host() {
     useEffect(() => {
         if (!game || !questions.length || game.status !== 'question') return
         const intervalId = setInterval(() => {
-            if (answerCount > 0 && answerCount >= players.length && isMaster) handleNext()
+            if (answerCount > 0 && answerCount >= players.length && isMaster) handleNextRef.current?.()
         }, 1000)
         return () => clearInterval(intervalId)
     }, [game?.status, answerCount, players.length, isMaster])
@@ -127,21 +147,27 @@ export default function Host() {
     }
 
     const fetchCounts = async () => {
-        if (!game || !questions.length) return
-        const currentQ = questions[game.current_question_index]
-        if (!currentQ) return
+        // Leemos desde refs para tener siempre el estado más reciente (la suscripción realtime captura closures viejas)
+        const g = gameRef.current
+        const currentQ = questionsRef.current[g?.current_question_index]
+        const ps = playersRef.current
+        if (!currentQ || !ps.length) return
 
         // Filtramos por IDS de jugadores de ESTA partida para evitar contar respuestas de partidas anteriores del mismo quiz
         const { count } = await supabase
             .from('answers')
             .select('*', { count: 'exact', head: true })
             .eq('question_id', currentQ.id)
-            .in('player_id', players.map(p => p.id))
+            .in('player_id', ps.map(p => p.id))
 
         setAnswerCount(count || 0)
     }
 
     const updateStatus = async (status, indexOffset = 0) => {
+        // Guard: evita llamadas concurrentes (doble process_scores = puntajes duplicados)
+        if (isUpdating) return
+        setIsUpdating(true)
+
         // Guardamos el estado actual para la validación idempotente
         const currentStatus = game.status
         const currentIndex = game.current_question_index
@@ -169,6 +195,7 @@ export default function Host() {
                 resolve(data)
             }
         })
+        promise.finally(() => setIsUpdating(false))
         toast.dismiss() // Clean up previous toasts
         toast.promise(promise, {
             loading: 'Cargando...',
@@ -185,6 +212,7 @@ export default function Host() {
     }
 
     const handleNext = async () => {
+        if (isUpdating) return
         if (game.status === 'waiting') {
             if (players.length < 2) {
                 toast.error('SE NECESITAN AL MENOS 2 JUGADORES')
@@ -203,6 +231,8 @@ export default function Host() {
             }
         }
     }
+    // Mantiene el ref siempre con la versión más reciente (para los timers)
+    handleNextRef.current = handleNext
 
     if (loading) return (
         <div className="h-screen bg-[#0f172a] flex items-center justify-center">

@@ -227,6 +227,12 @@ export default function Screen() {
     // --- Timer: avance cuando todos responden (usa ref para evitar stale closure) ---
     useEffect(() => {
         if (!game || !questions.length || game.status !== 'question') return
+        // GUARD CRÍTICO: al pasar a una pregunta nueva, `answers` todavía contiene
+        // las respuestas de la pregunta ANTERIOR hasta que fetchQuestion termina.
+        // Sin este guard, el efecto veía "todos respondieron" con datos viejos y
+        // saltaba directo a resultados sin dar tiempo a elegir alternativa.
+        if (!currentQuestion || currentQuestion.order_index !== game.current_question_index) return
+
         // Si ya respondieron todos no hace falta el interval
         if (players.length > 0 && answers.length >= players.length && isMaster) {
             handleNextRef.current?.()
@@ -238,7 +244,7 @@ export default function Screen() {
             }
         }, 1000)
         return () => clearInterval(intervalId)
-    }, [game?.status, answers.length, players.length, isMaster])
+    }, [game?.status, game?.current_question_index, currentQuestion?.id, answers.length, players.length, isMaster])
 
     // --- Timer: autopilot en pantalla de resultados (usa ref) ---
     useEffect(() => {

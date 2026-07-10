@@ -20,6 +20,39 @@ serve(async (req) => {
         if (!text || !questionId) throw new Error('Faltan datos requeridos (text, questionId)')
 
         const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
+
+        // --- Verificación de usuario y premium (server-side) ---
+        const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+        if (!token) {
+            return new Response(JSON.stringify({ error_code: 'UNAUTHORIZED', message: 'No autorizado' }), {
+                status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+        if (authError || !user) {
+            return new Response(JSON.stringify({ error_code: 'UNAUTHORIZED', message: 'Sesión inválida' }), {
+                status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_premium, premium_until')
+            .eq('id', user.id)
+            .maybeSingle()
+        const isPremium = profile?.is_premium ||
+            (profile?.premium_until && new Date(profile.premium_until) > new Date())
+        if (!isPremium) {
+            return new Response(JSON.stringify({ error_code: 'PREMIUM_REQUIRED', message: 'Función exclusiva Premium' }), {
+                status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+        // Límite defensivo de longitud de texto (las preguntas son cortas)
+        if (String(text).length > 500) {
+            return new Response(JSON.stringify({ error_code: 'TEXT_TOO_LONG', message: 'Texto demasiado largo para TTS' }), {
+                status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+        // --- Fin verificación ---
         const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
         const LIMIT = 800000 // 80% de 1,000,000 de caracteres
 
