@@ -19,17 +19,18 @@ const BulkImportPanel = ({
 
 Cada pregunta debe seguir estrictamente este formato de texto plano, separando los campos con el carácter pipe (|):
 
-Pregunta | Opción A | Opción B | Opción C | Opción D | Letra de Opción Correcta (Solo la letra A, B, C o D) | URL de Imagen Relevante
+Pregunta | Opción A | Opción B | Opción C | Opción D | Letra de Opción Correcta (Solo la letra A, B, C o D) | Palabra clave de imagen
 
 Por ejemplo:
-¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80
+¿Cuál es la capital de Francia? | Madrid | París | Roma | Berlín | B | torre eiffel
 
 REGLAS CRÍTICAS:
 1. Devuelve SOLO las ${bulkCount} líneas de preguntas, una por línea.
 2. Sin introducciones, sin números al inicio, sin explicaciones.
-3. Asegúrate de que las URLs de imagen sean de Unsplash o sitios similares y que funcionen.
+3. NO incluyas URLs de imagen. La "palabra clave de imagen" son 1 a 3 palabras que describan VISUALMENTE el tema de la pregunta (ej: "torre eiffel", "sistema solar", "cancha de fútbol"). Con ella se buscará una fotografía real.
 4. Las opciones deben ser coherentes y solo una debe ser la correcta.
-5. Usa exactamente el formato: texto|a|b|c|d|letra_correcta|url_imagen`;
+5. El contenido debe ser apto para todo público (contexto familiar y educativo).
+6. Usa exactamente el formato: texto|a|b|c|d|letra_correcta|palabra_clave`;
         navigator.clipboard.writeText(prompt);
         toast.success(`Prompt para ${bulkCount} preguntas copiado`);
     };
@@ -54,13 +55,17 @@ REGLAS CRÍTICAS:
 
         const parsedQuestions = lines.map((l) => {
             const parts = l.split('|').map(s => s.trim());
-            const [t, a, b, c, d, corr, img] = parts;
+            const [t, a, b, c, d, corr, imgOrKeyword] = parts;
 
             let cleanCorr = 'A';
             if (corr) {
                 const match = corr.match(/[A-D]/i);
                 if (match) cleanCorr = match[0].toUpperCase();
             }
+
+            // Compatibilidad: si el 7° campo es una URL se respeta;
+            // si es una palabra clave, se resolverá con Pexels al importar
+            const isUrl = /^https?:\/\//i.test(imgOrKeyword || '');
 
             return {
                 text: t || 'Nueva Pregunta',
@@ -69,7 +74,8 @@ REGLAS CRÍTICAS:
                 option_c: c || '',
                 option_d: d || '',
                 correct_option: cleanCorr,
-                image_url: img || ''
+                image_url: isUrl ? imgOrKeyword : '',
+                image_keyword: isUrl ? '' : (imgOrKeyword || '')
             };
         });
 
@@ -162,7 +168,7 @@ REGLAS CRÍTICAS:
 
                 <textarea
                     className="w-full h-48 bg-black/50 border border-white/10 rounded-xl p-6 text-xs font-mono outline-none resize-none leading-relaxed focus:border-cyan-500/50 transition-colors"
-                    placeholder="Pega aquí el resultado de la IA... Ejemplo: Pregunta | A | B | C | D | B | https://..."
+                    placeholder="Pega aquí el resultado de la IA... Ejemplo: Pregunta | A | B | C | D | B | torre eiffel"
                     value={bulkText}
                     onChange={e => setBulkText(e.target.value)}
                 />

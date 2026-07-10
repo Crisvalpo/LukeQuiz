@@ -444,7 +444,7 @@ export default function EditQuiz() {
         setShowBulk(false);
     }
 
-    const handleBulkImport = (newParsedQuestions) => {
+    const handleBulkImport = async (newParsedQuestions) => {
         // Limpiar marcador de posición si es el único y está vacío
         const baseQuestions = (questions.length === 1 && (questions[0].text === '¿  ?' || !questions[0].text.trim())) ? [] : questions;
 
@@ -459,7 +459,37 @@ export default function EditQuiz() {
         setShowBulk(false);
         setCurrentIdx(baseQuestions.length); // Ir a la primera de las nuevas
         setIsDirty(true);
-        toast.success(`${questionsWithMetadata.length} preguntas importadas con éxito`);
+
+        // Resolver palabras clave → fotos reales (Pexels). Disponible para todo
+        // usuario logueado (sin premium): la IA la pone el usuario, la imagen nosotros.
+        const conKeyword = questionsWithMetadata.filter(q => q.image_keyword && !q.image_url)
+        if (conKeyword.length > 0) {
+            const tid = toast.loading(`Buscando ${conKeyword.length} imágenes...`)
+            let found = 0
+            await Promise.all(conKeyword.map(async (q) => {
+                try {
+                    const { data: imgData } = await supabase.functions.invoke('search-images', {
+                        body: { query: q.image_keyword, count: 1 }
+                    })
+                    if (imgData?.results?.[0]?.url) {
+                        q.image_url = imgData.results[0].url
+                        q.media_type = 'image'
+                        found++
+                    }
+                } catch (e) {
+                    console.error(`Sin imagen para "${q.image_keyword}":`, e)
+                }
+            }))
+            // Refrescar estado con las imágenes resueltas (mismo array de objetos, nuevo render)
+            setQuestions(prev => prev.map(p => {
+                const match = questionsWithMetadata.find(m => m.id === p.id)
+                return match ? { ...match } : p
+            }))
+            if (found > 0) toast.success(`${questionsWithMetadata.length} preguntas importadas · ${found} con imagen`, { id: tid })
+            else toast.warning('Preguntas importadas (no se encontraron imágenes)', { id: tid })
+        } else {
+            toast.success(`${questionsWithMetadata.length} preguntas importadas con éxito`)
+        }
     };
 
     const handleOpenBulkPanel = () => {
