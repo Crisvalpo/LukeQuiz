@@ -223,7 +223,10 @@ export default function EditQuiz() {
                     title: quiz.title || 'Sin título',
                     description: quiz.description || '',
                     user_id: user?.id,
-                    visibility: quiz.visibility || 'public'
+                    visibility: quiz.visibility || 'public',
+                    is_public_for_live: quiz.is_public_for_live ?? true,
+                    creator_handle: quiz.creator_handle || user?.email?.split('@')[0] || '@comunidad',
+                    category: quiz.category || 'General'
                 }).select().single()
                 if (error) throw error
                 workingQuizId = data.id
@@ -235,7 +238,10 @@ export default function EditQuiz() {
                 const { error } = await supabase.from('quizzes').update({
                     title: quiz.title,
                     description: quiz.description,
-                    visibility: quiz.visibility
+                    visibility: quiz.visibility,
+                    is_public_for_live: quiz.is_public_for_live ?? true,
+                    creator_handle: quiz.creator_handle || user?.email?.split('@')[0] || '@comunidad',
+                    category: quiz.category || 'General'
                 }).eq('id', workingQuizId)
                 if (error) throw error
             }

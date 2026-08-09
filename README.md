@@ -30,36 +30,10 @@ create policy "Cualquiera puede leer respuestas" on answers for select using (tr
 -- Nota: En producción, limita 'select' por game_id o auth.
 ```
 
-### 4. Función de Puntaje (RPC) - Recomendado
-Para manejar grandes volúmenes de jugadores, instala esta función en el SQL Editor:
-```sql
-CREATE OR REPLACE FUNCTION process_scores(p_game_id UUID, p_question_id UUID)
-RETURNS void AS $$
-DECLARE
-  current_correct_option TEXT;
-  current_time_limit INT;
-  game_start_at TIMESTAMPTZ;
-BEGIN
-  SELECT correct_option, COALESCE(time_limit, 10) INTO current_correct_option, current_time_limit
-  FROM questions WHERE id = p_question_id;
+### 4. Función de Puntaje (RPC) y Seguridad — usar el SQL versionado
+⚠️ La versión vigente de `process_scores` (idempotente vía `answers.scored`, puntúa con `games.settings->tempo`) y los fixes de seguridad (RPC `redeem_promo_code`, RLS de `promo_codes`, restricción única de respuesta por jugador/pregunta) están en **`supabase/2026-07-09_security_scoring_fixes.sql`**. Ejecutar ese script (es idempotente) en el SQL Editor; no usar versiones antiguas de `process_scores`.
 
-  SELECT question_started_at INTO game_start_at
-  FROM games WHERE id = p_game_id;
-
-  UPDATE players
-  SET score = score + (
-    1000 + ROUND(
-      GREATEST(0, (current_time_limit - EXTRACT(EPOCH FROM (a.answered_at - game_start_at)))) 
-      / COALESCE(NULLIF(current_time_limit, 0), 10) * 500
-    )
-  )
-  FROM answers a
-  WHERE a.player_id = players.id
-    AND a.question_id = p_question_id
-    AND a.selected_option = current_correct_option;
-END;
-$$ LANGUAGE plpgsql;
-```
+Ver `AUDITORIA_2026-07-09.md` para el detalle de hallazgos y pendientes de seguridad.
 
 
 ## 🏗️ Mejoras Implementadas
@@ -70,7 +44,7 @@ $$ LANGUAGE plpgsql;
 - **Session Recovery**: Los jugadores pueden reconectarse si refrescan la pestaña.
 
 ## 🏎️ Cómo Ejecutar
-1. `npm install`
+1. `npm install --legacy-peer-deps` (⚠️ `vite-plugin-pwa@1.2.0` declara peer `vite ≤7` y el proyecto usa vite 8 — `npm ci` falla sin el flag)
 2. `npm run dev`
 
 ### ☁️ Exposición con Cloudflare (Opcional)
@@ -78,3 +52,11 @@ Si necesitas probar la app desde dispositivos móviles fuera de tu red local:
 1. Instala `cloudflared`.
 2. Ejecuta: `cloudflared tunnel --url http://localhost:5173`
 3. Usa la URL generada (`.trycloudflare.com`) para acceder desde cualquier lugar.
+
+## 🚢 Deploy en producción (lukeserver)
+
+- La app se sirve como contenedor Docker **`lukequiz`**: `Dockerfile` construye el build de Vite y lo sirve con **nginx** (`nginx.conf` con headers de seguridad y política de cache) en el puerto **3002**.
+- Dominio: **https://quiz.lukeapp.me** (túnel Cloudflare → localhost:3002).
+- Base de datos: **Supabase Cloud** (proyecto `czsjwqwjshkfguzzrbre`), no el Supabase self-hosted del server.
+- Edge functions: `supabase functions deploy generate-quiz generate-tts` (verifican JWT + premium).
+- Operación del server documentada en `C:\Github\Skill\luke-quiz\SKILL.md` y `C:\Github\Skill\luke-server\Skill.md`.
