@@ -31,7 +31,8 @@ export const AuthProvider = ({ children }) => {
             const premiumUntil = data.premium_until ? new Date(data.premium_until) : null
             const isPremiumActive = data.is_premium || (premiumUntil && premiumUntil > now)
             // Always merge with the authUser passed in, never rely on stale prev state
-            setUser({ ...authUser, ...data, is_premium: isPremiumActive })
+            // Keep authUser.email prioritized so it doesn't get overwritten by a null in profiles
+            setUser({ ...authUser, ...data, email: authUser.email || data.email, is_premium: isPremiumActive })
         } else {
             // Profile may not exist yet (new user), keep the base auth user
             setUser(authUser)
