@@ -194,7 +194,6 @@ export default function Home() {
             <div className="w-full h-screen flex flex-col px-[4vw] md:px-12 pt-[2vh] md:pt-6 pb-[2vh] md:pb-6 relative z-10 max-w-[1700px] mx-auto">
                 <header className="flex flex-col md:flex-row justify-between items-center mb-[4vh] md:mb-6 px-[2vw] md:px-8 pt-[2vh] md:pt-4 gap-[2vh] md:gap-0 shrink-0 relative z-20">
                     <div className="space-y-[1vh] md:space-y-4 text-center md:text-left">
-                        <p className="text-[1.2vh] md:text-[12px] font-display font-black tracking-[0.4em] text-primary/40 uppercase">Haz de tus preguntas un Juego</p>
                         <LogoLukeQuiz className="w-[60vw] md:w-80 h-auto md:-ml-3 mx-auto md:mx-0" />
                     </div>
 
