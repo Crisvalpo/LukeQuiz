@@ -199,11 +199,11 @@ export default function Home() {
 
                     <div className="flex items-center justify-center md:justify-end gap-[1vh] md:gap-4 lg:gap-6 flex-nowrap">
                         {/* MODO TV + MODO JUEGO: solo íconos en mobile, ícono+texto en desktop */}
-                        <div className="flex items-center gap-[0.8vh] md:gap-2">
+                        <div className="flex items-center gap-[0.8vh] md:gap-2 h-[7vh] md:h-[64px]">
                             <button
                                 onClick={() => navigate('/tv')}
                                 title="Modo TV"
-                                className="flex items-center gap-[1vh] md:gap-2 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[1.5vh] md:px-4 py-[1.5vh] md:py-3 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                                className="flex items-center justify-center h-full gap-[1vh] md:gap-2 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[1.5vh] md:px-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
                             >
                                 <Monitor size={18} className="group-hover:scale-110 transition-transform shrink-0" />
                                 <span className="hidden md:block">MODO TV</span>
@@ -211,7 +211,7 @@ export default function Home() {
                             <button
                                 onClick={() => navigate('/join')}
                                 title="Modo Juego"
-                                className="flex items-center gap-[1vh] md:gap-2 bg-white/5 border border-secondary/20 hover:bg-secondary/5 text-secondary px-[1.5vh] md:px-4 py-[1.5vh] md:py-3 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                                className="flex items-center justify-center h-full gap-[1vh] md:gap-2 bg-white/5 border border-secondary/20 hover:bg-secondary/5 text-secondary px-[1.5vh] md:px-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
                             >
                                 <Gamepad2 size={18} className="group-hover:scale-110 transition-transform shrink-0" />
                                 <span className="hidden md:block">MODO JUEGO</span>
