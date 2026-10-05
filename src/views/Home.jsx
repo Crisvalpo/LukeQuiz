@@ -19,16 +19,21 @@ export default function Home() {
     const [quizzes, setQuizzes] = useState([])
     const [loading, setLoading] = useState(true)
     const [view, setView] = useState('library') // 'library' or 'mine'
+    const [filterType, setFilterType] = useState('recent') // 'recent', 'popular', 'category'
+    const [selectedCategory, setSelectedCategory] = useState('General')
     const [searchQuery, setSearchQuery] = useState('')
     const [isModalOpen, setIsModalOpen] = useState(false)
     const navigate = useNavigate()
+
+    // Lista de categorías (Misma que en EditQuiz)
+    const CATEGORIES = ['General', 'Historia', 'Ciencia', 'Cine y TV', 'Deportes', 'Cultura Pop', 'Geografía', 'Música', 'Videojuegos']
 
     const isAdmin = user?.email === 'cristianluke@gmail.com'
 
     useEffect(() => {
         fetchQuizzes()
         fetchActiveGames()
-    }, [view, searchQuery, user?.id])
+    }, [view, searchQuery, user?.id, filterType, selectedCategory])
 
     const fetchActiveGames = async () => {
         let guestGames = []
@@ -77,8 +82,17 @@ export default function Home() {
             query = query.ilike('title', `%${searchQuery}%`)
         }
 
+        if (filterType === 'category' && selectedCategory) {
+            query = query.eq('category', selectedCategory)
+        }
+
+        if (filterType === 'popular') {
+            query = query.order('plays_count', { ascending: false, nullsFirst: false })
+        } else {
+            query = query.order('created_at', { ascending: false })
+        }
+
         const { data, error } = await query
-            .order('created_at', { ascending: false })
 
         if (error) {
             toast.error('Error de Carga: No se pudo obtener los datos')
@@ -350,6 +364,47 @@ export default function Home() {
                                     </div>
                                 )}
 
+                                {/* Pestañas de Filtro (Recientes, Populares, Categorías) */}
+                                <div className="mb-[4vh] md:mb-8 animate-in fade-in slide-in-from-bottom duration-500">
+                                    <div className="flex flex-col md:flex-row gap-[2vh] md:gap-4 items-start md:items-center">
+                                        <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0">
+                                            <button
+                                                onClick={() => setFilterType('recent')}
+                                                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${filterType === 'recent' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}`}
+                                            >
+                                                Nuevos
+                                            </button>
+                                            <button
+                                                onClick={() => setFilterType('popular')}
+                                                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-1 ${filterType === 'popular' ? 'bg-orange-500/20 text-orange-400 shadow-sm border border-orange-500/20' : 'text-white/40 hover:text-orange-400/50'}`}
+                                            >
+                                                🔥 Populares
+                                            </button>
+                                            <button
+                                                onClick={() => setFilterType('category')}
+                                                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${filterType === 'category' ? 'bg-primary/20 text-primary shadow-sm border border-primary/20' : 'text-white/40 hover:text-primary/80'}`}
+                                            >
+                                                Categorías
+                                            </button>
+                                        </div>
+
+                                        {/* Pills de Categorías (se muestran solo si el filtro es 'category') */}
+                                        {filterType === 'category' && (
+                                            <div className="flex gap-2 overflow-x-auto no-scrollbar w-full pb-2 md:pb-0 mask-edges-right">
+                                                {CATEGORIES.map(cat => (
+                                                    <button
+                                                        key={cat}
+                                                        onClick={() => setSelectedCategory(cat)}
+                                                        className={`px-3 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase whitespace-nowrap transition-all border ${selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-transparent border-white/10 text-white/40 hover:border-white/30 hover:text-white'}`}
+                                                    >
+                                                        {cat}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {loading ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[4vh] md:gap-8">
                                         {[1, 2, 3, 4, 5, 6].map(i => (
@@ -398,6 +453,11 @@ export default function Home() {
                                                         <span className="text-[1.2vh] md:text-[10px] font-black tracking-[0.3em] text-primary uppercase opacity-60">
                                                             {q.questions?.length || 0} PREGUNTAS
                                                         </span>
+                                                        {(q.plays_count > 0 || filterType === 'popular') && (
+                                                            <span className="mt-1 text-[1vh] md:text-[8px] font-black tracking-widest text-orange-400/80 bg-orange-400/10 self-start px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                                🔥 {q.plays_count || 0} JUGADAS
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
 
