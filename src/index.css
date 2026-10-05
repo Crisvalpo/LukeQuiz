@@ -456,3 +456,83 @@ h3,
     transform: rotate(-90deg);
   }
 }
+
+/* --- Animaciones del Logo LukeQuiz --- */
+
+.luke-neon-question {
+  display: inline-block;
+  animation: neonFloat 3.5s ease-in-out infinite, neonFlicker 4s infinite alternate;
+  text-shadow: 
+    0 0 4px #fff,
+    0 0 10px #ff2a85,
+    0 0 20px #ff2a85,
+    0 0 35px rgba(255, 42, 133, 0.8),
+    0 0 50px rgba(255, 42, 133, 0.4);
+}
+
+/* 1. Flotación suave y balanceo orgánico */
+@keyframes neonFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(5deg);
+  }
+}
+
+/* 2. Parpadeo sutil estilo tubo de gas neón */
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px #ff2a85);
+  }
+  20%, 24%, 55% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 2px #ff2a85);
+  }
+}
+
+/* 3. Micro-destellos (Sparkles) que orbitan el "?" */
+.sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background-color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ff2a85;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.sparkle-1 {
+  top: 10%;
+  right: -6px;
+  animation: sparkleAnim 2.8s infinite 0.2s;
+}
+
+.sparkle-2 {
+  top: 45%;
+  right: -10px;
+  animation: sparkleAnim 3.2s infinite 1.1s;
+}
+
+.sparkle-3 {
+  bottom: 20%;
+  left: -4px;
+  animation: sparkleAnim 2.5s infinite 1.8s;
+}
+
+@keyframes sparkleAnim {
+  0% {
+    transform: scale(0) translateY(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3) translateY(-8px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) translateY(-16px);
+    opacity: 0;
+  }
+}
