@@ -306,8 +306,8 @@ export default function Home() {
                         </div>
                     </nav>
 
-                    <div className="flex-1 min-h-0 bg-black/40 shadow-inner flex flex-col overflow-hidden relative group/inner">
-                        <div className="flex-1 overflow-y-auto custom-scrollbar px-[4vh] md:px-16 pt-[4vh] md:pt-8 pb-[4vh] md:pb-8">
+                    <div className="flex-1 min-h-0 bg-surface-lowest/60 backdrop-blur-xl border-t border-white/10 rounded-t-[3vh] md:rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden relative group/inner mx-[2vw] md:mx-4">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-[2vh] md:px-12 pt-[4vh] md:pt-10 pb-[4vh] md:pb-8">
                             <div className="lg:px-2">
                                 {/* Active Games Section */}
                                 {activeGames.length > 0 && (
@@ -359,7 +359,7 @@ export default function Home() {
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[4vh] md:gap-8">
                                         {quizzes.map(q => (
-                                            <div key={q.id} className="group relative bg-surface-lowest/40 border border-white/10 rounded-[2vh] md:rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-500 hover:shadow-xl flex flex-col h-[25vh] md:h-[16rem]">
+                                            <div key={q.id} className="group relative bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-[2vh] md:rounded-3xl overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-[0_8px_30px_rgb(236,72,153,0.15)] flex flex-col h-[25vh] md:h-[16rem]">
                                                 {q.cover_image && (
                                                     <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none z-0">
                                                         <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
@@ -405,9 +405,9 @@ export default function Home() {
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
                                                         disabled={!q.questions || q.questions.length === 0}
-                                                        className={`w-full py-[2vh] md:py-4 rounded-[1.2vh] md:rounded-xl flex items-center justify-center gap-[1.5vh] md:gap-3 transition-all text-[1.4vh] md:text-[10px] font-black tracking-[0.3em] cursor-pointer ${!q.questions || q.questions.length === 0
-                                                            ? 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
-                                                            : 'bg-white/10 hover:bg-primary hover:text-white border border-white/10 hover:border-transparent active:scale-[0.98]'
+                                                        className={`w-full py-[2vh] md:py-4 rounded-[1.2vh] md:rounded-2xl flex items-center justify-center gap-[1.5vh] md:gap-3 transition-all text-[1.4vh] md:text-[10px] font-black tracking-[0.3em] cursor-pointer ${!q.questions || q.questions.length === 0
+                                                            ? 'bg-black/40 text-white/20 cursor-not-allowed border border-white/5'
+                                                            : 'bg-primary/20 text-primary hover:bg-primary hover:text-white border border-primary/20 hover:border-transparent active:scale-[0.98]'
                                                             }`}
                                                     >
                                                         <Play size={14} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
