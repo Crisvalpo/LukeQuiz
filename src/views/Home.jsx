@@ -414,16 +414,20 @@ export default function Home() {
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[4vh] md:gap-8">
                                         {quizzes.map(q => (
-                                            <div key={q.id} className="group relative bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-[2vh] md:rounded-3xl overflow-hidden hover:border-primary/40 transition-all duration-500 hover:shadow-[0_8px_30px_rgb(236,72,153,0.15)] flex flex-col h-[25vh] md:h-[16rem]">
+                                            <div key={q.id} className="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-[2vh] md:rounded-3xl overflow-hidden hover:border-primary/60 transition-all duration-500 hover:shadow-[0_0_40px_rgba(236,72,153,0.3)] hover:-translate-y-1 flex flex-col h-[25vh] md:h-[16rem]">
+                                                {/* Color Glow Interior */}
+                                                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-50 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0" />
+                                                
                                                 {q.cover_image && (
-                                                    <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none z-0">
+                                                    <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none z-0 mix-blend-luminosity">
                                                         <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                                                     </div>
                                                 )}
 
                                                 <div className="relative z-20 flex-1 flex flex-col p-[3vh] md:p-6">
                                                     <div className="flex justify-between items-start mb-[2vh] md:mb-4 relative z-30">
-                                                        <span className="bg-white/5 px-[2vh] md:px-3 py-[0.5vh] md:py-1 rounded-full text-[1vh] md:text-[8px] font-black tracking-[0.2em] text-white/40 border border-white/10 uppercase">
+                                                        <span className="bg-white/10 px-[2vh] md:px-3 py-[0.5vh] md:py-1 rounded-full text-[1vh] md:text-[8px] font-black tracking-[0.2em] text-white/80 border border-white/20 uppercase shadow-sm">
                                                             @{q.profiles?.nickname || 'Autor'}
                                                         </span>
                                                         <div className="flex gap-[1vh] md:gap-2">
@@ -431,14 +435,14 @@ export default function Home() {
                                                                 <>
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
-                                                                        className="p-[1vh] md:p-2 bg-white/5 rounded-[0.8vh] md:rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5 cursor-pointer"
+                                                                        className="p-[1vh] md:p-2 bg-white/10 rounded-[0.8vh] md:rounded-lg text-white/80 hover:text-white hover:bg-primary/80 transition-all border border-white/20 shadow-sm cursor-pointer"
                                                                         title="Configurar"
                                                                     >
                                                                         <Settings size={14} />
                                                                     </button>
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
-                                                                        className="p-[1vh] md:p-2 bg-red-500/5 rounded-[0.8vh] md:rounded-lg text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all border border-red-500/5 cursor-pointer"
+                                                                        className="p-[1vh] md:p-2 bg-red-500/20 rounded-[0.8vh] md:rounded-lg text-red-300 hover:text-white hover:bg-red-500 transition-all border border-red-500/30 shadow-sm cursor-pointer"
                                                                         title="Eliminar"
                                                                     >
                                                                         <Trash2 size={14} />
@@ -449,12 +453,12 @@ export default function Home() {
                                                     </div>
 
                                                     <div className="flex-1 flex flex-col justify-center">
-                                                        <h3 className="text-[2.8vh] md:text-2xl font-black text-white mb-[1vh] md:mb-2 tracking-tight group-hover:text-primary transition-colors line-clamp-2 leading-tight uppercase font-display">{q.title}</h3>
-                                                        <span className="text-[1.2vh] md:text-[10px] font-black tracking-[0.3em] text-primary uppercase opacity-60">
+                                                        <h3 className="text-[2.8vh] md:text-2xl font-black text-white mb-[1vh] md:mb-2 tracking-tight group-hover:text-primary-100 transition-colors line-clamp-2 leading-tight uppercase font-display drop-shadow-md">{q.title}</h3>
+                                                        <span className="text-[1.2vh] md:text-[10px] font-black tracking-[0.3em] text-primary-200 uppercase drop-shadow-sm">
                                                             {q.questions?.length || 0} PREGUNTAS
                                                         </span>
                                                         {(q.plays_count > 0 || filterType === 'popular') && (
-                                                            <span className="mt-1 text-[1vh] md:text-[8px] font-black tracking-widest text-orange-400/80 bg-orange-400/10 self-start px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                            <span className="mt-2 text-[1vh] md:text-[8px] font-black tracking-widest text-white bg-gradient-to-r from-orange-500 to-amber-500 self-start px-3 py-1 rounded-md flex items-center gap-1 shadow-md">
                                                                 🔥 {q.plays_count || 0} JUGADAS
                                                             </span>
                                                         )}
@@ -465,12 +469,12 @@ export default function Home() {
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
                                                         disabled={!q.questions || q.questions.length === 0}
-                                                        className={`w-full py-[2vh] md:py-4 rounded-[1.2vh] md:rounded-2xl flex items-center justify-center gap-[1.5vh] md:gap-3 transition-all text-[1.4vh] md:text-[10px] font-black tracking-[0.3em] cursor-pointer ${!q.questions || q.questions.length === 0
-                                                            ? 'bg-black/40 text-white/20 cursor-not-allowed border border-white/5'
-                                                            : 'bg-primary/20 text-primary hover:bg-primary hover:text-white border border-primary/20 hover:border-transparent active:scale-[0.98]'
+                                                        className={`w-full py-[2vh] md:py-4 rounded-[1.2vh] md:rounded-2xl flex items-center justify-center gap-[1.5vh] md:gap-3 transition-all duration-300 text-[1.4vh] md:text-[11px] font-black tracking-[0.3em] cursor-pointer shadow-xl ${!q.questions || q.questions.length === 0
+                                                            ? 'bg-black/40 text-white/20 cursor-not-allowed border border-white/10'
+                                                            : 'bg-gradient-to-r from-primary via-pink-500 to-secondary text-white hover:scale-[1.02] active:scale-[0.98] border border-white/20 hover:border-white/50 hover:shadow-[0_0_20px_rgba(236,72,153,0.5)]'
                                                             }`}
                                                     >
-                                                        <Play size={14} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
+                                                        <Play size={16} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
                                                         {(!q.questions || q.questions.length === 0) ? 'SIN PREGUNTAS' : 'INICIAR JUEGO'}
                                                     </button>
                                                 </div>
