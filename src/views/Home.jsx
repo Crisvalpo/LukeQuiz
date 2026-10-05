@@ -92,7 +92,7 @@ export default function Home() {
             query = query.order('created_at', { ascending: false })
         }
 
-        const { data, error } = await query
+        const { data, error } = await query.limit(30)
 
         if (error) {
             toast.error('Error de Carga: No se pudo obtener los datos')
