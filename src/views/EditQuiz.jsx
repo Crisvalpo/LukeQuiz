@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { searchImages } from '../lib/imageSearch'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAudioSync } from '../hooks/useAudioSync'
@@ -286,31 +287,7 @@ export default function EditQuiz() {
             }
 
             setIsDirty(false)
-            // Guardado instantáneo: la moderación NO bloquea el flujo del usuario
-            toast.success('Cuestionario guardado', { id: tid })
-
-            // Moderación en segundo plano (fire-and-forget): el quiz queda 'pending'
-            // hasta aprobarse; el resultado llega en un toast aparte segundos después.
-            ;(async () => {
-                const modTid = toast.loading('Revisando contenido en segundo plano...')
-                try {
-                    const { data: mod, error: modError } = await Promise.race([
-                        supabase.functions.invoke('moderate-quiz', { body: { quizId: workingQuizId } }),
-                        new Promise((resolve) => setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 20000))
-                    ])
-                    if (modError) throw modError
-                    if (mod?.status === 'approved') {
-                        toast.success('Contenido aprobado', { id: modTid, duration: 3000 })
-                    } else if (mod?.status === 'rejected') {
-                        toast.error(`Contenido rechazado: ${mod.motivo || 'no apto para contexto familiar'}. El quiz no será visible ni jugable.`, { id: modTid, duration: 10000 })
-                    } else {
-                        toast.warning('Quiz pendiente de revisión (guarda de nuevo para reintentar)', { id: modTid, duration: 5000 })
-                    }
-                } catch (modErr) {
-                    console.error('Error en moderación:', modErr)
-                    toast.warning('Quiz pendiente de revisión (guarda de nuevo para reintentar)', { id: modTid, duration: 5000 })
-                }
-            })()
+            toast.success('Trivia guardada exitosamente', { id: tid })
 
             // Redirigir si era nuevo en la URL original
             if (quizId === 'new') {
@@ -397,14 +374,12 @@ export default function EditQuiz() {
                 last_tts_text: q.text
             }))
 
-            // Imágenes REALES por keyword vía Pexels (edge function search-images)
+            // Imágenes REALES por keyword vía Wikimedia / Wikipedia
             toast.loading('Buscando imágenes para las preguntas...', { id: tid })
             await Promise.all(newQuestions.map(async (nq, i) => {
                 const kw = data[i]?.keyword || nq.text
                 try {
-                    const { data: imgData } = await supabase.functions.invoke('search-images', {
-                        body: { query: kw, count: 1 }
-                    })
+                    const imgData = await searchImages(kw, 1)
                     if (imgData?.results?.[0]?.url) {
                         nq.image_url = imgData.results[0].url
                         nq.media_type = 'image'
@@ -469,17 +444,14 @@ export default function EditQuiz() {
         setCurrentIdx(baseQuestions.length); // Ir a la primera de las nuevas
         setIsDirty(true);
 
-        // Resolver palabras clave → fotos reales (Pexels). Disponible para todo
-        // usuario logueado (sin premium): la IA la pone el usuario, la imagen nosotros.
+        // Resolver palabras clave → fotos reales (Wikimedia / Wikipedia).
         const conKeyword = questionsWithMetadata.filter(q => q.image_keyword && !q.image_url)
         if (conKeyword.length > 0) {
             const tid = toast.loading(`Buscando ${conKeyword.length} imágenes...`)
             let found = 0
             await Promise.all(conKeyword.map(async (q) => {
                 try {
-                    const { data: imgData } = await supabase.functions.invoke('search-images', {
-                        body: { query: q.image_keyword, count: 1 }
-                    })
+                    const imgData = await searchImages(q.image_keyword, 1)
                     if (imgData?.results?.[0]?.url) {
                         q.image_url = imgData.results[0].url
                         q.media_type = 'image'

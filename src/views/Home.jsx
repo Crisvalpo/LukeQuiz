@@ -27,8 +27,8 @@ export default function Home() {
 
     useEffect(() => {
         fetchQuizzes()
-        if (user) fetchActiveGames()
-    }, [view, searchQuery, user])
+        fetchActiveGames()
+    }, [view, searchQuery, user?.id])
 
     const fetchActiveGames = async () => {
         let guestGames = []

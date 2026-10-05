@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
+import { searchImages as searchImagesLib } from '../../lib/imageSearch';
 
 const QuestionEditor = ({
     question: q,
@@ -26,10 +27,7 @@ const QuestionEditor = ({
         if (!query?.trim()) return toast.error('Escribe la pregunta primero');
         setSearching(true);
         try {
-            const { data, error } = await supabase.functions.invoke('search-images', {
-                body: { query, count: 6 }
-            });
-            if (error) throw error;
+            const data = await searchImagesLib(query, 6);
             if (!data?.results?.length) {
                 toast.error('Sin resultados. Prueba con otras palabras');
                 return;

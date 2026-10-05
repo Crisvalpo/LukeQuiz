@@ -13,6 +13,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // resolvía → la app quedaba en pantalla negra.
 const noopLock = async (_name, _acquireTimeout, fn) => await fn()
 
+export const SUPABASE_SCHEMA = import.meta.env.VITE_SUPABASE_SCHEMA || 'quiz'
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: { schema: SUPABASE_SCHEMA },
   auth: { lock: noopLock }
 })

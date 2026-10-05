@@ -86,12 +86,7 @@ const NavigationBar = ({
                         )}
                         <button
                             onClick={onSave}
-                            disabled={!isDirty}
-                            className={`h-11 md:h-12 px-6 md:px-10 rounded-xl font-black text-[1.4vh] md:text-xs tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg active:scale-95
-                                ${isDirty
-                                    ? 'bg-primary text-white shadow-primary/20 hover:bg-primary-hover border-none'
-                                    : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed opacity-50 shadow-none'
-                                }`}
+                            className="h-11 md:h-12 px-6 md:px-10 rounded-xl font-black text-[1.4vh] md:text-xs tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg active:scale-95 bg-primary text-white shadow-primary/20 hover:bg-primary-hover border-none"
                         >
                             <Save size={18} />
                             <span className="hidden xs:inline">GUARDAR TRIVIA</span>

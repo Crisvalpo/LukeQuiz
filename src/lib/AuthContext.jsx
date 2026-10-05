@@ -10,11 +10,21 @@ export const AuthProvider = ({ children }) => {
 
     const fetchProfile = async (authUser) => {
         // maybeSingle: evita error cuando el perfil aún no existe (usuario nuevo)
-        const { data } = await supabase
+        let { data } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', authUser.id)
             .maybeSingle()
+
+        if (!data && authUser?.id) {
+            const defaultNick = authUser.user_metadata?.nickname || (authUser.email ? authUser.email.split('@')[0] : 'Usuario')
+            const { data: created } = await supabase
+                .from('profiles')
+                .upsert({ id: authUser.id, nickname: defaultNick })
+                .select('*')
+                .maybeSingle()
+            if (created) data = created
+        }
 
         if (data) {
             const now = new Date()

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_SCHEMA } from '../lib/supabase'
 
 export function useGameRoom(gameId) {
     const [game, setGame] = useState(null)
@@ -42,7 +42,7 @@ export function useGameRoom(gameId) {
         const gameSub = supabase.channel(`game_room_${gameId}`)
             .on('postgres_changes', {
                 event: 'UPDATE',
-                schema: 'public',
+                schema: SUPABASE_SCHEMA,
                 table: 'games',
                 filter: `id=eq.${gameId}`
             }, payload => {
@@ -50,7 +50,7 @@ export function useGameRoom(gameId) {
             })
             .on('postgres_changes', {
                 event: '*',
-                schema: 'public',
+                schema: SUPABASE_SCHEMA,
                 table: 'players',
                 filter: `game_id=eq.${gameId}`
             }, () => {

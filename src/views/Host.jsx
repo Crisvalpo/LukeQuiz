@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_SCHEMA } from '../lib/supabase'
 import { Play, SkipForward, BarChart2, CheckCircle, Users, Trophy, Loader2, Activity, Settings, Zap, Headphones, Home } from 'lucide-react'
 import { toast } from 'sonner'
 import { useGameRoom } from '../hooks/useGameRoom'
@@ -65,7 +65,7 @@ export default function Host() {
         const channel = supabase.channel(`host_counts_${gameId}`)
             .on('postgres_changes', {
                 event: 'INSERT',
-                schema: 'public',
+                schema: SUPABASE_SCHEMA,
                 table: 'answers'
             }, (payload) => {
                 // Solo refrescar si la respuesta pertenece a la pregunta actual de ESTA partida
@@ -218,8 +218,8 @@ export default function Host() {
     const handleNext = async () => {
         if (isUpdating) return
         if (game.status === 'waiting') {
-            if (players.length < 2) {
-                toast.error('SE NECESITAN AL MENOS 2 JUGADORES')
+            if (players.length < 1) {
+                toast.error('SE NECESITA AL MENOS 1 JUGADOR')
                 return
             }
             const newSettings = { ...game.settings, tempo: selectedTempo }
@@ -380,7 +380,7 @@ export default function Host() {
                     <button
                         onClick={handleNext}
                         className={`w-full h-[12vh] rounded-[3vh] font-display font-black text-[3vh] tracking-[0.2em] shadow-2xl transition-all active:scale-[0.95] flex items-center justify-center gap-[2vh] italic group active:brightness-90
-                            ${game?.status === 'waiting' ? (players.length < 2 ? 'bg-white/10 text-white/20 border border-white/10' : 'bg-primary text-black neon-glow-primary') :
+                            ${game?.status === 'waiting' ? (players.length < 1 ? 'bg-white/10 text-white/20 border border-white/10' : 'bg-primary text-black neon-glow-primary') :
                                 game?.status === 'question' ? 'bg-accent text-black shadow-accent/20' :
                                     'bg-secondary text-black shadow-secondary/20'}`}
                     >

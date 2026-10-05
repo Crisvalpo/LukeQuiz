@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_SCHEMA } from '../lib/supabase'
 import { EMOJIS } from '../utils/helpers'
 import { User, Key, CheckCircle2, Users, Loader2, Sparkles, Trophy, Send } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,14 +21,31 @@ export default function Join() {
     const [exitCountdown, setExitCountdown] = useState(null)
     const navigate = useNavigate()
 
-    useEffect(() => {
-        const stored = localStorage.getItem('kahoot_player')
-        const urlCode = searchParams.get('code')
-        if (stored) {
-            const p = JSON.parse(stored)
-            validateSession(p, urlCode)
+    const fetchQuestion = async (quizId, index, playerId) => {
+        const { data: questions } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('quiz_id', quizId)
+            .order('order_index', { ascending: true })
+        if (questions && questions[index]) {
+            const data = questions[index]
+            setCurrentQuestion(data)
+            if (!playerId) { setHasAnswered(false); setPlayerAnswer(null); return }
+            const { data: answered } = await supabase
+                .from('answers')
+                .select('id, selected_option')
+                .eq('player_id', playerId)
+                .eq('question_id', data.id)
+                .maybeSingle()
+            if (answered) {
+                setHasAnswered(true)
+                setPlayerAnswer(answered.selected_option)
+            } else {
+                setHasAnswered(false)
+                setPlayerAnswer(null)
+            }
         }
-    }, [])
+    }
 
     const validateSession = async (p, urlCode) => {
         setLoading(true)
@@ -64,9 +81,18 @@ export default function Join() {
     }
 
     useEffect(() => {
+        const stored = localStorage.getItem('kahoot_player')
+        const urlCode = searchParams.get('code')
+        if (stored) {
+            const p = JSON.parse(stored)
+            validateSession(p, urlCode)
+        }
+    }, [])
+
+    useEffect(() => {
         if (joined && player) {
             const channel = supabase.channel(`game_${player.game_id}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${player.game_id}` },
+                .on('postgres_changes', { event: 'UPDATE', schema: SUPABASE_SCHEMA, table: 'games', filter: `id=eq.${player.game_id}` },
                     async (payload) => {
                         setGame(payload.new)
                         if (payload.new.status === 'question') {
@@ -98,7 +124,7 @@ export default function Join() {
                 )
                 .subscribe()
 
-            return () => channel.unsubscribe()
+            return () => { supabase.removeChannel(channel) }
         }
         // player?.id (no el objeto completo) evita resuscribirse en cada actualización de puntaje
     }, [joined, player?.id])
@@ -130,21 +156,6 @@ export default function Join() {
         const id = setInterval(calc, 1000)
         return () => clearInterval(id)
     }, [game?.status, game?.question_started_at])
-
-    const fetchQuestion = async (quizId, index, playerId) => {
-        const { data } = await supabase.from('questions').select('*').eq('quiz_id', quizId).eq('order_index', index).single()
-        if (data) {
-            setCurrentQuestion(data)
-            if (!playerId) { setHasAnswered(false); return }
-            const { data: answered } = await supabase.from('answers').select('id, selected_option').eq('player_id', playerId).eq('question_id', data.id).maybeSingle()
-            if (answered) {
-                setHasAnswered(true)
-                setPlayerAnswer(answered.selected_option)
-            } else {
-                setHasAnswered(false)
-            }
-        }
-    }
 
     const handleJoin = async (e) => {
         e.preventDefault()

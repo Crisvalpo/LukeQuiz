@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_SCHEMA } from '../lib/supabase'
 import { QRCodeSVG } from 'qrcode.react'
 import { Users, Trophy, Loader2, Activity, SkipForward } from 'lucide-react'
 import confetti from 'canvas-confetti'
@@ -191,7 +191,7 @@ export default function Screen() {
         const answerSub = supabase
             .channel(`answers_${currentQuestion.id}`)
             .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'answers', filter: `question_id=eq.${currentQuestion.id}` },
+                { event: 'INSERT', schema: SUPABASE_SCHEMA, table: 'answers', filter: `question_id=eq.${currentQuestion.id}` },
                 payload => {
                     // Usamos la Ref para evitar que la suscripción se reinicie cada vez que cambian los jugadores (scores)
                     const isSessionPlayer = playersRef.current.some(p => p.id === payload.new.player_id)
