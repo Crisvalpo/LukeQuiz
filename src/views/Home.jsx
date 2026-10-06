@@ -412,71 +412,79 @@ export default function Home() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[4vh] md:gap-8">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[2vh] md:gap-6">
                                         {quizzes.map(q => (
-                                            <div key={q.id} className="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-[2vh] md:rounded-3xl overflow-hidden hover:border-primary/60 transition-all duration-500 hover:shadow-[0_0_40px_rgba(236,72,153,0.3)] hover:-translate-y-1 flex flex-col h-[25vh] md:h-[16rem]">
-                                                {/* Color Glow Interior */}
-                                                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-50 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0" />
+                                            <div key={q.id} className="group relative bg-white rounded-[1.5vh] md:rounded-2xl overflow-hidden shadow-lg hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-all duration-300 flex flex-col h-[28vh] md:h-[18rem] cursor-pointer border border-white/5">
                                                 
-                                                {q.cover_image && (
-                                                    <div className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none z-0 mix-blend-luminosity">
-                                                        <img src={q.cover_image} alt="" className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                                                    </div>
-                                                )}
-
-                                                <div className="relative z-20 flex-1 flex flex-col p-[3vh] md:p-6">
-                                                    <div className="flex justify-between items-start mb-[2vh] md:mb-4 relative z-30">
-                                                        <span className="bg-white/10 px-[2vh] md:px-3 py-[0.5vh] md:py-1 rounded-full text-[1vh] md:text-[8px] font-black tracking-[0.2em] text-white/80 border border-white/20 uppercase shadow-sm">
+                                                {/* Mitad Superior: Imagen y Tags */}
+                                                <div className="relative h-[55%] w-full bg-slate-200 overflow-hidden">
+                                                    {q.cover_image ? (
+                                                        <img src={q.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                                            <span className="text-primary/50 font-black text-[2vh] md:text-xl tracking-widest">LUKEQUIZ</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Badge de Autor (Top Left) */}
+                                                    <div className="absolute top-2 left-2">
+                                                        <span className="bg-white/95 text-slate-800 px-2 py-1 rounded-[0.8vh] md:rounded-md text-[1vh] md:text-[9px] font-black tracking-widest uppercase shadow-sm">
                                                             @{q.profiles?.nickname || 'Autor'}
                                                         </span>
-                                                        <div className="flex gap-[1vh] md:gap-2">
-                                                            {user && (q.user_id === user.id || isAdmin) && (
-                                                                <>
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
-                                                                        className="p-[1vh] md:p-2 bg-white/10 rounded-[0.8vh] md:rounded-lg text-white/80 hover:text-white hover:bg-primary/80 transition-all border border-white/20 shadow-sm cursor-pointer"
-                                                                        title="Configurar"
-                                                                    >
-                                                                        <Settings size={14} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
-                                                                        className="p-[1vh] md:p-2 bg-red-500/20 rounded-[0.8vh] md:rounded-lg text-red-300 hover:text-white hover:bg-red-500 transition-all border border-red-500/30 shadow-sm cursor-pointer"
-                                                                        title="Eliminar"
-                                                                    >
-                                                                        <Trash2 size={14} />
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
                                                     </div>
 
-                                                    <div className="flex-1 flex flex-col justify-center">
-                                                        <h3 className="text-[2.8vh] md:text-2xl font-black text-white mb-[1vh] md:mb-2 tracking-tight group-hover:text-primary-100 transition-colors line-clamp-2 leading-tight uppercase font-display drop-shadow-md">{q.title}</h3>
-                                                        <span className="text-[1.2vh] md:text-[10px] font-black tracking-[0.3em] text-primary-200 uppercase drop-shadow-sm">
-                                                            {q.questions?.length || 0} PREGUNTAS
-                                                        </span>
+                                                    {/* Tags de Stats (Bottom Right - estilo Kahoot) */}
+                                                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
                                                         {(q.plays_count > 0 || filterType === 'popular') && (
-                                                            <span className="mt-2 text-[1vh] md:text-[8px] font-black tracking-widest text-white bg-gradient-to-r from-orange-500 to-amber-500 self-start px-3 py-1 rounded-md flex items-center gap-1 shadow-md">
-                                                                🔥 {q.plays_count || 0} JUGADAS
+                                                            <span className="bg-black/80 backdrop-blur-sm text-white text-[1vh] md:text-[10px] font-black px-2 py-1 rounded-[0.8vh] md:rounded-md flex items-center gap-1">
+                                                                🔥 {q.plays_count || 0}
                                                             </span>
                                                         )}
+                                                        <span className="bg-black/80 backdrop-blur-sm text-white text-[1vh] md:text-[10px] font-black px-2 py-1 rounded-[0.8vh] md:rounded-md flex items-center gap-1">
+                                                            <span className="hidden md:inline">📄</span> {q.questions?.length || 0}
+                                                        </span>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-[3vh] md:p-6 pt-0 relative z-30 mt-auto">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
-                                                        disabled={!q.questions || q.questions.length === 0}
-                                                        className={`w-full py-[2vh] md:py-4 rounded-[1.2vh] md:rounded-2xl flex items-center justify-center gap-[1.5vh] md:gap-3 transition-all duration-300 text-[1.4vh] md:text-[11px] font-black tracking-[0.3em] cursor-pointer shadow-xl ${!q.questions || q.questions.length === 0
-                                                            ? 'bg-black/40 text-white/20 cursor-not-allowed border border-white/10'
-                                                            : 'bg-gradient-to-r from-primary via-pink-500 to-secondary text-white hover:scale-[1.02] active:scale-[0.98] border border-white/20 hover:border-white/50 hover:shadow-[0_0_20px_rgba(236,72,153,0.5)]'
-                                                            }`}
-                                                    >
-                                                        <Play size={16} fill="currentColor" className={!q.questions || q.questions.length === 0 ? 'opacity-20' : ''} />
-                                                        {(!q.questions || q.questions.length === 0) ? 'SIN PREGUNTAS' : 'INICIAR JUEGO'}
-                                                    </button>
+                                                {/* Mitad Inferior: Info y Controles */}
+                                                <div className="flex-1 flex flex-col p-[1.5vh] md:p-4 bg-white relative">
+                                                    <h3 className="text-[1.8vh] md:text-[15px] font-black text-slate-800 leading-tight line-clamp-2 uppercase font-display group-hover:text-primary transition-colors">
+                                                        {q.title}
+                                                    </h3>
+                                                    
+                                                    <div className="mt-auto flex justify-between items-center pt-[1vh] md:pt-2">
+                                                        {/* Botón Principal */}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
+                                                            disabled={!q.questions || q.questions.length === 0}
+                                                            className={`flex-1 py-[1vh] md:py-2.5 rounded-[1vh] md:rounded-lg flex items-center justify-center gap-2 text-[1.2vh] md:text-[10px] font-black tracking-widest transition-all ${!q.questions || q.questions.length === 0
+                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                                : 'bg-primary text-white hover:bg-primary-hover shadow-md active:scale-95'
+                                                                }`}
+                                                        >
+                                                            <Play size={12} fill="currentColor" /> <span className="hidden md:inline">INICIAR</span>
+                                                        </button>
+
+                                                        {/* Controles de Autor */}
+                                                        {user && (q.user_id === user.id || isAdmin) && (
+                                                            <div className="flex gap-1 ml-2">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
+                                                                    className="p-[1vh] md:p-2 bg-slate-100 rounded-[1vh] md:rounded-lg text-slate-500 hover:text-primary hover:bg-primary/10 transition-all"
+                                                                    title="Configurar"
+                                                                >
+                                                                    <Settings size={14} className="w-[1.5vh] h-[1.5vh] md:w-[14px] md:h-[14px]" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
+                                                                    className="p-[1vh] md:p-2 bg-red-50 rounded-[1vh] md:rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <Trash2 size={14} className="w-[1.5vh] h-[1.5vh] md:w-[14px] md:h-[14px]" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
