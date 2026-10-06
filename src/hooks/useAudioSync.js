@@ -14,23 +14,37 @@ export function useAudioSync(quizId) {
         const activeId = targetQuizId || quizId;
 
         try {
+            // 1. Intentar endpoint nativo del servidor
+            const apiRes = await fetch('/api/generate-tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: question.text, questionId: question.id, quizId: activeId })
+            });
+
+            if (apiRes.ok) {
+                const apiData = await apiRes.json();
+                if (apiData?.publicUrl) return apiData.publicUrl;
+            }
+        } catch (apiErr) {
+            console.warn('Endpoint /api/generate-tts no disponible, probando Edge Function:', apiErr);
+        }
+
+        try {
+            // 2. Fallback a Edge Function
             const { data, error } = await supabase.functions.invoke('generate-tts', {
                 body: { text: question.text, questionId: question.id, quizId: activeId }
             });
 
-            if (error || data?.error_code) {
-                const code = error?.status === 403 || data?.error_code === 'LIMIT_EXCEEDED' ? 'LIMIT' : 'ERROR';
-                if (code === 'LIMIT') {
-                    toast.error('Switch Killer Activo: Se ha alcanzado el 80% de la cuota gratuita de Google TTS.');
-                } else {
-                    toast.error(data?.message || 'Error al generar audio');
-                }
-                return null;
+            if (!error && data?.publicUrl) {
+                return data.publicUrl;
             }
 
-            return data.publicUrl;
+            if (data?.error_code === 'LIMIT_EXCEEDED') {
+                toast.error('Switch Killer Activo: Se ha alcanzado el límite de cuota.');
+            }
+            return null;
         } catch (err) {
-            toast.error('Error de conexión con el motor de audio');
+            console.warn('Error en generador de audio:', err);
             return null;
         }
     };

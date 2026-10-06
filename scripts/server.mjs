@@ -139,6 +139,57 @@ FORMATO JSON: [{"text": "...", "option_a": "...", "option_b": "...", "option_c":
   });
 }
 
+async function handleGenerateTts(req, res) {
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', async () => {
+    try {
+      const { text, questionId, quizId } = JSON.parse(body || '{}');
+      if (!text || !questionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Faltan parámetros requeridos (text, questionId)' }));
+      }
+
+      const safeText = String(text).slice(0, 300);
+      const safeQuizId = String(quizId || 'general').replace(/[^a-zA-Z0-9_-]/g, '');
+      const safeQuestionId = String(questionId).replace(/[^a-zA-Z0-9_-]/g, '');
+
+      // Guardar en dist/uploads/audio/quizId/questionId.mp3
+      const audioDir = path.join(DIST_DIR, 'uploads', 'audio', safeQuizId);
+      fs.mkdirSync(audioDir, { recursive: true });
+      const filePath = path.join(audioDir, `${safeQuestionId}.mp3`);
+
+      // Descargar audio MP3 de Google TTS
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(safeText)}&tl=es&client=tw-ob`;
+      const ttsResp = await fetch(ttsUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+
+      if (!ttsResp.ok) {
+        throw new Error(`TTS respondió con código ${ttsResp.status}`);
+      }
+
+      const arrayBuffer = await ttsResp.arrayBuffer();
+      fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+
+      const publicUrl = `/uploads/audio/${safeQuizId}/${safeQuestionId}.mp3`;
+      console.log(`[API /api/generate-tts] Audio generado exitosamente: ${publicUrl}`);
+
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      });
+      res.end(JSON.stringify({ publicUrl }));
+    } catch (err) {
+      console.error('[API /api/generate-tts] Error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
   const urlPath = req.url.split('?')[0];
 
@@ -151,6 +202,23 @@ const server = http.createServer((req, res) => {
   if (urlPath === '/api/generate-quiz' || urlPath === '/api/generate-quiz/') {
     if (req.method === 'POST') {
       return handleGenerateQuiz(req, res);
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      });
+      return res.end();
+    }
+    res.writeHead(405);
+    return res.end();
+  }
+
+  // Ruta API para generación de TTS neuronal
+  if (urlPath === '/api/generate-tts' || urlPath === '/api/generate-tts/') {
+    if (req.method === 'POST') {
+      return handleGenerateTts(req, res);
     }
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
