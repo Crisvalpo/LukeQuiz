@@ -56,7 +56,7 @@ Si necesitas probar la app desde dispositivos móviles fuera de tu red local:
 ## 🚢 Deploy en producción (lukeserver)
 
 - La app se sirve como contenedor Docker **`lukequiz`**: `Dockerfile` construye el build de Vite y lo sirve con **nginx** (`nginx.conf` con headers de seguridad y política de cache) en el puerto **3002**.
-- Dominio: **https://quiz.lukeapp.me** (túnel Cloudflare → localhost:3002).
+- Dominio: **https://quiz.lukeapp.cl** (Oracle Cloud / Nginx → localhost:3006).
 - Base de datos: **Supabase Cloud** (proyecto `czsjwqwjshkfguzzrbre`), no el Supabase self-hosted del server.
 - Edge functions: `supabase functions deploy generate-quiz generate-tts` (verifican JWT + premium).
 - Operación del server documentada en `C:\Github\Skill\luke-quiz\SKILL.md` y `C:\Github\Skill\luke-server\Skill.md`.

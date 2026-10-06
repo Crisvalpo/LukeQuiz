@@ -24,7 +24,9 @@ const MIME_TYPES = {
   '.mp3': 'audio/mpeg',
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
-  '.ttf': 'font/ttf'
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8'
 };
 
 function getEnvValue(key, defaultValue = '') {
