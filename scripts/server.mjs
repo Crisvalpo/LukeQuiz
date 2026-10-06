@@ -2,6 +2,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ImapFlow } from 'imapflow';
+import { createClient } from '@supabase/supabase-js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.resolve(__dirname, '../dist');
@@ -25,18 +27,20 @@ const MIME_TYPES = {
   '.ttf': 'font/ttf'
 };
 
-function getGeminiApiKey() {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+function getEnvValue(key, defaultValue = '') {
+  if (process.env[key]) return process.env[key];
   const envPaths = [
     path.resolve(__dirname, '../.env'),
     '/home/ubuntu/luke-quiz/.env',
-    '/home/ubuntu/luke-tiktok-live/.env'
+    '/home/ubuntu/luke-tiktok-live/.env',
+    '/home/ubuntu/LukeCore/.env',
+    '/home/ubuntu/supabase-docker/docker/.env'
   ];
   for (const envPath of envPaths) {
     try {
       if (fs.existsSync(envPath)) {
         const content = fs.readFileSync(envPath, 'utf8');
-        const match = content.match(/^GEMINI_API_KEY=(.+)$/m);
+        const match = content.match(new RegExp(`^${key}=(.+)$`, 'm'));
         if (match && match[1]) {
           return match[1].trim();
         }
@@ -45,7 +49,24 @@ function getGeminiApiKey() {
       // Ignorar error al leer ruta alternativa
     }
   }
-  return null;
+  return defaultValue;
+}
+
+const SUPABASE_URL = getEnvValue('SUPABASE_URL', getEnvValue('VITE_SUPABASE_URL', 'https://api-oracle.lukeapp.cl'));
+const SUPABASE_SERVICE_ROLE_KEY = getEnvValue(
+  'SUPABASE_SERVICE_ROLE_KEY',
+  getEnvValue('SERVICE_ROLE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiaWF0IjoxNzM5NzI5MjcyLCJleHAiOjIwNTUwODkyNzJ9.OEpjObm93DhWMupkDmBQt-9YqrbD18Go_tsPnLCxtUc')
+);
+const GMAIL_USER = getEnvValue('GMAIL_USER', 'cristianluke@gmail.com');
+const GMAIL_APP_PASSWORD = getEnvValue('GMAIL_APP_PASSWORD', 'zwtidhnoncttspkn');
+
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+  db: { schema: 'quiz' }
+});
+
+function getGeminiApiKey() {
+  return getEnvValue('GEMINI_API_KEY', null);
 }
 
 async function handleGenerateQuiz(req, res) {
@@ -190,6 +211,201 @@ async function handleGenerateTts(req, res) {
   });
 }
 
+async function handleVerifyTransfer(req, res) {
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', async () => {
+    try {
+      const authHeader = req.headers['authorization'] || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+
+      if (!token) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: 'Debes iniciar sesión para activar tu pase premium' }));
+      }
+
+      // Validar usuario mediante JWT en Supabase
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      if (authErr || !authData?.user?.id) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: 'Sesión no válida o expirada. Por favor recarga e inicia sesión nuevamente.' }));
+      }
+
+      const userId = authData.user.id;
+      const { operationNumber } = JSON.parse(body || '{}');
+      const cleanOp = String(operationNumber || '').replace(/\D/g, '');
+
+      if (!cleanOp || cleanOp.length < 5 || cleanOp.length > 12) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: 'El número de operación debe contener entre 5 y 10 dígitos numéricos.' }));
+      }
+
+      console.log(`[API /api/verify-transfer] Verificando operación ${cleanOp} para usuario ${userId}...`);
+
+      // 1. Revisar si la transferencia ya fue utilizada en quiz.promo_codes
+      const { data: existingCode, error: queryErr } = await supabaseAdmin
+        .schema('quiz')
+        .from('promo_codes')
+        .select('*')
+        .eq('code', `BE-${cleanOp}`)
+        .maybeSingle();
+
+      if (queryErr) {
+        console.error('[API /api/verify-transfer] Error consultando promo_codes:', queryErr);
+      }
+
+      if (existingCode && existingCode.used_at) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          ok: false,
+          error: `Esta transferencia (N° ${cleanOp}) ya fue utilizada anteriormente el ${new Date(existingCode.used_at).toLocaleDateString('es-CL')}.`
+        }));
+      }
+
+      // 2. Conectar a Gmail vía IMAP y buscar comprobante
+      const imapClient = new ImapFlow({
+        host: 'imap.gmail.com',
+        port: 993,
+        secure: true,
+        auth: {
+          user: GMAIL_USER,
+          pass: GMAIL_APP_PASSWORD
+        },
+        logger: false
+      });
+
+      let matchFound = null;
+      try {
+        await imapClient.connect();
+        const lock = await imapClient.getMailboxLock('INBOX');
+        try {
+          const sinceDate = new Date(Date.now() - 48 * 60 * 60 * 1000);
+          let seqs = await imapClient.search({ since: sinceDate, body: cleanOp });
+
+          if (!seqs || seqs.length === 0) {
+            // Intentar búsqueda en remitentes bancoestado
+            seqs = await imapClient.search({ since: sinceDate, from: 'bancoestado' });
+          }
+
+          if (!seqs || seqs.length === 0) {
+            // Fallback a correos recientes de los últimos 2 días
+            seqs = await imapClient.search({ since: sinceDate });
+          }
+
+          if (seqs && seqs.length > 0) {
+            const reversed = [...seqs].reverse().slice(0, 30);
+            for (const seq of reversed) {
+              for await (let msg of imapClient.fetch(seq, { source: true, envelope: true })) {
+                const raw = msg.source.toString('utf8');
+                if (raw.includes(cleanOp)) {
+                  const montoMatch = raw.match(/Monto(?:\s*transferido)?[\s\S]{0,30}?\$\s*([0-9.]+)/i)
+                    || raw.match(/\$\s*([0-9.]+)/i);
+                  const monto = montoMatch ? parseInt(montoMatch[1].replace(/\./g, ''), 10) : 1000;
+                  matchFound = {
+                    subject: msg.envelope?.subject,
+                    date: msg.envelope?.date,
+                    monto
+                  };
+                  break;
+                }
+              }
+              if (matchFound) break;
+            }
+          }
+        } finally {
+          lock.release();
+        }
+        await imapClient.logout();
+      } catch (imapErr) {
+        console.error('[API /api/verify-transfer] Error en conexión IMAP:', imapErr);
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          ok: false,
+          error: 'Servicio de verificación bancaria momentáneamente no disponible. Por favor reintenta en unos instantes o envía tu comprobante por WhatsApp.'
+        }));
+      }
+
+      if (!matchFound) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          ok: false,
+          notFound: true,
+          message: `Aún no recibimos el comprobante con la operación N° ${cleanOp}. Si acabas de transferir, espera 20 a 30 segundos a que BancoEstado procese la notificación y vuelve a presionar "Verificar".`
+        }));
+      }
+
+      if (matchFound.monto < 1000) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          ok: false,
+          error: `El comprobante recibido registra un monto de $${matchFound.monto.toLocaleString('es-CL')}, que es inferior al valor del Pase Diario ($1.000 CLP).`
+        }));
+      }
+
+      // 3. Registrar el código en promo_codes para prevenir reutilización
+      const { error: insertErr } = await supabaseAdmin
+        .schema('quiz')
+        .from('promo_codes')
+        .upsert({
+          code: `BE-${cleanOp}`,
+          type: 'bancoestado_tef',
+          used_at: new Date().toISOString(),
+          used_by: userId
+        }, { onConflict: 'code' });
+
+      if (insertErr) {
+        console.error('[API /api/verify-transfer] Error guardando promo_code:', insertErr);
+      }
+
+      // 4. Activar o extender las 24 horas del usuario
+      const { data: profileData, error: profileErr } = await supabaseAdmin
+        .schema('quiz')
+        .from('profiles')
+        .select('premium_until')
+        .eq('id', userId)
+        .single();
+
+      if (profileErr) {
+        console.error('[API /api/verify-transfer] Error leyendo perfil:', profileErr);
+      }
+
+      const currentUntil = profileData?.premium_until ? new Date(profileData.premium_until).getTime() : 0;
+      const baseTime = Math.max(Date.now(), currentUntil);
+      const newPremiumUntil = new Date(baseTime + 24 * 60 * 60 * 1000).toISOString();
+
+      const { error: updateErr } = await supabaseAdmin
+        .schema('quiz')
+        .from('profiles')
+        .update({ premium_until: newPremiumUntil })
+        .eq('id', userId);
+
+      if (updateErr) {
+        console.error('[API /api/verify-transfer] Error actualizando profile:', updateErr);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: 'Error al activar pase en tu cuenta: ' + updateErr.message }));
+      }
+
+      console.log(`[API /api/verify-transfer] ¡Operación ${cleanOp} validada exitosamente para usuario ${userId}! Premium hasta: ${newPremiumUntil}`);
+
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      });
+      res.end(JSON.stringify({
+        ok: true,
+        message: '¡Pago verificado exitosamente! Tu Pase Diario de 24 horas está activo.',
+        premiumUntil: newPremiumUntil,
+        operationNumber: cleanOp
+      }));
+
+    } catch (err) {
+      console.error('[API /api/verify-transfer] Excepción:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
   const urlPath = req.url.split('?')[0];
 
@@ -197,6 +413,23 @@ const server = http.createServer((req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Ruta API para verificación bancaria automática
+  if (urlPath === '/api/verify-transfer' || urlPath === '/api/verify-transfer/') {
+    if (req.method === 'POST') {
+      return handleVerifyTransfer(req, res);
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      });
+      return res.end();
+    }
+    res.writeHead(405);
+    return res.end();
+  }
 
   // Ruta API para generación de trivias con Gemini
   if (urlPath === '/api/generate-quiz' || urlPath === '/api/generate-quiz/') {

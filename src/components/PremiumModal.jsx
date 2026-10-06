@@ -2,15 +2,21 @@ import React, { useState } from 'react'
 import {
     Crown, MessageSquare, Copy, CheckCircle2,
     Ticket, CreditCard, ExternalLink, Sparkles,
-    Lock, Volume2, Clock, Check, RefreshCcw
+    Lock, Volume2, Clock, Check, RefreshCcw, Zap, AlertCircle
 } from 'lucide-react'
+import confetti from 'canvas-confetti'
 import { toast } from 'sonner'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import Modal from './Modal'
 
 export default function PremiumModal({ isOpen, onClose }) {
-    const { user, refreshProfile } = useAuth()
+    const { user, session, refreshProfile } = useAuth()
+    const [operationNumber, setOperationNumber] = useState('')
+    const [isVerifying, setIsVerifying] = useState(false)
+    const [verifyError, setVerifyError] = useState(null)
+    const [activeTab, setActiveTab] = useState('auto') // 'auto' | 'code'
+
     const [promoCode, setPromoCode] = useState('')
     const [isRedeeming, setIsRedeeming] = useState(false)
     const [copiedField, setCopiedField] = useState(null)
@@ -22,7 +28,7 @@ export default function PremiumModal({ isOpen, onClose }) {
         rut: "15.717.681-1",
         accountNumber: "15717681",
         name: "Cristian Luke",
-        email: "cristianluke@gmail.com",
+        email: "pagos@lukeapp.cl",
         amount: "$1.000 CLP"
     }
 
@@ -57,6 +63,73 @@ export default function PremiumModal({ isOpen, onClose }) {
         setTimeout(() => setAllCopied(false), 2500)
     }
 
+    const handleVerifyTransfer = async () => {
+        const cleanOp = operationNumber.trim().replace(/\D/g, '')
+        if (!cleanOp || cleanOp.length < 5) {
+            toast.error('Por favor ingresa los 5 a 10 dígitos de tu N° de Operación o Transferencia')
+            return
+        }
+
+        if (!session?.access_token) {
+            toast.error('Debes iniciar sesión para activar tu pase')
+            return
+        }
+
+        setIsVerifying(true)
+        setVerifyError(null)
+
+        try {
+            const resp = await fetch('/api/verify-transfer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ operationNumber: cleanOp })
+            })
+
+            const data = await resp.json()
+
+            if (!resp.ok || !data.ok) {
+                if (data.notFound) {
+                    setVerifyError({
+                        title: 'Comprobante aún no recibido',
+                        message: data.message || 'Si acabas de hacer la transferencia, espera unos 20-30 segundos para que el banco emita el aviso y vuelve a presionar Verificar.'
+                    })
+                } else {
+                    toast.error(data.error || 'No se pudo verificar la transferencia')
+                }
+                return
+            }
+
+            // Éxito total
+            try {
+                confetti({
+                    particleCount: 90,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                })
+            } catch {
+                // Confetti opcional si falla
+            }
+
+            toast.success(data.message || '¡Pase Premium activado exitosamente!', {
+                icon: <Crown className="text-amber-400" size={20} />,
+                duration: 5000
+            })
+
+            await refreshProfile()
+            setTimeout(() => {
+                onClose()
+            }, 1800)
+        } catch (err) {
+            console.error('Error verifying transfer:', err)
+            toast.error('Error al conectar con el servidor: ' + (err.message || 'Revisa tu conexión'))
+        } finally {
+            setIsVerifying(false)
+        }
+    }
+
     const handleRedeemCode = async () => {
         if (!promoCode?.trim()) {
             toast.error('Por favor ingresa un código de activación')
@@ -88,6 +161,14 @@ export default function PremiumModal({ isOpen, onClose }) {
                 toast.error(result.message || 'Código inválido')
                 return
             }
+
+            try {
+                confetti({
+                    particleCount: 80,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                })
+            } catch {}
 
             toast.success('¡Pase Premium de 24 horas activado!', {
                 icon: <Crown className="text-amber-400" size={20} />,
@@ -133,13 +214,13 @@ export default function PremiumModal({ isOpen, onClose }) {
         {
             icon: <Sparkles className="text-amber-400" size={20} />,
             title: "Generador Mágico IA",
-            desc: "Crea trivias completas de hasta 20 preguntas en segundos con Gemini 1.5.",
+            desc: "Crea trivias completas de hasta 20 preguntas en segundos con Gemini.",
             badge: "ILIMITADO"
         },
         {
             icon: <Volume2 className="text-cyan-400" size={20} />,
             title: "Voz Neuronal del Host",
-            desc: "Presentador virtual con voz ultra-realista (TTS 2.0) que narra cada pregunta.",
+            desc: "Presentador virtual con voz ultra-realista que narra cada pregunta.",
             badge: "VOZ EN VIVO"
         },
         {
@@ -177,7 +258,7 @@ export default function PremiumModal({ isOpen, onClose }) {
                     </div>
                 </div>
 
-                {/* Sección: ¿Qué obtienes con tu depósito? */}
+                {/* Sección: Beneficios */}
                 <div>
                     <div className="flex items-center justify-between mb-3">
                         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50">
@@ -227,7 +308,7 @@ export default function PremiumModal({ isOpen, onClose }) {
                         <button
                             type="button"
                             onClick={handleCopyAll}
-                            className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-500/30 transition-all active:scale-95"
+                            className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-500/30 transition-all active:scale-95 cursor-pointer"
                             title="Copiar todos los datos de transferencia juntos"
                         >
                             {allCopied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -304,74 +385,164 @@ export default function PremiumModal({ isOpen, onClose }) {
                             </div>
                         </div>
 
-                        <p className="text-[10px] text-white/40 text-center italic">
-                            💡 Haz clic en cualquier dato para copiarlo individualmente.
+                        <p className="text-[10px] text-white/50 text-center font-medium">
+                            💡 Al transferir, ingresa <strong className="text-amber-300 font-bold">pagos@lukeapp.cl</strong> (o tu propio correo) para recibir el comprobante.
                         </p>
                     </div>
                 </div>
 
-                {/* PASO 2: Enviar Comprobante por WhatsApp */}
-                <div className="bg-white/5 rounded-2xl border border-white/10 p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                {/* PESTAÑAS DE ACTIVACIÓN */}
+                <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('auto')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                            activeTab === 'auto'
+                                ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                                : 'text-white/50 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <Zap size={14} className={activeTab === 'auto' ? 'text-amber-300' : ''} />
+                        <span>Activación Instantánea</span>
+                        <span className="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded font-black">NUEVO</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('code')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                            activeTab === 'code'
+                                ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                                : 'text-white/50 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                        <Ticket size={14} />
+                        <span>Tengo un Código</span>
+                    </button>
+                </div>
+
+                {/* CONTENIDO SEGÚN PESTAÑA */}
+                {activeTab === 'auto' ? (
+                    /* PASO 2: Verificación Automática */
+                    <div className="bg-surface-lowest/70 rounded-2xl border border-emerald-500/30 p-4 space-y-3.5 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-emerald-500/20 rounded-lg text-emerald-400">
+                                    <Zap size={16} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xs font-black text-white uppercase tracking-widest">
+                                        Paso 2: Ingresa tu N° de Operación
+                                    </h3>
+                                    <p className="text-[10px] text-white/60">
+                                        Lo encuentras en la pantalla final de tu banco o en tu correo (ej: 8004439 o 7012125).
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hidden sm:inline-block">
+                                Automático
+                            </span>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2.5">
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="EJ: 8004439 (SOLO NÚMEROS)"
+                                value={operationNumber}
+                                onChange={(e) => {
+                                    setOperationNumber(e.target.value.replace(/[^0-9]/g, ''))
+                                    if (verifyError) setVerifyError(null)
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        handleVerifyTransfer()
+                                    }
+                                }}
+                                className="flex-1 bg-black/40 border border-emerald-500/20 rounded-xl px-4 py-3.5 text-white font-black tracking-[0.2em] focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 outline-none transition-all placeholder:text-white/20 text-xs"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleVerifyTransfer}
+                                disabled={isVerifying || !operationNumber?.trim()}
+                                className="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-black tracking-widest text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2 shrink-0 uppercase cursor-pointer"
+                            >
+                                {isVerifying ? (
+                                    <>
+                                        <RefreshCcw className="animate-spin" size={16} />
+                                        <span>Verificando Banco...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap size={16} className="text-amber-300" />
+                                        <span>Verificar y Activar</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Mensaje de espera si aún no llega */}
+                        {verifyError && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2.5">
+                                <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                                <div className="text-[11px] text-amber-200">
+                                    <strong className="font-black block text-amber-300 mb-0.5">{verifyError.title}</strong>
+                                    {verifyError.message}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    /* PASO ALTERNATIVO: Canje con código promocional */
+                    <div className="bg-surface-lowest/50 rounded-2xl border border-primary/30 p-4 space-y-3">
                         <div className="flex items-center gap-2">
-                            <MessageSquare size={16} className="text-[#25D366]" />
+                            <Ticket size={16} className="text-primary" />
                             <h3 className="text-xs font-black text-white uppercase tracking-widest">
-                                Paso 2: Envía tu Comprobante
+                                Canjear Código de Acceso
                             </h3>
                         </div>
-                        <span className="text-[9px] font-black text-[#25D366] uppercase tracking-wider bg-[#25D366]/10 px-2 py-0.5 rounded-full border border-[#25D366]/20">
-                            Atención Inmediata
-                        </span>
-                    </div>
 
+                        <div className="flex flex-col sm:flex-row gap-2.5">
+                            <input
+                                type="text"
+                                placeholder="PEGA AQUÍ TU CÓDIGO (EJ: LUKE-XYZ)"
+                                value={promoCode}
+                                onChange={(e) => setPromoCode(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        handleRedeemCode()
+                                    }
+                                }}
+                                className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-black tracking-[0.2em] focus:border-primary outline-none transition-all placeholder:text-white/20 text-xs uppercase"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleRedeemCode}
+                                disabled={isRedeeming || !promoCode?.trim()}
+                                className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-black tracking-widest text-xs shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2 shrink-0 uppercase cursor-pointer"
+                            >
+                                {isRedeeming ? <RefreshCcw className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                                <span>{isRedeeming ? 'Validando...' : 'Canjear'}</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* SOPORTE Y WHATSAPP SECUNDARIO */}
+                <div className="flex items-center justify-between text-[11px] text-white/50 px-1">
+                    <span>¿Algún inconveniente con tu pago?</span>
                     <a
                         href={whatsappUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#1fb355] text-black font-black py-3.5 px-4 rounded-xl text-xs uppercase tracking-widest transition-all hover:scale-[1.01] shadow-lg shadow-[#25D366]/20 active:scale-95"
+                        className="flex items-center gap-1.5 text-[#25D366] hover:underline font-bold transition-colors"
                     >
-                        <MessageSquare size={18} />
-                        <span>Enviar Comprobante por WhatsApp</span>
-                        <ExternalLink size={14} />
+                        <MessageSquare size={13} />
+                        <span>Soporte por WhatsApp</span>
+                        <ExternalLink size={11} />
                     </a>
-                    <p className="text-[10px] text-white/50 text-center">
-                        Te responderemos con tu <strong className="text-white">código de activación</strong> para canjear en el Paso 3.
-                    </p>
-                </div>
-
-                {/* PASO 3: Canjear Código */}
-                <div className="bg-surface-lowest/50 rounded-2xl border border-primary/30 p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                        <Ticket size={16} className="text-primary" />
-                        <h3 className="text-xs font-black text-white uppercase tracking-widest">
-                            Paso 3: Activa tu Pase de 24 Horas
-                        </h3>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2.5">
-                        <input
-                            type="text"
-                            placeholder="PEGA AQUÍ TU CÓDIGO (EJ: LUKE-XYZ)"
-                            value={promoCode}
-                            onChange={(e) => setPromoCode(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    handleRedeemCode()
-                                }
-                            }}
-                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-black tracking-[0.2em] focus:border-primary outline-none transition-all placeholder:text-white/20 text-xs uppercase"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleRedeemCode}
-                            disabled={isRedeeming || !promoCode?.trim()}
-                            className="px-6 py-3.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-black tracking-widest text-xs shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2 shrink-0 uppercase"
-                        >
-                            {isRedeeming ? <RefreshCcw className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-                            <span>{isRedeeming ? 'Validando...' : 'Canjear Pase'}</span>
-                        </button>
-                    </div>
                 </div>
 
             </div>
