@@ -162,23 +162,40 @@ export default function EditQuiz() {
     const deleteCurrent = async () => {
         if (questions.length <= 1) return toast.error('No puedes eliminar la única pregunta')
         const q = questions[currentIdx]
+        if (!q) return
+
+        if (!window.confirm(`¿Eliminar la pregunta ${currentIdx + 1}?`)) return
 
         setIsDirty(true)
-        if (q.id && !String(q.id).startsWith('temp-')) {
-            // Limpia el audio antes de borrar el registro (Garantiza mantenimiento)
-            if (q.audio_url) await removeAudio(q.id)
+        const delTid = toast.loading('Eliminando pregunta...')
 
-            // Elimina respuestas asociadas para evitar error de llave foránea (answers_question_id_fkey)
-            await supabase.from('answers').delete().eq('question_id', q.id)
+        try {
+            // Si la pregunta existe en la base de datos, la eliminamos directamente con timeout seguro
+            if (activeQuizId && q.id && !String(q.id).startsWith('temp-')) {
+                const deletePromise = supabase.from('questions').delete().eq('id', q.id)
+                await withTimeout(deletePromise, 5000, 'Tiempo de espera agotado al eliminar').catch(err => {
+                    console.warn('Aviso al eliminar pregunta en BD:', err)
+                })
+            }
 
-            const { error } = await supabase.from('questions').delete().eq('id', q.id)
-            if (error) return toast.error('Error al eliminar pregunta')
+            // Filtrar pregunta y reindexar order_index
+            const remaining = questions.filter((_, i) => i !== currentIdx)
+            const reindexed = remaining.map((item, idx) => ({ ...item, order_index: idx }))
+
+            // Si la eliminada era la portada, transferir portada a la primera con imagen
+            if (q.is_cover && reindexed.length > 0) {
+                const newCover = reindexed.find(item => item.image_url) || reindexed[0]
+                newCover.is_cover = true
+                setQuiz(prev => ({ ...prev, cover_image: newCover.image_url || '' }))
+            }
+
+            setQuestions(reindexed)
+            setCurrentIdx(prev => Math.max(0, Math.min(prev, reindexed.length - 1)))
+            toast.success('Pregunta eliminada', { id: delTid })
+        } catch (err) {
+            console.error('Error al eliminar pregunta:', err)
+            toast.error('Error al eliminar: ' + (err?.message || 'Error desconocido'), { id: delTid })
         }
-
-        const newQuestions = questions.filter((_, i) => i !== currentIdx)
-        setQuestions(newQuestions)
-        setCurrentIdx(Math.max(0, currentIdx - 1))
-        toast.success('Pregunta eliminada')
     }
 
     const handleQuizChange = (updatedQuiz) => {
@@ -369,6 +386,19 @@ export default function EditQuiz() {
                     is_cover: !!q.is_cover
                 }
             })
+
+            // Sincronizar eliminaciones: cualquier pregunta en BD que ya no esté en el editor se elimina
+            const savedIds = questionsToUpsert.map(q => q.id).filter(Boolean)
+            if (savedIds.length > 0 && workingQuizId) {
+                const cleanupPromise = supabase
+                    .from('questions')
+                    .delete()
+                    .eq('quiz_id', workingQuizId)
+                    .not('id', 'in', `(${savedIds.join(',')})`)
+
+                await withTimeout(cleanupPromise, 5000, 'Tiempo agotado al limpiar preguntas eliminadas')
+                    .catch(e => console.warn('Aviso limpiando preguntas eliminadas:', e))
+            }
 
             const upsertPromise = supabase
                 .from('questions')

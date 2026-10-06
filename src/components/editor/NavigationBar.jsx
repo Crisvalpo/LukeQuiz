@@ -78,8 +78,10 @@ const NavigationBar = ({
                         </button>
                         {totalQuestions > 1 && (
                             <button
+                                type="button"
                                 onClick={onDelete}
-                                className="flex h-10 w-10 md:h-12 md:w-12 bg-red-500/10 border border-red-500/20 items-center justify-center rounded-xl active:scale-95 transition-all text-red-500 hover:bg-red-500 hover:text-white"
+                                disabled={loading}
+                                className={`flex h-10 w-10 md:h-12 md:w-12 bg-red-500/10 border border-red-500/20 items-center justify-center rounded-xl transition-all text-red-500 hover:bg-red-500 hover:text-white ${loading ? 'opacity-40 cursor-not-allowed' : 'active:scale-95'}`}
                                 title="Eliminar pregunta"
                             >
                                 <Trash2 size={20} />
