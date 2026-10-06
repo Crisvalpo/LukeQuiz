@@ -563,8 +563,14 @@ export default function Home() {
                                                 {q.cover_image ? (
                                                     <img src={q.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                                 ) : (
-                                                    <div className="w-full h-full bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center">
-                                                        <span className="text-primary/60 font-black text-sm md:text-base tracking-widest">LUKEQUIZ</span>
+                                                    <div className="w-full h-full bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-cyan-500/10 flex items-center justify-center relative overflow-hidden">
+                                                        <div
+                                                            className="absolute inset-0 bg-repeat opacity-20 pointer-events-none"
+                                                            style={{ backgroundImage: "url('/doodle-pattern.png')", backgroundSize: '150px' }}
+                                                        />
+                                                        <span className="relative z-10 text-primary font-black text-xs md:text-sm tracking-widest bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/80 shadow-xs">
+                                                            LUKEQUIZ
+                                                        </span>
                                                     </div>
                                                 )}
 
@@ -588,20 +594,29 @@ export default function Home() {
                                                 </div>
                                             </div>
 
-                                            {/* Mitad Inferior: Info y Controles */}
-                                            <div className="flex-1 flex flex-col p-3.5 bg-white relative">
-                                                <h3 className="text-xs md:text-sm font-black text-slate-900 leading-snug line-clamp-2 uppercase font-display group-hover:text-primary transition-colors">
-                                                    {q.title}
-                                                </h3>
+                                            {/* Mitad Inferior: Info y Controles con fondo doodle y transparencia */}
+                                            <div className="flex-1 flex flex-col p-3 bg-white relative overflow-hidden">
+                                                {/* Textura Doodle de fondo estilo stickers */}
+                                                <div
+                                                    className="absolute inset-0 bg-repeat opacity-25 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none"
+                                                    style={{ backgroundImage: "url('/doodle-pattern.png')", backgroundSize: '175px' }}
+                                                />
 
-                                                <div className="mt-auto flex justify-between items-center pt-2">
+                                                {/* Zona del Título con Transparencia (Glassmorphism sutil) */}
+                                                <div className="relative z-10 bg-white/80 backdrop-blur-[2px] rounded-lg p-2 border border-white/80 shadow-xs">
+                                                    <h3 className="text-xs md:text-sm font-black text-primary leading-snug line-clamp-2 uppercase font-display tracking-tight transition-colors">
+                                                        {q.title}
+                                                    </h3>
+                                                </div>
+
+                                                <div className="mt-auto flex justify-between items-center pt-2 relative z-10">
                                                     {/* Botón Principal INICIAR */}
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
                                                         disabled={!q.questions || q.questions.length === 0}
                                                         className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 text-[11px] font-black tracking-wider transition-all ${
                                                             !q.questions || q.questions.length === 0
-                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                                ? 'bg-slate-100/90 text-slate-400 cursor-not-allowed'
                                                                 : 'bg-primary text-white hover:bg-primary-hover shadow-sm active:scale-95'
                                                         }`}
                                                     >
@@ -613,14 +628,14 @@ export default function Home() {
                                                         <div className="flex gap-1 ml-1.5">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
-                                                                className="p-1.5 bg-slate-100 rounded-lg text-slate-600 hover:text-primary hover:bg-primary/10 transition-all"
+                                                                className="p-1.5 bg-white/85 backdrop-blur-sm border border-slate-200/80 rounded-lg text-slate-700 hover:text-primary hover:bg-white transition-all shadow-xs"
                                                                 title="Configurar"
                                                             >
                                                                 <Settings size={13} />
                                                             </button>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
-                                                                className="p-1.5 bg-rose-50 rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
+                                                                className="p-1.5 bg-rose-50/90 backdrop-blur-sm border border-rose-200/80 rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-xs"
                                                                 title="Eliminar"
                                                             >
                                                                 <Trash2 size={13} />
