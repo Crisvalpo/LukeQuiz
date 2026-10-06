@@ -54,6 +54,13 @@ export default defineConfig({
     })
   ],
   server: {
-    allowedHosts: true
+    allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'https://quiz.lukeapp.cl',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 })
