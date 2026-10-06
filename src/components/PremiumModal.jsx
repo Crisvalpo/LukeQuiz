@@ -432,15 +432,15 @@ export default function PremiumModal({ isOpen, onClose }) {
                                 </div>
                                 <div>
                                     <h3 className="text-xs font-black text-white uppercase tracking-widest">
-                                        Paso 2: Ingresa tu N° de Operación
+                                        Paso 2: Ingresa tu N° de Operación o Transferencia
                                     </h3>
                                     <p className="text-[10px] text-white/60">
-                                        Lo encuentras en la pantalla final de tu banco o en tu correo (ej: 8004439 o 7012125).
+                                        Compatible con cualquier banco (BancoEstado, Falabella, Santander, BCI, etc.). Lo encuentras en el comprobante o correo.
                                     </p>
                                 </div>
                             </div>
                             <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hidden sm:inline-block">
-                                Automático
+                                Multi-Banco
                             </span>
                         </div>
 
@@ -448,7 +448,7 @@ export default function PremiumModal({ isOpen, onClose }) {
                             <input
                                 type="text"
                                 inputMode="numeric"
-                                placeholder="EJ: 8004439 (SOLO NÚMEROS)"
+                                placeholder="EJ: 8004439 O 843206254221"
                                 value={operationNumber}
                                 onChange={(e) => {
                                     setOperationNumber(e.target.value.replace(/[^0-9]/g, ''))

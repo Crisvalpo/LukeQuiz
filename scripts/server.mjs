@@ -235,20 +235,22 @@ async function handleVerifyTransfer(req, res) {
       const { operationNumber } = JSON.parse(body || '{}');
       const cleanOp = String(operationNumber || '').replace(/\D/g, '');
 
-      if (!cleanOp || cleanOp.length < 5 || cleanOp.length > 12) {
+      if (!cleanOp || cleanOp.length < 5 || cleanOp.length > 20) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ ok: false, error: 'El número de operación debe contener entre 5 y 10 dígitos numéricos.' }));
+        return res.end(JSON.stringify({ ok: false, error: 'El número de operación debe contener entre 5 y 20 dígitos numéricos.' }));
       }
 
       console.log(`[API /api/verify-transfer] Verificando operación ${cleanOp} para usuario ${userId}...`);
 
       // 1. Revisar si la transferencia ya fue utilizada en quiz.promo_codes
-      const { data: existingCode, error: queryErr } = await supabaseAdmin
+      const { data: existingCodes, error: queryErr } = await supabaseAdmin
         .schema('quiz')
         .from('promo_codes')
         .select('*')
-        .eq('code', `BE-${cleanOp}`)
-        .maybeSingle();
+        .in('code', [`OP-${cleanOp}`, `BE-${cleanOp}`])
+        .limit(1);
+
+      const existingCode = existingCodes?.[0];
 
       if (queryErr) {
         console.error('[API /api/verify-transfer] Error consultando promo_codes:', queryErr);
@@ -283,12 +285,7 @@ async function handleVerifyTransfer(req, res) {
           let seqs = await imapClient.search({ since: sinceDate, body: cleanOp });
 
           if (!seqs || seqs.length === 0) {
-            // Intentar búsqueda en remitentes bancoestado
-            seqs = await imapClient.search({ since: sinceDate, from: 'bancoestado' });
-          }
-
-          if (!seqs || seqs.length === 0) {
-            // Fallback a correos recientes de los últimos 2 días
+            // Fallback: buscar en todos los correos recientes de los últimos 2 días
             seqs = await imapClient.search({ since: sinceDate });
           }
 
@@ -347,8 +344,8 @@ async function handleVerifyTransfer(req, res) {
         .schema('quiz')
         .from('promo_codes')
         .upsert({
-          code: `BE-${cleanOp}`,
-          type: 'bancoestado_tef',
+          code: `OP-${cleanOp}`,
+          type: 'bank_transfer',
           used_at: new Date().toISOString(),
           used_by: userId
         }, { onConflict: 'code' });
