@@ -506,10 +506,22 @@ export default function EditQuiz() {
 
     return (
         <div
-            className="h-screen bg-surface-lowest text-white font-sans overflow-hidden flex flex-col relative pt-[12vh] md:pt-28"
+            className="h-screen bg-[#240b49] text-white font-sans overflow-hidden flex flex-col relative pt-[12vh] md:pt-28"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
+            {/* Doodle Wallpaper Background */}
+            <div
+                className="fixed inset-0 pointer-events-none bg-cover bg-center opacity-25 md:opacity-30"
+                style={{ backgroundImage: `url('/bg-doodle.jpg')` }}
+            />
+            {/* Ambient Lighting & Kahoot-Style Glows */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none bg-gradient-to-b from-[#240b49]/60 via-[#1a0836]/75 to-[#120428]/90">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 -left-24 w-80 h-80 bg-secondary/15 rounded-full blur-3xl" />
+                <div className="absolute -bottom-20 right-1/4 w-96 h-96 bg-primary-container/20 rounded-full blur-3xl" />
+            </div>
+
             <EditorHeader
                 quiz={quiz}
                 user={user}

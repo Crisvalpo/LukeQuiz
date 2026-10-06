@@ -46,7 +46,7 @@ const QuestionEditor = ({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-[4vh] lg:gap-12 items-stretch flex-1 overflow-y-auto h-full py-[2vh] md:py-4 pr-2 custom-scrollbar">
             {/* Panel Izquierdo: Pregunta y Respuestas */}
-            <div className="lg:col-span-1 space-y-[2vh] md:space-y-4 bg-white/5 p-[3vh] md:p-8 rounded-[3vh] md:rounded-3xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center h-full">
+            <div className="lg:col-span-1 space-y-[2vh] md:space-y-4 bg-white/5 p-[3vh] md:p-8 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl relative z-10 flex flex-col justify-center h-full">
                 <div>
                     <textarea
                         ref={questionInputRef}
@@ -59,7 +59,7 @@ const QuestionEditor = ({
                 </div>
 
                 {/* TTS Engine 2.0 - Control de Sincronización */}
-                <div className="flex items-center justify-between p-[1.5vh] md:p-3 bg-surface-lowest/60 rounded-[2vh] md:rounded-2xl border border-white/5 backdrop-blur-md">
+                <div className="flex items-center justify-between p-[1.5vh] md:p-3 bg-surface-lowest/60 rounded-xl border border-white/5 backdrop-blur-md">
                     <div className="flex items-center gap-[1.5vh] md:gap-3">
                         {!q.audio_url ? (
                             <div className="flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.5vh] md:py-1 bg-red-500/10 rounded-full border border-red-500/20">
@@ -134,7 +134,7 @@ const QuestionEditor = ({
 
             {/* Media & Herramientas */}
             <div className="lg:col-span-1 flex flex-col gap-[2vh] md:gap-4 lg:overflow-hidden lg:h-full">
-                <div className="aspect-video lg:aspect-auto lg:flex-1 min-h-[20vh] md:min-h-[250px] bg-surface-lowest/40 rounded-[3vh] md:rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
+                <div className="aspect-video lg:aspect-auto lg:flex-1 min-h-[20vh] md:min-h-[250px] bg-surface-lowest/40 rounded-2xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
                     <div className="absolute top-[2vh] left-[2vh] md:top-4 md:left-4 z-20 flex gap-2">
                         <span className="text-[0.9vh] md:text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 border border-cyan-400/20 px-[1.5vh] py-[0.8vh] md:px-3 md:py-1.5 rounded-full uppercase">VISTA PREVIA</span>
                     </div>
@@ -196,7 +196,7 @@ const QuestionEditor = ({
                         </div>
                     )}
                 </div>
-                <div className="bg-white/5 p-[2vh] md:p-4 rounded-[2.5vh] md:rounded-2xl border border-white/5 flex flex-col gap-[1.5vh] md:gap-3">
+                <div className="bg-white/5 p-[2vh] md:p-4 rounded-xl border border-white/5 flex flex-col gap-[1.5vh] md:gap-3">
                     <div className="flex items-center gap-[1.5vh] md:gap-4">
                         <div className="p-[1vh] md:p-2 bg-cyan-400/10 rounded-[1vh] md:rounded-xl text-cyan-400"><ImageIcon size={20} className="w-[2vh] h-[2vh] md:w-5 md:h-5" /></div>
                         <input
