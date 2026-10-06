@@ -341,7 +341,11 @@ export default function EditQuiz() {
                 // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
             }
 
+            const { data: sessionData } = await supabase.auth.getSession();
+            const session = sessionData?.session;
+
             let data = null;
+            let lastApiError = null;
             try {
                 const apiRes = await fetch('/api/generate-quiz', {
                     method: 'POST',
@@ -360,9 +364,11 @@ export default function EditQuiz() {
                     data = await apiRes.json();
                 } else {
                     const errPayload = await apiRes.json().catch(() => ({}));
-                    console.warn('Fallo /api/generate-quiz, probando Edge Function fallback:', errPayload);
+                    lastApiError = errPayload.error || `Error HTTP ${apiRes.status}`;
+                    console.warn('Fallo /api/generate-quiz, probando Edge Function fallback:', lastApiError);
                 }
             } catch (errApi) {
+                lastApiError = errApi.message;
                 console.warn('Excepción al conectar con /api/generate-quiz:', errApi);
             }
 
@@ -374,10 +380,12 @@ export default function EditQuiz() {
                         count: count
                     },
                     headers: {
-                        Authorization: `Bearer ${session?.access_token}`
+                        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
                     }
                 });
-                if (edgeError) throw edgeError;
+                if (edgeError) {
+                    throw new Error(lastApiError || edgeError.message || 'Error al generar preguntas con IA');
+                }
                 data = edgeData;
             }
 
