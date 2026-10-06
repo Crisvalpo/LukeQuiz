@@ -17,7 +17,16 @@ import BulkImportPanel from '../components/editor/BulkImportPanel'
 // Tiempo de inactividad tras el último cambio antes de autoguardar
 const AUTOSAVE_DELAY_MS = 1200
 
-const isPlaceholderText = (t) => !t || t.trim() === '¿  ?' || t.trim() === '¿ ?' || !t.trim()
+const isPlaceholderText = (t) => !t || ['¿  ?', '¿ ?', '¿?'].includes(t.trim()) || !t.trim()
+
+const isBlankQuestion = (q) => {
+    if (!q) return true
+    const isTextBlank = isPlaceholderText(q.text)
+    const hasOptions = !!(q.option_a?.trim() || q.option_b?.trim() || q.option_c?.trim() || q.option_d?.trim())
+    const hasImage = !!q.image_url?.trim()
+    const hasAudio = !!q.audio_url?.trim()
+    return isTextBlank && !hasOptions && !hasImage && !hasAudio
+}
 
 const newBlankQuestion = (orderIndex, isCover = false) => ({
     // UUID real desde el inicio: el mismo id vive en local y en la BD
@@ -347,7 +356,28 @@ export default function EditQuiz() {
             const { data: qsData } = await supabase.from('questions').select('*').eq('quiz_id', quizId).order('order_index')
             commitQuiz(qData)
             if (qsData && qsData.length > 0) {
-                commitQuestions(qsData.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
+                // Auto-sanitizar preguntas fantasma previas si hay preguntas reales presentes
+                const hasRealQuestions = qsData.some(q => !isBlankQuestion(q))
+                let validQuestions = qsData
+                if (hasRealQuestions) {
+                    const ghosts = qsData.filter(q => isBlankQuestion(q))
+                    if (ghosts.length > 0) {
+                        ghosts.forEach(g => {
+                            if (g.id) deletedIdsRef.current.add(normalizeId(g.id))
+                        })
+                        validQuestions = qsData.filter(q => !isBlankQuestion(q)).map((q, idx) => ({
+                            ...q,
+                            order_index: idx
+                        }))
+                        markDirty() // Al sincronizar o guardar, se eliminarán definitivamente de Supabase
+                    }
+                }
+
+                if (validQuestions.length > 0) {
+                    commitQuestions(validQuestions.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
+                } else {
+                    commitQuestions([newBlankQuestion(0, true)])
+                }
             } else {
                 commitQuestions([newBlankQuestion(0, true)])
             }
@@ -492,8 +522,22 @@ export default function EditQuiz() {
 
     // ═══════════════════════════ IA / CARGA MASIVA ═══════════════════════════
 
-    const stripPlaceholder = (qs) =>
-        (qs.length === 1 && isPlaceholderText(qs[0].text) && !qs[0].image_url) ? [] : qs
+    /**
+     * Descarta preguntas en blanco/placeholder y marca sus IDs para eliminarlas en Supabase
+     */
+    const cleanAndDiscardBlankQuestions = (qs) => {
+        const kept = []
+        for (const q of qs) {
+            if (isBlankQuestion(q)) {
+                if (q.id) {
+                    deletedIdsRef.current.add(normalizeId(q.id))
+                }
+            } else {
+                kept.push(q)
+            }
+        }
+        return kept
+    }
 
     const handleAiGenerate = async ({ topic, count, ttsEnabled, description }) => {
         if (!topic.trim()) return toast.error('Ingresa un tema para la IA')
@@ -537,7 +581,7 @@ export default function EditQuiz() {
             }
             if (!Array.isArray(data) || data.length === 0) throw new Error('La IA no devolvió preguntas')
 
-            const baseQuestions = stripPlaceholder(questionsRef.current)
+            const baseQuestions = cleanAndDiscardBlankQuestions(questionsRef.current)
             const hasCover = baseQuestions.some(q => q.is_cover)
 
             const newQuestions = data.map((q, i) => ({
@@ -611,7 +655,9 @@ export default function EditQuiz() {
     }
 
     const handleBulkImport = async (newParsedQuestions) => {
-        const baseQuestions = stripPlaceholder(questionsRef.current)
+        if (!newParsedQuestions || newParsedQuestions.length === 0) return
+
+        const baseQuestions = cleanAndDiscardBlankQuestions(questionsRef.current)
         const hasCover = baseQuestions.some(q => q.is_cover)
 
         const imported = newParsedQuestions.map((q, i) => ({
@@ -651,9 +697,9 @@ export default function EditQuiz() {
                 toast.warning('Preguntas importadas (no se encontraron imágenes)', { id: tid })
             }
         } else {
-            toast.success(`${imported.length} preguntas importadas con éxito`)
+            toast.success(`¡${imported.length} preguntas importadas con éxito!`)
         }
-        flushSave()
+        await flushSave()
     }
 
     const handleOpenBulkPanel = () => {

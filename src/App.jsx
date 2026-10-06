@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from './lib/AuthContext'
 import Login from './views/Login'
 import TVEntry from './views/TVEntry'
 import Admin from './views/Admin'
+import Terms from './views/Terms'
+import About from './views/About'
 import { Toaster } from 'sonner'
 import './index.css'
 
@@ -30,6 +32,10 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/join" element={<Join />} />
             <Route path="/tv" element={<TVEntry />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/terminos" element={<Terms />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/acerca" element={<About />} />
             <Route path="/host/:gameId" element={<Host />} />
             <Route path="/screen/:gameId" element={<Screen />} />
             <Route path="/edit/:quizId" element={

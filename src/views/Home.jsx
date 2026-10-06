@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
     Plus, Play, Settings, Trash2, PlusCircle,
@@ -700,6 +700,26 @@ export default function Home() {
                                 )}
                             </>
                         )}
+
+                        {/* Footer informativo y legal */}
+                        <footer className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40 pb-4">
+                            <div className="flex items-center gap-2">
+                                <span>© 2026 LukeQuiz · Hecho para jugar en vivo</span>
+                                <span className="text-white/20">|</span>
+                                <span className="font-mono text-cyan-400/80">quiz.lukeapp.cl</span>
+                            </div>
+                            <div className="flex items-center gap-6 font-bold uppercase tracking-wider text-[11px]">
+                                <Link to="/about" className="hover:text-white transition-colors">
+                                    Acerca de
+                                </Link>
+                                <Link to="/terms" className="hover:text-white transition-colors">
+                                    Términos y Privacidad
+                                </Link>
+                                <a href="mailto:cristianluke@gmail.com" className="hover:text-pink-400 transition-colors">
+                                    Soporte
+                                </a>
+                            </div>
+                        </footer>
                     </div>
                 </div>
             </div>
