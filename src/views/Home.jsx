@@ -13,11 +13,23 @@ import LogoLukeQuiz from '../components/LogoLukeQuiz'
 import { useAuth } from '../lib/AuthContext'
 import Modal from '../components/Modal'
 import PremiumModal from '../components/PremiumModal'
+import { getRemainingPremiumTime } from '../lib/premiumUtils'
 
 const PAGE_SIZE = 12
 
 export default function Home() {
     const { user, refreshProfile } = useAuth()
+    const [currentTime, setCurrentTime] = useState(Date.now())
+
+    useEffect(() => {
+        const interval = setInterval(() => setCurrentTime(Date.now()), 30000)
+        return () => clearInterval(interval)
+    }, [])
+
+    const remainingPremiumText = useMemo(() => {
+        return user?.is_premium ? getRemainingPremiumTime(user?.premium_until) : null
+    }, [user?.is_premium, user?.premium_until, currentTime])
+
     const [activeGames, setActiveGames] = useState([])
     const [quizzes, setQuizzes] = useState([])
     const [loading, setLoading] = useState(true)

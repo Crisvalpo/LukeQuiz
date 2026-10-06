@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import Modal from './Modal'
+import { getDetailedRemainingTime, formatPremiumExpiration } from '../lib/premiumUtils'
 
 export default function PremiumModal({ isOpen, onClose }) {
     const { user, session, refreshProfile } = useAuth()
@@ -241,22 +242,58 @@ export default function PremiumModal({ isOpen, onClose }) {
         <Modal isOpen={isOpen} onClose={onClose} title="Pase Diario Premium">
             <div className="space-y-6">
 
-                {/* Banner Informativo Superior */}
-                <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-primary/15 to-purple-500/15 border border-amber-500/30">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
-                            <Crown size={22} className="animate-pulse" />
+                {/* Banner de Estado Premium */}
+                {user?.is_premium ? (
+                    <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-amber-500/15 border border-emerald-500/40 shadow-xl">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+                                    <Crown size={24} className="animate-pulse" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black bg-emerald-500/25 text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-wider border border-emerald-500/30">
+                                            Pase Activo ✅
+                                        </span>
+                                        {user?.premium_until && (
+                                            <span className="text-[10px] text-white/60 font-medium hidden sm:inline">
+                                                Hasta: {formatPremiumExpiration(user.premium_until)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="text-sm sm:text-base font-black text-white tracking-tight mt-1">
+                                        Tiempo restante: <span className="text-emerald-300 font-black">{getDetailedRemainingTime(user?.premium_until) || 'Pase Activo'}</span>
+                                    </h3>
+                                </div>
+                            </div>
+                            <div className="text-right hidden sm:block shrink-0">
+                                <span className="text-[9px] text-white/40 font-black uppercase tracking-wider block">Beneficios</span>
+                                <span className="text-xs font-black text-emerald-400">DESBLOQUEADOS</span>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-sm md:text-base font-black text-white italic tracking-tight">
-                                Desbloquea todas las funciones profesionales por 24 hrs
-                            </h3>
-                            <p className="text-[11px] md:text-xs text-white/70 font-medium">
-                                Por solo <strong className="text-amber-300 font-black">$1.000 CLP</strong> tienes acceso ilimitado a IA, generación de voz y trivias privadas.
-                            </p>
+
+                        <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px] text-white/70">
+                            <span>¿Quieres extender tu tiempo?</span>
+                            <span className="text-amber-300 font-bold">+24 hrs por cada $1.000 adicional</span>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-primary/15 to-purple-500/15 border border-amber-500/30">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                                <Crown size={22} className="animate-pulse" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm md:text-base font-black text-white italic tracking-tight">
+                                    Desbloquea todas las funciones profesionales por 24 hrs
+                                </h3>
+                                <p className="text-[11px] md:text-xs text-white/70 font-medium">
+                                    Por solo <strong className="text-amber-300 font-black">$1.000 CLP</strong> tienes acceso ilimitado a IA, generación de voz y trivias privadas.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Sección: Beneficios */}
                 <div>

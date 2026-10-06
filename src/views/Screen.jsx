@@ -9,6 +9,57 @@ import LogoLukeQuiz from '../components/LogoLukeQuiz'
 import { audioDirector } from '../lib/audioDirector'
 import { toast } from 'sonner'
 
+const BUBBLE_STYLES = [
+    {
+        bg: 'bg-gradient-to-br from-pink-500/35 via-fuchsia-500/25 to-purple-600/40',
+        border: 'border-pink-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(236,72,153,0.45)]',
+        pill: 'bg-pink-500/30 border-pink-400/50 text-pink-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-cyan-500/35 via-teal-500/25 to-blue-600/40',
+        border: 'border-cyan-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(6,182,212,0.45)]',
+        pill: 'bg-cyan-500/30 border-cyan-400/50 text-cyan-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-amber-500/35 via-orange-500/25 to-yellow-600/40',
+        border: 'border-amber-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(245,158,11,0.45)]',
+        pill: 'bg-amber-500/30 border-amber-400/50 text-amber-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-emerald-500/35 via-green-500/25 to-teal-600/40',
+        border: 'border-emerald-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(16,185,129,0.45)]',
+        pill: 'bg-emerald-500/30 border-emerald-400/50 text-emerald-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-violet-500/35 via-indigo-500/25 to-purple-700/40',
+        border: 'border-violet-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(139,92,246,0.45)]',
+        pill: 'bg-violet-500/30 border-violet-400/50 text-violet-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-rose-500/35 via-red-500/25 to-pink-600/40',
+        border: 'border-rose-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(244,63,94,0.45)]',
+        pill: 'bg-rose-500/30 border-rose-400/50 text-rose-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-sky-500/35 via-blue-500/25 to-cyan-600/40',
+        border: 'border-sky-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(56,189,248,0.45)]',
+        pill: 'bg-sky-500/30 border-sky-400/50 text-sky-100'
+    },
+    {
+        bg: 'bg-gradient-to-br from-lime-500/35 via-emerald-500/25 to-green-600/40',
+        border: 'border-lime-400/60',
+        glow: 'shadow-[0_10px_35px_rgba(132,204,22,0.45)]',
+        pill: 'bg-lime-500/30 border-lime-400/50 text-lime-100'
+    }
+];
+
 export default function Screen() {
     const { gameId } = useParams()
     const { game, setGame, players, loading } = useGameRoom(gameId)
@@ -436,26 +487,74 @@ export default function Screen() {
                             </div>
                         </div>
 
-                        {/* Lado Derecho: Jugadores */}
-                        <div className="flex-1 flex flex-col items-center justify-center p-[4vh] relative">
-                            <div className="mb-[4vh] text-center">
+                        {/* Lado Derecho: Jugadores como Burbujas Flotantes a Color */}
+                        <div className="flex-1 flex flex-col items-center justify-center p-[4vh] relative overflow-hidden">
+                            <div className="mb-[3vh] text-center">
                                 <h2 className="text-[5vh] font-display font-black text-white tracking-widest uppercase items-center flex gap-[2vw]">
                                     Esperando <span className="text-primary flex items-center gap-[1vw]">Jugadores <Activity size={32} className="animate-spin-slow" /></span>
+                                    {players.length > 0 && (
+                                        <span className="text-[2.2vh] font-mono font-black text-amber-300 bg-amber-500/20 px-[1.5vw] py-[0.5vh] rounded-full border border-amber-500/30 tabular-nums">
+                                            {players.length}
+                                        </span>
+                                    )}
                                 </h2>
                             </div>
 
-                            <div className="flex-1 w-full overflow-y-auto px-[3vw] custom-scrollbar">
-                                <div className="grid grid-cols-3 xl:grid-cols-5 gap-[2vh] animate-in fade-in zoom-in duration-1000">
-                                    {players.map((p, index) => (
-                                        <div key={p.id} className="group relative animate-in zoom-in duration-500" style={{ animationDelay: `${index * 50}ms` }}>
-                                            <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-[2vh] blur opacity-0 group-hover:opacity-100 transition duration-500" />
-                                            <div className="relative bg-surface-lowest/80 backdrop-blur-xl border border-white/5 rounded-[2vh] p-[2vh] flex flex-col items-center gap-[1vh] transition-all duration-300 group-hover:scale-110 group-hover:border-primary/30 shadow-xl overflow-hidden">
-                                                <span className="text-[5vh] leading-none drop-shadow-lg filter grayscale group-hover:grayscale-0 transition-all duration-500">{p.emoji || '👤'}</span>
-                                                <p className="text-[1.8vh] font-display font-black text-white uppercase tracking-tight truncate w-full text-center">{p.nickname}</p>
-                                            </div>
+                            <div className="flex-1 w-full overflow-y-auto px-[2vw] custom-scrollbar flex items-center justify-center">
+                                {players.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center gap-[2vh] text-center p-[4vh] opacity-60 animate-pulse">
+                                        <div className="w-[12vh] h-[12vh] rounded-full border-2 border-dashed border-primary/40 flex items-center justify-center">
+                                            <span className="text-[5vh]">🎮</span>
                                         </div>
-                                    ))}
-                                </div>
+                                        <p className="text-[2vh] font-display font-black text-white/70 uppercase tracking-widest">
+                                            ¡Escanea el código QR para entrar a la partida!
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap items-center justify-center gap-[3.5vh] md:gap-[4.5vh] p-[2vh] max-w-5xl">
+                                        {players.map((p, index) => {
+                                            const theme = BUBBLE_STYLES[index % BUBBLE_STYLES.length];
+                                            const animClass = index % 3 === 0 ? 'animate-bubble-1' : index % 3 === 1 ? 'animate-bubble-2' : 'animate-bubble-3';
+                                            const duration = 4.5 + (index % 5) * 0.7; // 4.5s a 7.3s para movimiento suave y fluido
+                                            const delay = (index * 0.35) % 2.5;
+
+                                            return (
+                                                <div
+                                                    key={p.id}
+                                                    className="animate-bubble-pop"
+                                                    style={{ animationDelay: `${Math.min(index * 60, 600)}ms` }}
+                                                >
+                                                    <div
+                                                        className={`${animClass} group relative flex flex-col items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-115`}
+                                                        style={{
+                                                            '--bubble-duration': `${duration}s`,
+                                                            '--bubble-delay': `${delay}s`
+                                                        }}
+                                                    >
+                                                        {/* Burbuja Esférica 3D a Todo Color */}
+                                                        <div className={`relative w-[13vh] h-[13vh] md:w-[15vh] md:h-[15vh] rounded-full ${theme.bg} ${theme.border} ${theme.glow} border-2 backdrop-blur-md flex flex-col items-center justify-center p-[1vh] transition-all duration-300 overflow-hidden`}>
+                                                            {/* Brillos especulares de cristal de la burbuja */}
+                                                            <div className="absolute top-[1.2vh] left-[2vh] w-[4.5vh] h-[2vh] bg-white/45 rounded-full blur-[1px] rotate-[-25deg] pointer-events-none" />
+                                                            <div className="absolute bottom-[1vh] right-[2.2vh] w-[2.2vh] h-[1vh] bg-white/25 rounded-full blur-[1px] pointer-events-none" />
+
+                                                            {/* Avatar / Emoji 100% A TODO COLOR (cero grayscale) */}
+                                                            <span className="text-[6.5vh] md:text-[7.5vh] leading-none drop-shadow-[0_6px_14px_rgba(0,0,0,0.5)] select-none transform group-hover:scale-125 transition-transform duration-300">
+                                                                {p.emoji || '👤'}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Píldora de Nickname flotante */}
+                                                        <div className={`-mt-[1.8vh] relative z-10 px-[1.8vw] py-[0.5vh] rounded-full ${theme.pill} border backdrop-blur-xl shadow-lg max-w-[20vw] truncate`}>
+                                                            <p className="text-[1.8vh] font-display font-black tracking-tight uppercase text-center truncate drop-shadow text-white">
+                                                                {p.nickname}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
