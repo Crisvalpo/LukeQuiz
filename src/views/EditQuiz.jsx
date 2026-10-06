@@ -54,14 +54,18 @@ export default function EditQuiz() {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [isDirty]);
 
-    const handleSafeNavigate = (to) => {
-        if (isDirty) {
-            if (window.confirm('Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?')) {
-                navigate(to);
+    const handleSafeNavigate = async (to) => {
+        if (isDirty && activeQuizId) {
+            const tid = toast.loading('Sincronizando cambios antes de salir...')
+            try {
+                await saveAll(true)
+            } catch (err) {
+                console.warn('Aviso sincronizando al salir:', err)
+            } finally {
+                toast.dismiss(tid)
             }
-            return;
         }
-        navigate(to);
+        navigate(to)
     }
 
     // Auto-foco al cambiar de pregunta
@@ -304,15 +308,60 @@ export default function EditQuiz() {
         }
     }
 
-    const saveAll = async () => {
+    // Auto-guardado instantáneo de imagen individual (Cero Fricción al pasar de pregunta en pregunta)
+    const handleUpdateQuestionImage = async (idx, imageUrl) => {
+        const cleanUrl = imageUrl?.trim() || ''
+
+        // 1. Feedback visual inmediato en React
+        updateQuestion(idx, { image_url: cleanUrl, media_type: cleanUrl ? 'image' : 'none' })
+
+        const targetQ = questions[idx]
+        if (!targetQ) return
+
+        // 2. Si la trivia ya existe en la BD, auto-guardar en segundo plano al instante
+        if (activeQuizId) {
+            const realId = targetQ.id && !String(targetQ.id).startsWith('temp-') ? targetQ.id : null
+
+            if (realId) {
+                try {
+                    const promises = [
+                        supabase
+                            .from('questions')
+                            .update({ image_url: cleanUrl, media_type: cleanUrl ? 'image' : 'none' })
+                            .eq('id', realId)
+                    ]
+
+                    // Si es portada, mantener cover_image en quizzes sincronizado
+                    if (targetQ.is_cover) {
+                        promises.push(
+                            supabase
+                                .from('quizzes')
+                                .update({ cover_image: cleanUrl, updated_at: new Date().toISOString() })
+                                .eq('id', activeQuizId)
+                        )
+                    }
+
+                    await Promise.all(promises)
+                    setIsDirty(false)
+                    toast.success('⚡ Imagen guardada automáticamente', { duration: 1500 })
+                } catch (err) {
+                    console.warn('Aviso al auto-guardar imagen:', err)
+                }
+            } else {
+                setIsDirty(true)
+            }
+        }
+    }
+
+    const saveAll = async (isSilent = false) => {
         if (loading) return // Evita peticiones duplicadas
         setLoading(true)
-        const tid = toast.loading('Guardando trivia...')
+        const tid = !isSilent ? toast.loading('Guardando trivia...') : null
 
         // Temporizador de seguridad de 12s para garantizar que el toast NUNCA quede colgado
-        const safetyTimer = setTimeout(() => {
+        const safetyTimer = !isSilent ? setTimeout(() => {
             toast.dismiss(tid)
-        }, 12000)
+        }, 12000) : null
 
         try {
             let workingQuizId = activeQuizId
@@ -322,6 +371,7 @@ export default function EditQuiz() {
             const coverImage = coverQ?.image_url || quiz?.cover_image || ''
 
             // 1. Guardar o Actualizar Quiz
+            let quizPromise = null
             if (!workingQuizId) {
                 const quizPayload = {
                     title: quiz?.title?.trim() || 'Sin título',
@@ -334,8 +384,11 @@ export default function EditQuiz() {
                     cover_image: coverImage
                 }
 
-                const insertPromise = supabase.from('quizzes').insert(quizPayload).select().single()
-                const { data, error } = await withTimeout(insertPromise, 8000, 'Tiempo de espera agotado al crear la trivia')
+                const { data, error } = await withTimeout(
+                    supabase.from('quizzes').insert(quizPayload).select().single(),
+                    8000,
+                    'Tiempo de espera agotado al crear la trivia'
+                )
 
                 if (error) throw error
                 if (!data) throw new Error('No se recibió confirmación al crear la trivia')
@@ -343,7 +396,6 @@ export default function EditQuiz() {
                 workingQuizId = data.id
                 setActiveQuizId(data.id)
                 setQuiz(data)
-                // Actualizamos la URL sin recargar para no perder el estado
                 window.history.replaceState(null, '', `/edit/${data.id}`)
             } else {
                 const quizUpdatePayload = {
@@ -357,9 +409,7 @@ export default function EditQuiz() {
                     updated_at: new Date().toISOString()
                 }
 
-                const updatePromise = supabase.from('quizzes').update(quizUpdatePayload).eq('id', workingQuizId)
-                const { error } = await withTimeout(updatePromise, 8000, 'Tiempo de espera agotado al actualizar la trivia')
-                if (error) throw error
+                quizPromise = supabase.from('quizzes').update(quizUpdatePayload).eq('id', workingQuizId)
             }
 
             // 2. Guardar Preguntas (Bulk Upsert con UUIDs válidos garantizados)
@@ -387,52 +437,46 @@ export default function EditQuiz() {
                 }
             })
 
-            // Sincronizar eliminaciones: cualquier pregunta en BD que ya no esté en el editor se elimina
-            const savedIds = questionsToUpsert.map(q => q.id).filter(Boolean)
-            if (savedIds.length > 0 && workingQuizId) {
-                const cleanupPromise = supabase
-                    .from('questions')
-                    .delete()
-                    .eq('quiz_id', workingQuizId)
-                    .not('id', 'in', `(${savedIds.join(',')})`)
-
-                await withTimeout(cleanupPromise, 5000, 'Tiempo agotado al limpiar preguntas eliminadas')
-                    .catch(e => console.warn('Aviso limpiando preguntas eliminadas:', e))
-            }
-
+            // Paralelizar guardado de quiz y preguntas para máxima velocidad
             const upsertPromise = supabase
                 .from('questions')
                 .upsert(questionsToUpsert)
                 .select()
 
-            const { data: upsertData, error: upsertError } = await withTimeout(
-                upsertPromise,
+            const parallelOps = quizPromise ? [quizPromise, upsertPromise] : [upsertPromise]
+            const results = await withTimeout(
+                Promise.all(parallelOps),
                 9000,
-                'Tiempo de espera agotado al guardar las preguntas'
+                'Tiempo de espera agotado al guardar'
             )
 
+            const upsertData = quizPromise ? results[1]?.data : results[0]?.data
+            const upsertError = quizPromise ? results[1]?.error : results[0]?.error
             if (upsertError) throw upsertError
 
             if (upsertData && upsertData.length > 0) {
-                // Ordenar las preguntas devueltas por order_index para mantener el orden en el UI
                 const sortedQuestions = [...upsertData].sort((a, b) => a.order_index - b.order_index)
                 setQuestions(sortedQuestions.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
             }
 
             setIsDirty(false)
-            clearTimeout(safetyTimer)
-            toast.success('¡Trivia guardada exitosamente!', { id: tid })
+            if (safetyTimer) clearTimeout(safetyTimer)
+            if (!isSilent && tid) {
+                toast.success('¡Trivia guardada exitosamente!', { id: tid })
+            }
 
             // Redirigir si era nuevo en la URL original
-            if (quizId === 'new') {
+            if (quizId === 'new' && !isSilent) {
                 navigate(`/edit/${workingQuizId}`, { replace: true })
             }
         } catch (e) {
-            clearTimeout(safetyTimer)
+            if (safetyTimer) clearTimeout(safetyTimer)
             console.error('Error en saveAll:', e)
-            toast.error('Error al guardar: ' + (e?.message || 'Error de conexión'), { id: tid })
+            if (!isSilent && tid) {
+                toast.error('Error al guardar: ' + (e?.message || 'Error de conexión'), { id: tid })
+            }
         } finally {
-            clearTimeout(safetyTimer)
+            if (safetyTimer) clearTimeout(safetyTimer)
             setLoading(false)
         }
     }
@@ -570,11 +614,58 @@ export default function EditQuiz() {
                 }
             }
 
-            setQuestions([...baseQuestions, ...newQuestions])
-            setIsDirty(true)
+            // Auto-guardar las preguntas en BD de inmediato para que tengan UUIDs reales y persistencia
+            const allToUpsert = [...baseQuestions, ...newQuestions].map((q, idx) => {
+                const realId = (q.id && !String(q.id).startsWith('temp-'))
+                    ? q.id
+                    : (String(q.id).startsWith('temp-') ? q.id.replace('temp-', '') : crypto.randomUUID())
+
+                return {
+                    id: realId,
+                    quiz_id: workingQuizId,
+                    text: q.text || '',
+                    question: q.text || '',
+                    option_a: q.option_a || '',
+                    option_b: q.option_b || '',
+                    option_c: q.option_c || '',
+                    option_d: q.option_d || '',
+                    correct_option: q.correct_option || 'A',
+                    time_limit: q.time_limit || 10,
+                    order_index: idx,
+                    image_url: q.image_url || '',
+                    audio_url: q.audio_url || '',
+                    last_tts_text: q.last_tts_text || '',
+                    is_cover: idx === 0 ? true : !!q.is_cover
+                }
+            })
+
+            // Si la primera pregunta tiene imagen, asegurar cover_image en quizzes
+            const firstCover = allToUpsert.find(q => q.is_cover && q.image_url) || allToUpsert.find(q => q.image_url)
+            if (firstCover?.image_url) {
+                await supabase
+                    .from('quizzes')
+                    .update({ cover_image: firstCover.image_url, updated_at: new Date().toISOString() })
+                    .eq('id', workingQuizId)
+                    .catch(e => console.warn('Aviso portada IA:', e))
+            }
+
+            const { data: upsertData } = await supabase
+                .from('questions')
+                .upsert(allToUpsert)
+                .select()
+
+            if (upsertData && upsertData.length > 0) {
+                const sorted = [...upsertData].sort((a, b) => a.order_index - b.order_index)
+                setQuestions(sorted.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
+                setIsDirty(false)
+            } else {
+                setQuestions(allToUpsert)
+                setIsDirty(false)
+            }
+
             setShowAiPanel(false)
             setCurrentIdx(baseQuestions.length) // Ir a la primera pregunta generada
-            toast.success(`Protocolo completado: ${newQuestions.length} nuevas preguntas integradas`, { id: tid })
+            toast.success(`¡Trivia generada y guardada con éxito! (${newQuestions.length} preguntas)`, { id: tid })
         } catch (e) {
             toast.error('Error IA: ' + e.message, { id: tid })
         } finally {
@@ -732,6 +823,7 @@ export default function EditQuiz() {
                             user={user}
                             quiz={quiz}
                             onUpdateQuestion={updateQuestion}
+                            onUpdateQuestionImage={handleUpdateQuestionImage}
                             onSetQuestions={setQuestions}
                             onSetCover={handleSetCover}
                             onHandleIndividualTTS={handleIndividualTTS}

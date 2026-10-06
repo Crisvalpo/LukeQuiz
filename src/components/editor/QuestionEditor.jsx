@@ -15,6 +15,7 @@ const QuestionEditor = ({
     user,
     quiz,
     onUpdateQuestion,
+    onUpdateQuestionImage,
     onSetQuestions,
     onSetCover,
     onHandleIndividualTTS,
@@ -156,7 +157,19 @@ const QuestionEditor = ({
 
             {/* Media & Herramientas */}
             <div className="lg:col-span-1 flex flex-col gap-[2vh] md:gap-4 lg:overflow-hidden lg:h-full">
-                <div className="aspect-video lg:aspect-auto lg:flex-1 min-h-[20vh] md:min-h-[250px] bg-surface-lowest/40 rounded-2xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
+                <div
+                    onPaste={(e) => {
+                        const text = e.clipboardData?.getData('text')?.trim();
+                        if (text && (text.startsWith('http://') || text.startsWith('https://') || text.startsWith('data:image/'))) {
+                            e.preventDefault();
+                            if (onUpdateQuestionImage) onUpdateQuestionImage(currentIdx, text);
+                            else onUpdateQuestion(currentIdx, { image_url: text, media_type: 'image' });
+                            toast.success('¡Imagen pegada y guardada!');
+                        }
+                    }}
+                    tabIndex={0}
+                    className="aspect-video lg:aspect-auto lg:flex-1 min-h-[20vh] md:min-h-[250px] bg-surface-lowest/40 rounded-2xl border border-white/5 flex items-center justify-center overflow-hidden relative group outline-none focus:border-cyan-400/40 transition-colors"
+                >
                     <div className="absolute top-[2vh] left-[2vh] md:top-4 md:left-4 z-20 flex gap-2">
                         <span className="text-[0.9vh] md:text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 border border-cyan-400/20 px-[1.5vh] py-[0.8vh] md:px-3 md:py-1.5 rounded-full uppercase">VISTA PREVIA</span>
                     </div>
@@ -194,12 +207,13 @@ const QuestionEditor = ({
                                     <button
                                         key={img.id}
                                         onClick={() => {
-                                            onUpdateQuestion(currentIdx, { image_url: img.url, media_type: 'image' });
-                                            setPickerImages(null);
-                                            toast.success('Imagen asignada');
-                                            if (q.is_cover && onSetCover) {
-                                                onSetCover(currentIdx, img.url);
+                                            if (onUpdateQuestionImage) {
+                                                onUpdateQuestionImage(currentIdx, img.url);
+                                            } else {
+                                                onUpdateQuestion(currentIdx, { image_url: img.url, media_type: 'image' });
+                                                if (q.is_cover && onSetCover) onSetCover(currentIdx, img.url);
                                             }
+                                            setPickerImages(null);
                                         }}
                                         className="relative rounded-[1vh] md:rounded-lg overflow-hidden border-2 border-white/10 hover:border-cyan-400 transition-all aspect-video group/img"
                                         title={img.alt || ''}
@@ -235,6 +249,21 @@ const QuestionEditor = ({
                             className="flex-1 bg-transparent text-[1.2vh] md:text-sm font-mono text-cyan-400 outline-none placeholder:text-cyan-400/20"
                             value={q.image_url || ''}
                             onChange={e => onUpdateQuestion(currentIdx, { image_url: e.target.value })}
+                            onBlur={e => {
+                                const val = e.target.value?.trim();
+                                if (val && val !== q.image_url) {
+                                    if (onUpdateQuestionImage) onUpdateQuestionImage(currentIdx, val);
+                                }
+                            }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const val = e.target.value?.trim();
+                                    if (val) {
+                                        if (onUpdateQuestionImage) onUpdateQuestionImage(currentIdx, val);
+                                    }
+                                }
+                            }}
                             placeholder="Introduce URL de imagen..."
                         />
                     </div>
@@ -274,11 +303,13 @@ const QuestionEditor = ({
                                     const cleanText = text?.trim();
 
                                     if (cleanText) {
-                                        onUpdateQuestion(currentIdx, { image_url: cleanText, media_type: 'image' });
-                                        toast.success('¡Contenido pegado!');
-                                        if (q.is_cover && onSetCover) {
-                                            onSetCover(currentIdx, cleanText);
+                                        if (onUpdateQuestionImage) {
+                                            onUpdateQuestionImage(currentIdx, cleanText);
+                                        } else {
+                                            onUpdateQuestion(currentIdx, { image_url: cleanText, media_type: 'image' });
+                                            if (q.is_cover && onSetCover) onSetCover(currentIdx, cleanText);
                                         }
+                                        toast.success('¡Contenido pegado!');
                                     } else {
                                         toast.error('El portapapeles está vacío');
                                     }
@@ -295,7 +326,10 @@ const QuestionEditor = ({
                         </button>
                         <button
                             type="button"
-                            onClick={() => onUpdateQuestion(currentIdx, { image_url: '', media_type: 'none' })}
+                            onClick={() => {
+                                if (onUpdateQuestionImage) onUpdateQuestionImage(currentIdx, '');
+                                else onUpdateQuestion(currentIdx, { image_url: '', media_type: 'none' });
+                            }}
                             title="Quitar imagen actual"
                             className="flex items-center justify-center gap-[0.8vh] md:gap-1.5 py-[1.2vh] md:py-2.5 bg-red-500/10 text-red-500 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-red-500/20 active:scale-95 transition-all uppercase tracking-widest border border-red-500/20"
                         >
