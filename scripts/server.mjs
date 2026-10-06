@@ -71,19 +71,94 @@ function getGeminiApiKey() {
   return getEnvValue('GEMINI_API_KEY', null);
 }
 
-async function handleGenerateQuiz(req, res) {
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
-  req.on('end', async () => {
-    try {
-      const { topic, description, count } = JSON.parse(body || '{}');
-      const apiKey = getGeminiApiKey();
+// ═══════════════════════════ SEGURIDAD Y PREVENCIÓN DE ABUSOS ═══════════════════════════
 
-      if (!apiKey) {
-        console.error('[API /api/generate-quiz] GEMINI_API_KEY no encontrada');
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Configuración incompleta: GEMINI_API_KEY no encontrada en el servidor' }));
+const rateLimitMap = new Map();
+
+// Limpia registros caducados cada 10 minutos
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of rateLimitMap.entries()) {
+    if (now > record.resetAt) rateLimitMap.delete(key);
+  }
+}, 600000);
+
+function getClientIp(req) {
+  const xForwarded = req.headers['x-forwarded-for'];
+  if (xForwarded) {
+    return xForwarded.split(',')[0].trim();
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
+function checkRateLimit(key, maxRequests = 5, windowMs = 60000) {
+  const now = Date.now();
+  const record = rateLimitMap.get(key) || { count: 0, resetAt: now + windowMs };
+  if (now > record.resetAt) {
+    record.count = 1;
+    record.resetAt = now + windowMs;
+    rateLimitMap.set(key, record);
+    return false;
+  }
+  record.count += 1;
+  rateLimitMap.set(key, record);
+  return record.count > maxRequests;
+}
+
+function readJsonBody(req, res, maxBytes = 100 * 1024) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    let size = 0;
+
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > maxBytes) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Carga útil demasiado grande (máximo 100 KB permitido)' }));
+        req.destroy();
+        return reject(new Error('Payload Too Large'));
       }
+      body += chunk;
+    });
+
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body || '{}');
+        resolve(parsed);
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Formato JSON inválido' }));
+        reject(err);
+      }
+    });
+
+    req.on('error', reject);
+  });
+}
+
+async function handleGenerateQuiz(req, res) {
+  const ip = getClientIp(req);
+  if (checkRateLimit(`gen:${ip}`, 10, 60000)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Demasiadas solicitudes de generación con IA. Por favor espera un minuto.' }));
+  }
+
+  let parsed;
+  try {
+    parsed = await readJsonBody(req, res);
+  } catch {
+    return;
+  }
+
+  try {
+    const { topic, description, count } = parsed;
+    const apiKey = getGeminiApiKey();
+
+    if (!apiKey) {
+      console.error('[API /api/generate-quiz] GEMINI_API_KEY no encontrada');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Configuración incompleta: GEMINI_API_KEY no encontrada en el servidor' }));
+    }
 
       const safeCount = Math.min(Math.max(parseInt(count, 10) || 5, 1), 20);
       const safeTopic = String(topic || '').slice(0, 200);
@@ -159,90 +234,108 @@ FORMATO JSON: [{"text": "...", "option_a": "...", "option_b": "...", "option_c":
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));
     }
-  });
 }
 
 async function handleGenerateTts(req, res) {
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
-  req.on('end', async () => {
-    try {
-      const { text, questionId, quizId } = JSON.parse(body || '{}');
-      if (!text || !questionId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Faltan parámetros requeridos (text, questionId)' }));
-      }
+  const ip = getClientIp(req);
+  if (checkRateLimit(`tts:${ip}`, 25, 60000)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Demasiadas solicitudes de voz neuronal. Por favor espera un minuto.' }));
+  }
 
-      const safeText = String(text).slice(0, 300);
-      const safeQuizId = String(quizId || 'general').replace(/[^a-zA-Z0-9_-]/g, '');
-      const safeQuestionId = String(questionId).replace(/[^a-zA-Z0-9_-]/g, '');
+  let parsed;
+  try {
+    parsed = await readJsonBody(req, res);
+  } catch {
+    return;
+  }
 
-      // Guardar en dist/uploads/audio/quizId/questionId.mp3
-      const audioDir = path.join(DIST_DIR, 'uploads', 'audio', safeQuizId);
-      fs.mkdirSync(audioDir, { recursive: true });
-      const filePath = path.join(audioDir, `${safeQuestionId}.mp3`);
-
-      // Descargar audio MP3 de Google TTS
-      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(safeText)}&tl=es&client=tw-ob`;
-      const ttsResp = await fetch(ttsUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (!ttsResp.ok) {
-        throw new Error(`TTS respondió con código ${ttsResp.status}`);
-      }
-
-      const arrayBuffer = await ttsResp.arrayBuffer();
-      fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
-
-      const publicUrl = `/uploads/audio/${safeQuizId}/${safeQuestionId}.mp3`;
-      console.log(`[API /api/generate-tts] Audio generado exitosamente: ${publicUrl}`);
-
-      res.writeHead(200, {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
-      });
-      res.end(JSON.stringify({ publicUrl }));
-    } catch (err) {
-      console.error('[API /api/generate-tts] Error:', err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
+  try {
+    const { text, questionId, quizId } = parsed;
+    if (!text || !questionId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Faltan parámetros requeridos (text, questionId)' }));
     }
-  });
+
+    const safeText = String(text).slice(0, 300);
+    const safeQuizId = String(quizId || 'general').replace(/[^a-zA-Z0-9_-]/g, '');
+    const safeQuestionId = String(questionId).replace(/[^a-zA-Z0-9_-]/g, '');
+
+    // Guardar en dist/uploads/audio/quizId/questionId.mp3
+    const audioDir = path.join(DIST_DIR, 'uploads', 'audio', safeQuizId);
+    fs.mkdirSync(audioDir, { recursive: true });
+    const filePath = path.join(audioDir, `${safeQuestionId}.mp3`);
+
+    // Descargar audio MP3 de Google TTS
+    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(safeText)}&tl=es&client=tw-ob`;
+    const ttsResp = await fetch(ttsUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!ttsResp.ok) {
+      throw new Error(`TTS respondió con código ${ttsResp.status}`);
+    }
+
+    const arrayBuffer = await ttsResp.arrayBuffer();
+    fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+
+    const publicUrl = `/uploads/audio/${safeQuizId}/${safeQuestionId}.mp3`;
+    console.log(`[API /api/generate-tts] Audio generado exitosamente: ${publicUrl}`);
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store'
+    });
+    res.end(JSON.stringify({ publicUrl }));
+  } catch (err) {
+    console.error('[API /api/generate-tts] Error:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: err.message }));
+  }
 }
 
 async function handleVerifyTransfer(req, res) {
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
-  req.on('end', async () => {
-    try {
-      const authHeader = req.headers['authorization'] || '';
-      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+  const ip = getClientIp(req);
+  if (checkRateLimit(`verify:${ip}`, 6, 60000)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: false, error: 'Has alcanzado el límite de intentos de verificación. Por favor espera un minuto antes de reintentar.' }));
+  }
 
-      if (!token) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ ok: false, error: 'Debes iniciar sesión para activar tu pase premium' }));
-      }
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
 
-      // Validar usuario mediante JWT en Supabase
-      const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
-      if (authErr || !authData?.user?.id) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ ok: false, error: 'Sesión no válida o expirada. Por favor recarga e inicia sesión nuevamente.' }));
-      }
+  if (!token) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: false, error: 'Debes iniciar sesión para activar tu pase premium' }));
+  }
 
-      const userId = authData.user.id;
-      const { operationNumber } = JSON.parse(body || '{}');
-      const cleanOp = String(operationNumber || '').replace(/\D/g, '');
+  let parsed;
+  try {
+    parsed = await readJsonBody(req, res);
+  } catch {
+    return;
+  }
 
-      if (!cleanOp || cleanOp.length < 5 || cleanOp.length > 20) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ ok: false, error: 'El número de operación debe contener entre 5 y 20 dígitos numéricos.' }));
-      }
+  try {
+    // Validar usuario mediante JWT en Supabase
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !authData?.user?.id) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, error: 'Sesión no válida o expirada. Por favor recarga e inicia sesión nuevamente.' }));
+    }
 
-      console.log(`[API /api/verify-transfer] Verificando operación ${cleanOp} para usuario ${userId}...`);
+    const userId = authData.user.id;
+    const { operationNumber } = parsed;
+    const cleanOp = String(operationNumber || '').replace(/\D/g, '');
+
+    if (!cleanOp || cleanOp.length < 5 || cleanOp.length > 20) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, error: 'El número de operación debe contener entre 5 y 20 dígitos numéricos.' }));
+    }
+
+    console.log(`[API /api/verify-transfer] Verificando operación ${cleanOp} para usuario ${userId} desde IP ${ip}...`);
 
       // 1. Revisar si la transferencia ya fue utilizada en quiz.promo_codes
       const { data: existingCodes, error: queryErr } = await supabaseAdmin
@@ -402,25 +495,37 @@ async function handleVerifyTransfer(req, res) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: err.message }));
     }
-  });
 }
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url.split('?')[0];
 
-  // CORS y cabeceras de seguridad
+  // Cabeceras estrictas de seguridad (Defensa en Profundidad)
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  const origin = req.headers['origin'] || '';
+  const allowedOrigins = [
+    'https://quiz.lukeapp.cl',
+    'https://lukeapp.cl',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:3006'
+  ];
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : 'https://quiz.lukeapp.cl';
 
   // Ruta API para verificación bancaria automática
   if (urlPath === '/api/verify-transfer' || urlPath === '/api/verify-transfer/') {
     if (req.method === 'POST') {
+      res.setHeader('Access-Control-Allow-Origin', corsOrigin);
       return handleVerifyTransfer(req, res);
     }
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
       });
@@ -433,11 +538,12 @@ const server = http.createServer((req, res) => {
   // Ruta API para generación de trivias con Gemini
   if (urlPath === '/api/generate-quiz' || urlPath === '/api/generate-quiz/') {
     if (req.method === 'POST') {
+      res.setHeader('Access-Control-Allow-Origin', corsOrigin);
       return handleGenerateQuiz(req, res);
     }
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
       });
@@ -450,11 +556,12 @@ const server = http.createServer((req, res) => {
   // Ruta API para generación de TTS neuronal
   if (urlPath === '/api/generate-tts' || urlPath === '/api/generate-tts/') {
     if (req.method === 'POST') {
+      res.setHeader('Access-Control-Allow-Origin', corsOrigin);
       return handleGenerateTts(req, res);
     }
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
       });

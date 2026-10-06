@@ -185,8 +185,13 @@ export default function EditQuiz() {
                     if (error) throw error
                 }
 
-                // 2. Preguntas: upsert completo (ids estables generados en cliente)
-                const rows = buildQuestionRows(qs, workingQuizId)
+                // 2. Preguntas: upsert completo (límite estricto de 20 preguntas)
+                if (qs.length > MAX_QUESTIONS_PER_QUIZ) {
+                    qs.slice(MAX_QUESTIONS_PER_QUIZ).forEach(extra => {
+                        if (extra.id) deletedIdsRef.current.add(normalizeId(extra.id))
+                    })
+                }
+                const rows = buildQuestionRows(qs.slice(0, MAX_QUESTIONS_PER_QUIZ), workingQuizId)
                 if (rows.length > 0) {
                     const { error } = await supabase.from('questions').upsert(rows)
                     if (error) throw error
@@ -415,8 +420,13 @@ export default function EditQuiz() {
         markDirty()
     }
 
+const MAX_QUESTIONS_PER_QUIZ = 20
+
     const addNewQuestion = () => {
         if (!checkTitleRequired()) return
+        if (questionsRef.current.length >= MAX_QUESTIONS_PER_QUIZ) {
+            return toast.error(`Límite alcanzado: máximo ${MAX_QUESTIONS_PER_QUIZ} preguntas por trivia`, { icon: '🛑' })
+        }
         const len = questionsRef.current.length
         commitQuestions(prev => [...prev, newBlankQuestion(prev.length)])
         markDirty()
@@ -542,6 +552,16 @@ export default function EditQuiz() {
     const handleAiGenerate = async ({ topic, count, ttsEnabled, description }) => {
         if (!topic.trim()) return toast.error('Ingresa un tema para la IA')
 
+        const baseQuestions = cleanAndDiscardBlankQuestions(questionsRef.current)
+        const remainingSlots = Math.max(0, MAX_QUESTIONS_PER_QUIZ - baseQuestions.length)
+        if (remainingSlots <= 0) {
+            return toast.error(`Esta trivia ya tiene el máximo permitido de ${MAX_QUESTIONS_PER_QUIZ} preguntas`, { icon: '🛑' })
+        }
+        const effectiveCount = Math.min(count, remainingSlots)
+        if (effectiveCount < count) {
+            toast.info(`Se generarán ${effectiveCount} preguntas para respetar el tope de ${MAX_QUESTIONS_PER_QUIZ}`)
+        }
+
         setLoading(true)
         const tid = toast.loading('Consultando oráculo de la IA...')
         try {
@@ -557,7 +577,7 @@ export default function EditQuiz() {
                         'Content-Type': 'application/json',
                         ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
                     },
-                    body: JSON.stringify({ topic, description, count })
+                    body: JSON.stringify({ topic, description, count: effectiveCount })
                 })
                 if (apiRes.ok) {
                     data = await apiRes.json()
@@ -573,7 +593,7 @@ export default function EditQuiz() {
 
             if (!data) {
                 const { data: edgeData, error: edgeError } = await supabase.functions.invoke('generate-quiz', {
-                    body: { topic, description, count },
+                    body: { topic, description, count: effectiveCount },
                     headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
                 })
                 if (edgeError) throw new Error(lastApiError || edgeError.message || 'Error al generar preguntas con IA')
@@ -581,10 +601,9 @@ export default function EditQuiz() {
             }
             if (!Array.isArray(data) || data.length === 0) throw new Error('La IA no devolvió preguntas')
 
-            const baseQuestions = cleanAndDiscardBlankQuestions(questionsRef.current)
             const hasCover = baseQuestions.some(q => q.is_cover)
 
-            const newQuestions = data.map((q, i) => ({
+            const newQuestions = data.slice(0, remainingSlots).map((q, i) => ({
                 ...newBlankQuestion(baseQuestions.length + i, !hasCover && i === 0),
                 text: q.text || 'Sin título',
                 option_a: q.option_a || '',
@@ -658,9 +677,20 @@ export default function EditQuiz() {
         if (!newParsedQuestions || newParsedQuestions.length === 0) return
 
         const baseQuestions = cleanAndDiscardBlankQuestions(questionsRef.current)
+        const remainingSlots = Math.max(0, MAX_QUESTIONS_PER_QUIZ - baseQuestions.length)
+        if (remainingSlots <= 0) {
+            return toast.error(`Esta trivia ya tiene el máximo permitido de ${MAX_QUESTIONS_PER_QUIZ} preguntas`, { icon: '🛑' })
+        }
+
+        let toImport = newParsedQuestions
+        if (toImport.length > remainingSlots) {
+            toast.warning(`Solo se importaron ${remainingSlots} preguntas (límite máximo permitido: ${MAX_QUESTIONS_PER_QUIZ})`, { duration: 5000 })
+            toImport = toImport.slice(0, remainingSlots)
+        }
+
         const hasCover = baseQuestions.some(q => q.is_cover)
 
-        const imported = newParsedQuestions.map((q, i) => ({
+        const imported = toImport.map((q, i) => ({
             ...newBlankQuestion(baseQuestions.length + i, !hasCover && i === 0),
             ...q,
             id: crypto.randomUUID(),
