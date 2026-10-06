@@ -14,7 +14,7 @@ const NavigationBar = ({
     onSave
 }) => {
     return (
-        <footer className="fixed bottom-0 left-0 right-0 h-[10vh] md:h-20 bg-black/80 backdrop-blur-md border-t border-white/10 z-50 shadow-2xl transition-all">
+        <footer className="fixed bottom-0 left-0 right-0 h-[10vh] md:h-20 bg-[#180830]/60 backdrop-blur-xl border-t border-white/10 z-50 shadow-2xl transition-all">
             <div className="h-full max-w-7xl mx-auto flex items-center justify-between px-4 md:px-20">
                 {/* Controles de Navegación */}
                 <div className="flex items-center gap-4 md:gap-8">

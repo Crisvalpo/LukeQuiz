@@ -143,7 +143,8 @@ const QuestionEditor = ({
                             onClick={() => {
                                 const newQs = questions.map((item, i) => ({ ...item, is_cover: i === currentIdx }))
                                 onSetQuestions(newQs)
-                                toast.success('Esta imagen será la portada del quiz')
+                                onUpdateQuestion(currentIdx, { is_cover: true })
+                                toast.success('Portada seleccionada. Recuerda pulsar GUARDAR TRIVIA.')
                             }}
                             className={`flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.8vh] md:py-1.5 rounded-full border-2 transition-all backdrop-blur-md ${q.is_cover ? 'bg-pink-500/90 text-white border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.3)]' : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/30'}`}
                             title="Usar como portada del quiz"

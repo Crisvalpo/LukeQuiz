@@ -12,7 +12,7 @@ const EditorHeader = ({
     onOpenPremiumModal
 }) => {
     return (
-        <header className="fixed top-0 left-0 right-0 h-[10vh] md:h-24 bg-black/80 backdrop-blur-md border-b border-white/10 px-[4vw] md:px-20 flex items-center justify-between z-50 shadow-2xl transition-all">
+        <header className="fixed top-0 left-0 right-0 h-[10vh] md:h-24 bg-[#180830]/60 backdrop-blur-xl border-b border-white/10 px-[4vw] md:px-20 flex items-center justify-between z-50 shadow-2xl transition-all">
             <div className="flex items-center gap-[2vw] md:gap-6 flex-1 overflow-hidden">
                 <button
                     onClick={() => onSafeNavigate('/')}
