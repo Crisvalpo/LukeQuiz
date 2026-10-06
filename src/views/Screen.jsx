@@ -413,7 +413,7 @@ export default function Screen() {
                             </div>
                             <div className="space-y-[1vh] text-center">
                                 <p className="text-[2vh] font-display font-black text-white uppercase tracking-tight">O ingresa en:</p>
-                                <p className="text-[3vh] font-display font-black text-primary italic lowercase tracking-tighter">quiz.lukeapp.me/join</p>
+                                <p className="text-[3vh] font-display font-black text-primary italic lowercase tracking-tighter">quiz.lukeapp.cl/join</p>
                             </div>
                         </div>
 

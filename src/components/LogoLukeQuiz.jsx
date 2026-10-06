@@ -15,18 +15,27 @@ export default function LogoLukeQuiz({ className = "" }) {
         <div className="absolute -inset-2 bg-gradient-to-r from-pink-500/10 via-purple-500/20 to-pink-500/20 blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
         {/* Texto "Luke" */}
-        <span className="text-3xl sm:text-5xl md:text-6xl font-black italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">
+        <span 
+          style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900 }}
+          className="text-3xl sm:text-5xl md:text-6xl italic tracking-tight text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)] antialiased"
+        >
           Luke
         </span>
 
         {/* Texto "QUIZ" */}
-        <span className="text-3xl sm:text-5xl md:text-6xl font-black italic tracking-tight text-[#ff2a85] drop-shadow-[0_0_15px_rgba(255,42,133,0.5)]">
+        <span 
+          style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900 }}
+          className="text-3xl sm:text-5xl md:text-6xl italic tracking-tight text-[#ff2a85] drop-shadow-[0_0_15px_rgba(255,42,133,0.5)] antialiased"
+        >
           QUIZ
         </span>
 
         {/* Signo de Interrogación Neón Animado */}
         <div className="relative inline-flex items-center ml-1 transform origin-bottom transition-transform duration-300 group-hover:scale-110">
-          <span className="luke-neon-question text-3xl sm:text-5xl md:text-6xl font-black italic text-[#ff2a85] inline-block">
+          <span 
+            style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900 }}
+            className="luke-neon-question text-3xl sm:text-5xl md:text-6xl italic text-[#ff2a85] inline-block antialiased"
+          >
             ?
           </span>
 

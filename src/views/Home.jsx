@@ -199,311 +199,322 @@ export default function Home() {
     }
 
     return (
-        <div className="min-h-screen bg-surface selection:bg-primary/30 font-body relative overflow-hidden">
-            {/* Background Glow */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
-                <div className="absolute top-1/4 -right-12 w-1/3 h-1/3 bg-primary rounded-full blur-3xl" />
+        <div className="min-h-screen bg-[#240b49] selection:bg-primary/30 font-body relative overflow-hidden">
+            {/* Doodle Wallpaper Background */}
+            <div
+                className="fixed inset-0 pointer-events-none bg-cover bg-center opacity-30 md:opacity-35"
+                style={{ backgroundImage: `url('/bg-doodle.jpg')` }}
+            />
+            {/* Ambient Lighting & Kahoot-Style Glows */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none bg-gradient-to-b from-[#240b49]/60 via-[#1a0836]/75 to-[#120428]/90">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 -left-24 w-80 h-80 bg-secondary/15 rounded-full blur-3xl" />
+                <div className="absolute -bottom-20 right-1/4 w-96 h-96 bg-primary-container/20 rounded-full blur-3xl" />
             </div>
 
-            <div className="w-full h-screen flex flex-col px-[4vw] md:px-12 pt-[2vh] md:pt-6 pb-[2vh] md:pb-6 relative z-10 max-w-[1700px] mx-auto">
-                <header className="flex flex-col md:flex-row justify-between items-center mb-[4vh] md:mb-6 px-[2vw] md:px-8 pt-[2vh] md:pt-4 gap-[2vh] md:gap-0 shrink-0 relative z-20">
-                    <div className="space-y-[1vh] md:space-y-4 text-center md:text-left">
-                        <LogoLukeQuiz className="w-[60vw] md:w-80 h-auto md:-ml-3 mx-auto md:mx-0" />
+            <div className="w-full h-screen flex flex-col px-4 md:px-10 pt-4 pb-4 relative z-10 max-w-[1700px] mx-auto">
+                {/* Header Superior */}
+                <header className="flex flex-col md:flex-row justify-between items-center mb-4 px-2 md:px-4 pt-2 gap-3 md:gap-0 shrink-0 relative z-20">
+                    <div className="space-y-1 text-center md:text-left">
+                        <LogoLukeQuiz className="w-56 md:w-72 h-auto mx-auto md:mx-0" />
                     </div>
 
-                    <div className="flex items-center justify-center md:justify-end gap-[1vh] md:gap-4 lg:gap-6 flex-nowrap">
-                        {/* MODO TV + MODO JUEGO: solo íconos en mobile, ícono+texto en desktop */}
-                        <div className="flex items-center gap-[0.8vh] md:gap-2 h-[7vh] md:h-[64px]">
+                    <div className="flex items-center justify-center md:justify-end gap-2 md:gap-4 flex-nowrap">
+                        {/* Modo TV + Modo Juego */}
+                        <div className="flex items-center gap-2 h-11">
                             <button
                                 onClick={() => navigate('/tv')}
                                 title="Modo TV"
-                                className="flex items-center justify-center h-full gap-[1vh] md:gap-2 bg-white/5 border border-primary/20 hover:bg-primary/5 text-primary px-[1.5vh] md:px-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                                className="flex items-center justify-center h-full gap-2 bg-white/10 hover:bg-white/15 border border-white/15 text-white px-3 md:px-4 rounded-xl font-display font-black text-[11px] tracking-wider transition-all group shadow-sm"
                             >
-                                <Monitor size={18} className="group-hover:scale-110 transition-transform shrink-0" />
+                                <Monitor size={17} className="text-secondary group-hover:scale-110 transition-transform shrink-0" />
                                 <span className="hidden md:block">MODO TV</span>
                             </button>
                             <button
                                 onClick={() => navigate('/join')}
                                 title="Modo Juego"
-                                className="flex items-center justify-center h-full gap-[1vh] md:gap-2 bg-white/5 border border-secondary/20 hover:bg-secondary/5 text-secondary px-[1.5vh] md:px-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.2vh] md:text-[10px] tracking-[0.2em] transition-all group"
+                                className="flex items-center justify-center h-full gap-2 bg-white/10 hover:bg-white/15 border border-white/15 text-white px-3 md:px-4 rounded-xl font-display font-black text-[11px] tracking-wider transition-all group shadow-sm"
                             >
-                                <Gamepad2 size={18} className="group-hover:scale-110 transition-transform shrink-0" />
+                                <Gamepad2 size={17} className="text-primary group-hover:scale-110 transition-transform shrink-0" />
                                 <span className="hidden md:block">MODO JUEGO</span>
                             </button>
                         </div>
 
                         {user ? (
-                            <div className="flex items-center gap-[2vw] md:gap-4 bg-white/5 p-[1vh] md:p-2 pr-[2vh] md:pr-6 rounded-[2vh] md:rounded-2xl border border-white/10 group">
-                                <div className="w-[5vh] h-[5vh] md:w-12 md:h-12 rounded-[1.2vh] md:rounded-xl bg-primary/20 flex items-center justify-center text-primary font-black border border-primary/20 uppercase relative text-[2vh] md:text-base">
+                            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-1.5 pr-4 rounded-xl border border-white/15 group shadow-sm">
+                                <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-black border border-primary/30 uppercase relative text-sm">
                                     {user?.email?.[0]}
                                     {user?.is_premium && (
-                                        <div className="absolute -top-1 -right-1 w-[2vh] h-[2vh] md:w-5 md:h-5 bg-amber-500 rounded-full flex items-center justify-center border-2 border-surface animate-bounce shadow-lg shadow-amber-500/50">
-                                            <Ticket size={10} className="text-white" fill="white" />
+                                        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full flex items-center justify-center border border-[#240b49] animate-bounce shadow-md">
+                                            <Ticket size={8} className="text-white" fill="white" />
                                         </div>
                                     )}
                                 </div>
                                 <div className="hidden sm:block">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-[1.2vh] md:text-[10px] font-black tracking-widest text-primary uppercase leading-tight">Mi Cuenta</p>
-                                        {user?.is_premium && <span className="text-[1vh] md:text-[8px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full font-black border border-amber-500/20">PREMIUM</span>}
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="text-[10px] font-black tracking-wider text-pink-300 uppercase leading-tight">Mi Cuenta</p>
+                                        {user?.is_premium && <span className="text-[8px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-md font-black border border-amber-500/30">PREMIUM</span>}
                                     </div>
-                                    <p className="text-[1.4vh] md:text-[12px] font-bold text-white/60 truncate max-w-[100px] md:max-w-[120px]">{user.email}</p>
+                                    <p className="text-[12px] font-bold text-white/80 truncate max-w-[120px]">{user.email}</p>
                                 </div>
-                                <div className="flex gap-[0.5vh] md:gap-1 ml-2">
+                                <div className="flex gap-1 ml-1">
                                     {user?.email === 'cristianluke@gmail.com' && (
                                         <button
                                             onClick={() => navigate('/admin')}
-                                            className="p-[1vh] md:p-2 text-white/20 hover:text-primary transition-colors"
+                                            className="p-1.5 text-white/40 hover:text-primary transition-colors"
                                             title="Panel Admin"
                                         >
-                                            <HardDrive size={18} />
+                                            <HardDrive size={16} />
                                         </button>
                                     )}
                                     <button
                                         onClick={() => setIsModalOpen(true)}
-                                        className="p-[1vh] md:p-2 text-white/20 hover:text-amber-500 transition-colors"
+                                        className="p-1.5 text-white/40 hover:text-amber-400 transition-colors"
                                         title="Canjear Código"
                                     >
-                                        <Ticket size={18} />
+                                        <Ticket size={16} />
                                     </button>
-                                    <button onClick={handleLogout} className="p-[1vh] md:p-2 text-white/20 hover:text-red-500 transition-colors" title="Cerrar Sesión">
-                                        <LogOut size={18} />
+                                    <button onClick={handleLogout} className="p-1.5 text-white/40 hover:text-red-400 transition-colors" title="Cerrar Sesión">
+                                        <LogOut size={16} />
                                     </button>
                                 </div>
                             </div>
                         ) : (
                             <button
                                 onClick={() => navigate('/login')}
-                                className="bg-white/5 hover:bg-white/10 text-white px-[3vh] md:px-8 py-[1.5vh] md:py-4 rounded-[1.5vh] md:rounded-xl font-display font-black text-[1.4vh] md:text-[12px] tracking-widest transition-all border border-white/10"
+                                className="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-xl font-display font-black text-xs tracking-wider transition-all border border-white/15 shadow-sm"
                             >
                                 INICIAR SESIÓN
                             </button>
                         )}
                         <button
                             onClick={handleCreateQuiz}
-                            className="bg-primary hover:bg-primary-hover text-white p-[1.5vh] md:px-6 lg:px-10 md:py-4 lg:py-5 rounded-[1.5vh] md:rounded-2xl font-display font-black flex items-center justify-center gap-[1.5vh] md:gap-3 lg:gap-4 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-primary/20 group text-[1.5vh] md:text-[14px] whitespace-nowrap"
+                            className="bg-primary hover:bg-primary-hover active:scale-95 text-white px-5 py-2.5 rounded-xl font-display font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/30 group text-xs tracking-wider whitespace-nowrap"
                         >
-                            <Plus size={24} className="group-hover:rotate-90 transition-transform w-[3vh] h-[3vh] md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                            <span className="hidden md:block tracking-widest uppercase text-[1.2vh] md:text-[12px] lg:text-[14px]">NUEVO</span>
+                            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+                            <span className="hidden md:block uppercase">NUEVO</span>
                         </button>
                     </div>
                 </header>
 
-                <div className="flex-1 w-full bg-surface-lowest/40 backdrop-blur-3xl rounded-[3vh] md:rounded-3xl shadow-2xl flex flex-col relative overflow-hidden border border-white/10">
-                    <nav className="flex flex-col lg:flex-row items-center justify-between px-[4vh] lg:px-12 py-[3vh] lg:py-6 border-b border-white/5 relative z-30 gap-[2vh] lg:gap-0">
-                        <div className="flex gap-[4vh] md:gap-10">
+                {/* Contenedor Principal Unificado */}
+                <div className="flex-1 w-full bg-[#180830]/70 backdrop-blur-2xl rounded-2xl shadow-2xl flex flex-col relative overflow-hidden border border-white/10">
+                    {/* Barra de Navegación & Búsqueda */}
+                    <nav className="flex flex-col lg:flex-row items-center justify-between px-6 lg:px-8 py-3.5 border-b border-white/10 relative z-30 gap-3 lg:gap-0 shrink-0">
+                        <div className="flex gap-2">
                             <button
                                 onClick={() => setView('library')}
-                                className={`flex items-center gap-[1.5vh] md:gap-3 text-[1.4vh] md:text-[12px] font-black tracking-[0.3em] uppercase transition-all ${view === 'library' ? 'text-primary' : 'text-white/30 hover:text-white/60'}`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black tracking-wider uppercase transition-all ${view === 'library' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white hover:bg-white/5'}`}
                             >
-                                <Library size={18} /> BIBLIOTECA PÚBLICA
+                                <Library size={16} /> BIBLIOTECA PÚBLICA
                             </button>
                             {user && (
                                 <button
                                     onClick={() => setView('mine')}
-                                    className={`flex items-center gap-[1.5vh] md:gap-3 text-[1.4vh] md:text-[12px] font-black tracking-[0.3em] uppercase transition-all ${view === 'mine' ? 'text-primary' : 'text-white/30 hover:text-white/60'}`}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black tracking-wider uppercase transition-all ${view === 'mine' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white hover:bg-white/5'}`}
                                 >
-                                    <User size={18} /> MIS TRIVIAS
+                                    <User size={16} /> MIS TRIVIAS
                                 </button>
                             )}
                         </div>
 
+                        {/* Buscador */}
                         <div className="relative w-full lg:w-96 group">
-                            <Search className="absolute left-[2vh] lg:left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors" size={18} />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary transition-colors" size={16} />
                             <input
                                 type="text"
-                                placeholder="BUSCAR TEMAS, USUARIOS O TRIVIAS..."
+                                placeholder="Buscar temas, usuarios o trivias..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5vh] md:rounded-xl py-[1.5vh] md:py-3 pl-[6vh] lg:pl-12 pr-[2vh] lg:pr-6 text-[1.2vh] md:text-[10px] font-black tracking-[0.2em] uppercase focus:outline-none focus:border-primary/50 transition-all placeholder:text-white/10"
+                                className="w-full bg-white/10 focus:bg-white focus:text-slate-900 border border-white/15 focus:border-white rounded-xl py-2 pl-10 pr-4 text-xs font-bold tracking-wide text-white placeholder:text-white/40 focus:placeholder:text-slate-400 focus:outline-none transition-all shadow-inner"
                             />
                         </div>
                     </nav>
 
-                    <div className="flex-1 min-h-0 bg-surface-lowest/60 backdrop-blur-xl border-t border-white/10 rounded-t-[3vh] md:rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden relative group/inner mx-[2vw] md:mx-4">
-                        <div className="flex-1 overflow-y-auto custom-scrollbar px-[2vh] md:px-12 pt-[4vh] md:pt-10 pb-[4vh] md:pb-8">
-                            <div className="lg:px-2">
-                                {/* Active Games Section */}
-                                {activeGames.length > 0 && (
-                                    <div className="mb-[6vh] md:mb-12 animate-in fade-in slide-in-from-top duration-700">
-                                        <h2 className="text-[1.8vh] md:text-xl font-bold mb-[2vh] md:mb-4 flex items-center gap-[1vh] md:gap-2 text-primary uppercase tracking-[0.2em]">
-                                            <Play size={16} className="fill-current" /> Partidas en curso
-                                        </h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[3vh] md:gap-6">
-                                            {activeGames.map(g => (
-                                                <div key={g.id} className="bg-white/5 border border-primary/20 rounded-[2vh] md:rounded-2xl p-[3vh] md:p-6 flex flex-col gap-[2vh] md:gap-5 shadow-2xl relative overflow-hidden group">
-                                                    <div className="absolute top-0 right-0 w-[15vh] h-[15vh] md:w-32 md:h-32 bg-primary/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
-                                                    <div className="flex justify-between items-start relative z-10">
-                                                        <div>
-                                                            <div className="text-[1vh] md:text-[9px] font-black tracking-[0.3em] text-primary uppercase mb-1">CÓDIGO: {g.join_code}</div>
-                                                            <h3 className="font-display font-black text-[2.2vh] md:text-lg leading-tight line-clamp-1 uppercase">{g.quizzes?.title || 'Trivia'}</h3>
-                                                            <div className="text-[1.2vh] md:text-[10px] text-white/30 font-bold uppercase tracking-widest mt-1">Status: <span className="text-primary">{g.status}</span></div>
-                                                        </div>
-                                                        <div className="p-[1.5vh] md:p-3 bg-primary/10 rounded-[1vh] md:rounded-xl text-primary border border-primary/20">
-                                                            <Monitor size={18} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-[1.5vh] md:gap-3 relative z-10">
-                                                        <button
-                                                            onClick={() => resumeGame(g.id)}
-                                                            className="flex-1 bg-primary text-white py-[1.8vh] md:py-3 rounded-[1vh] md:rounded-xl font-black text-[1.4vh] md:text-[10px] tracking-widest uppercase hover:bg-primary-hover transition-all flex items-center justify-center gap-[1vh] md:gap-2 shadow-lg shadow-primary/20 text-center"
-                                                        >
-                                                            <Play size={14} fill="currentColor" /> Continuar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => finishGame(g.id)}
-                                                            className="px-[2vh] md:px-4 border border-white/10 hover:bg-white/5 py-[1.8vh] md:py-3 rounded-[1vh] md:rounded-xl text-[1.2vh] md:text-[9px] font-black tracking-widest uppercase transition-all text-white/40 hover:text-white"
-                                                        >
-                                                            Finalizar
-                                                        </button>
-                                                    </div>
+                    {/* Área de Contenido Principal */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-8 pt-5 pb-6">
+                        {/* Partidas en curso (si existen) */}
+                        {activeGames.length > 0 && (
+                            <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
+                                <h2 className="text-sm md:text-base font-black mb-3 flex items-center gap-2 text-pink-300 uppercase tracking-wider">
+                                    <Play size={15} className="fill-current text-primary" /> Partidas en curso
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {activeGames.map(g => (
+                                        <div key={g.id} className="bg-white/10 border border-white/15 rounded-xl p-4 flex flex-col gap-3 shadow-lg relative overflow-hidden group hover:border-primary/40 transition-all">
+                                            <div className="flex justify-between items-start relative z-10">
+                                                <div>
+                                                    <div className="text-[10px] font-black tracking-widest text-pink-300 uppercase mb-0.5">CÓDIGO: {g.join_code}</div>
+                                                    <h3 className="font-display font-black text-base leading-tight line-clamp-1 uppercase text-white">{g.quizzes?.title || 'Trivia'}</h3>
+                                                    <div className="text-[11px] text-white/50 font-bold uppercase tracking-wider mt-0.5">Status: <span className="text-secondary">{g.status}</span></div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/5 to-transparent mt-[6vh] md:mt-12" />
-                                    </div>
-                                )}
-
-                                {/* Pestañas de Filtro (Recientes, Populares, Categorías) */}
-                                <div className="mb-[4vh] md:mb-8 animate-in fade-in slide-in-from-bottom duration-500">
-                                    <div className="flex flex-col md:flex-row gap-[2vh] md:gap-4 items-start md:items-center">
-                                        <div className="flex bg-white/5 rounded-xl p-1 border border-white/10 shrink-0">
-                                            <button
-                                                onClick={() => setFilterType('recent')}
-                                                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${filterType === 'recent' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}`}
-                                            >
-                                                Nuevos
-                                            </button>
-                                            <button
-                                                onClick={() => setFilterType('popular')}
-                                                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all flex items-center gap-1 ${filterType === 'popular' ? 'bg-orange-500/20 text-orange-400 shadow-sm border border-orange-500/20' : 'text-white/40 hover:text-orange-400/50'}`}
-                                            >
-                                                🔥 Populares
-                                            </button>
-                                            <button
-                                                onClick={() => setFilterType('category')}
-                                                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${filterType === 'category' ? 'bg-primary/20 text-primary shadow-sm border border-primary/20' : 'text-white/40 hover:text-primary/80'}`}
-                                            >
-                                                Categorías
-                                            </button>
-                                        </div>
-
-                                        {/* Pills de Categorías (se muestran solo si el filtro es 'category') */}
-                                        {filterType === 'category' && (
-                                            <div className="flex gap-2 overflow-x-auto no-scrollbar w-full pb-2 md:pb-0 mask-edges-right">
-                                                {CATEGORIES.map(cat => (
-                                                    <button
-                                                        key={cat}
-                                                        onClick={() => setSelectedCategory(cat)}
-                                                        className={`px-3 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase whitespace-nowrap transition-all border ${selectedCategory === cat ? 'bg-primary text-white border-primary' : 'bg-transparent border-white/10 text-white/40 hover:border-white/30 hover:text-white'}`}
-                                                    >
-                                                        {cat}
-                                                    </button>
-                                                ))}
+                                                <div className="p-2 bg-primary/20 rounded-lg text-primary border border-primary/30">
+                                                    <Monitor size={16} />
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
+                                            <div className="flex gap-2 relative z-10">
+                                                <button
+                                                    onClick={() => resumeGame(g.id)}
+                                                    className="flex-1 bg-primary text-white py-2 rounded-lg font-black text-xs tracking-wider uppercase hover:bg-primary-hover transition-all flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 active:scale-95"
+                                                >
+                                                    <Play size={13} fill="currentColor" /> Continuar
+                                                </button>
+                                                <button
+                                                    onClick={() => finishGame(g.id)}
+                                                    className="px-3 border border-white/15 hover:bg-white/10 py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all text-white/60 hover:text-white"
+                                                >
+                                                    Finalizar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="h-[1px] w-full bg-white/10 mt-6" />
+                            </div>
+                        )}
+
+                        {/* Filtros: Nuevos, Populares, Categorías */}
+                        <div className="mb-6 animate-in fade-in slide-in-from-bottom duration-300">
+                            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
+                                <div className="flex bg-white/10 rounded-xl p-1 border border-white/15 shrink-0 shadow-sm">
+                                    <button
+                                        onClick={() => setFilterType('recent')}
+                                        className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black tracking-wider uppercase transition-all ${filterType === 'recent' ? 'bg-white text-slate-900 shadow-sm' : 'text-white/60 hover:text-white'}`}
+                                    >
+                                        Nuevos
+                                    </button>
+                                    <button
+                                        onClick={() => setFilterType('popular')}
+                                        className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black tracking-wider uppercase transition-all flex items-center gap-1.5 ${filterType === 'popular' ? 'bg-orange-500 text-white shadow-sm' : 'text-white/60 hover:text-orange-300'}`}
+                                    >
+                                        🔥 Populares
+                                    </button>
+                                    <button
+                                        onClick={() => setFilterType('category')}
+                                        className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black tracking-wider uppercase transition-all ${filterType === 'category' ? 'bg-primary text-white shadow-sm' : 'text-white/60 hover:text-pink-300'}`}
+                                    >
+                                        Categorías
+                                    </button>
                                 </div>
 
-                                {loading ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[4vh] md:gap-8">
-                                        {[1, 2, 3, 4, 5, 6].map(i => (
-                                            <div key={i} className="h-[25vh] md:h-[16rem] bg-white/5 rounded-[2vh] md:rounded-xl animate-pulse" />
+                                {/* Pills de Categorías */}
+                                {filterType === 'category' && (
+                                    <div className="flex gap-2 overflow-x-auto no-scrollbar w-full pb-1">
+                                        {CATEGORIES.map(cat => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setSelectedCategory(cat)}
+                                                className={`px-3 py-1 rounded-lg text-[10px] font-black tracking-wider uppercase whitespace-nowrap transition-all border ${selectedCategory === cat ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white/10 border-white/15 text-white/70 hover:bg-white/15 hover:text-white'}`}
+                                            >
+                                                {cat}
+                                            </button>
                                         ))}
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[2vh] md:gap-6">
-                                        {quizzes.map(q => (
-                                            <div key={q.id} className="group relative bg-white rounded-[1.5vh] md:rounded-2xl overflow-hidden shadow-lg hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-all duration-300 flex flex-col h-[28vh] md:h-[18rem] cursor-pointer border border-white/5">
-                                                
-                                                {/* Mitad Superior: Imagen y Tags */}
-                                                <div className="relative h-[55%] w-full bg-slate-200 overflow-hidden">
-                                                    {q.cover_image ? (
-                                                        <img src={q.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                                                            <span className="text-primary/50 font-black text-[2vh] md:text-xl tracking-widest">LUKEQUIZ</span>
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Badge de Autor (Top Left) */}
-                                                    <div className="absolute top-2 left-2">
-                                                        <span className="bg-white/95 text-slate-800 px-2 py-1 rounded-[0.8vh] md:rounded-md text-[1vh] md:text-[9px] font-black tracking-widest uppercase shadow-sm">
-                                                            @{q.profiles?.nickname || 'Autor'}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Tags de Stats (Bottom Right - estilo Kahoot) */}
-                                                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                                                        {(q.plays_count > 0 || filterType === 'popular') && (
-                                                            <span className="bg-black/80 backdrop-blur-sm text-white text-[1vh] md:text-[10px] font-black px-2 py-1 rounded-[0.8vh] md:rounded-md flex items-center gap-1">
-                                                                🔥 {q.plays_count || 0}
-                                                            </span>
-                                                        )}
-                                                        <span className="bg-black/80 backdrop-blur-sm text-white text-[1vh] md:text-[10px] font-black px-2 py-1 rounded-[0.8vh] md:rounded-md flex items-center gap-1">
-                                                            <span className="hidden md:inline">📄</span> {q.questions?.length || 0}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Mitad Inferior: Info y Controles */}
-                                                <div className="flex-1 flex flex-col p-[1.5vh] md:p-4 bg-white relative">
-                                                    <h3 className="text-[1.8vh] md:text-[15px] font-black text-slate-800 leading-tight line-clamp-2 uppercase font-display group-hover:text-primary transition-colors">
-                                                        {q.title}
-                                                    </h3>
-                                                    
-                                                    <div className="mt-auto flex justify-between items-center pt-[1vh] md:pt-2">
-                                                        {/* Botón Principal */}
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
-                                                            disabled={!q.questions || q.questions.length === 0}
-                                                            className={`flex-1 py-[1vh] md:py-2.5 rounded-[1vh] md:rounded-lg flex items-center justify-center gap-2 text-[1.2vh] md:text-[10px] font-black tracking-widest transition-all ${!q.questions || q.questions.length === 0
-                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                                : 'bg-primary text-white hover:bg-primary-hover shadow-md active:scale-95'
-                                                                }`}
-                                                        >
-                                                            <Play size={12} fill="currentColor" /> <span className="hidden md:inline">INICIAR</span>
-                                                        </button>
-
-                                                        {/* Controles de Autor */}
-                                                        {user && (q.user_id === user.id || isAdmin) && (
-                                                            <div className="flex gap-1 ml-2">
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
-                                                                    className="p-[1vh] md:p-2 bg-slate-100 rounded-[1vh] md:rounded-lg text-slate-500 hover:text-primary hover:bg-primary/10 transition-all"
-                                                                    title="Configurar"
-                                                                >
-                                                                    <Settings size={14} className="w-[1.5vh] h-[1.5vh] md:w-[14px] md:h-[14px]" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
-                                                                    className="p-[1vh] md:p-2 bg-red-50 rounded-[1vh] md:rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                                                                    title="Eliminar"
-                                                                >
-                                                                    <Trash2 size={14} className="w-[1.5vh] h-[1.5vh] md:w-[14px] md:h-[14px]" />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {quizzes.length === 0 && !loading && (
-                                            <div className="col-span-full h-full min-h-[40vh] md:min-h-[400px] flex flex-col items-center justify-center gap-[4vh] md:gap-8 opacity-40">
-                                                <div className="p-[4vh] md:p-8 bg-white/5 rounded-full border border-white/10">
-                                                    <PlusCircle size={48} className="text-primary animate-pulse w-[8vh] h-[8vh] md:w-12 md:h-12" />
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-[2.5vh] md:text-xl font-black uppercase tracking-[0.5em] text-white">No hay resultados</p>
-                                                    <p className="mt-[2vh] md:mt-4 text-[1.2vh] md:text-[10px] text-white/40 font-bold tracking-[0.2em] uppercase">Intenta con otra búsqueda o cambia de pestaña</p>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
+
+                        {/* Grid de Quizzes */}
+                        {loading ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                    <div key={i} className="h-64 bg-white/10 rounded-xl animate-pulse" />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                                {quizzes.map(q => (
+                                    <div
+                                        key={q.id}
+                                        className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 flex flex-col h-[270px] md:h-[280px] cursor-pointer border border-slate-100"
+                                    >
+                                        {/* Mitad Superior: Imagen y Tags */}
+                                        <div className="relative h-[54%] w-full bg-slate-200 overflow-hidden">
+                                            {q.cover_image ? (
+                                                <img src={q.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center">
+                                                    <span className="text-primary/60 font-black text-sm md:text-base tracking-widest">LUKEQUIZ</span>
+                                                </div>
+                                            )}
+
+                                            {/* Badge de Autor (Top Left) */}
+                                            <div className="absolute top-2 left-2">
+                                                <span className="bg-white/95 text-slate-800 px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase shadow-sm border border-slate-200/60">
+                                                    @{q.profiles?.nickname || 'Autor'}
+                                                </span>
+                                            </div>
+
+                                            {/* Tags de Stats (Bottom Right - estilo Kahoot) */}
+                                            <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                                                {(q.plays_count > 0 || filterType === 'popular') && (
+                                                    <span className="bg-slate-900/85 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                                        🔥 {q.plays_count || 0}
+                                                    </span>
+                                                )}
+                                                <span className="bg-slate-900/85 backdrop-blur-sm text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                                    <span className="hidden md:inline">📄</span> {q.questions?.length || 0}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Mitad Inferior: Info y Controles */}
+                                        <div className="flex-1 flex flex-col p-3.5 bg-white relative">
+                                            <h3 className="text-xs md:text-sm font-black text-slate-900 leading-snug line-clamp-2 uppercase font-display group-hover:text-primary transition-colors">
+                                                {q.title}
+                                            </h3>
+
+                                            <div className="mt-auto flex justify-between items-center pt-2">
+                                                {/* Botón Principal INICIAR */}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); startNewGame(q.id) }}
+                                                    disabled={!q.questions || q.questions.length === 0}
+                                                    className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 text-[11px] font-black tracking-wider transition-all ${
+                                                        !q.questions || q.questions.length === 0
+                                                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                            : 'bg-primary text-white hover:bg-primary-hover shadow-sm active:scale-95'
+                                                    }`}
+                                                >
+                                                    <Play size={12} fill="currentColor" /> <span className="hidden md:inline">INICIAR</span>
+                                                </button>
+
+                                                {/* Controles de Autor */}
+                                                {user && (q.user_id === user.id || isAdmin) && (
+                                                    <div className="flex gap-1 ml-1.5">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); navigate(`/edit/${q.id}`) }}
+                                                            className="p-1.5 bg-slate-100 rounded-lg text-slate-600 hover:text-primary hover:bg-primary/10 transition-all"
+                                                            title="Configurar"
+                                                        >
+                                                            <Settings size={13} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); deleteQuiz(q.id, q.title) }}
+                                                            className="p-1.5 bg-rose-50 rounded-lg text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {quizzes.length === 0 && !loading && (
+                                    <div className="col-span-full h-full min-h-[300px] flex flex-col items-center justify-center gap-4 opacity-50">
+                                        <div className="p-6 bg-white/10 rounded-full border border-white/15">
+                                            <PlusCircle size={36} className="text-primary animate-pulse" />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-base font-black uppercase tracking-widest text-white">No hay resultados</p>
+                                            <p className="mt-1 text-xs text-white/50 font-bold tracking-wider uppercase">Intenta con otra búsqueda o cambia de categoría</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -37,26 +37,38 @@ const EditorHeader = ({
                     </div>
                 </div>
 
-                <div className="hidden md:flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 ml-4 shrink-0">
-                    <button
-                        onClick={() => onQuizChange({ ...quiz, visibility: 'public' })}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'public' ? 'bg-primary text-white' : 'text-white/20 hover:text-white/40'}`}
+                <div className="hidden md:flex items-center gap-2 shrink-0">
+                    <select
+                        value={quiz?.category || 'General'}
+                        onChange={(e) => onQuizChange({ ...quiz, category: e.target.value })}
+                        className="bg-white/5 border border-white/10 text-white text-[10px] font-black tracking-widest p-2 rounded-xl outline-none hover:bg-white/10 transition-colors uppercase cursor-pointer"
                     >
-                        PÚBLICO
-                    </button>
-                    <button
-                        onClick={() => {
-                            if (!user?.is_premium && quiz?.visibility !== 'private') {
-                                onOpenPremiumModal();
-                                return;
-                            }
-                            onQuizChange({ ...quiz, visibility: 'private' });
-                        }}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'private' ? 'bg-amber-500 text-black' : 'text-white/20 hover:text-white/40'} flex items-center gap-2`}
-                    >
-                        {(!user?.is_premium && quiz?.visibility !== 'private') && <Crown size={10} />}
-                        PRIVADO
-                    </button>
+                        {['General', 'Historia', 'Ciencia', 'Cine y TV', 'Deportes', 'Cultura Pop', 'Geografía', 'Música', 'Videojuegos'].map(cat => (
+                            <option key={cat} value={cat} className="bg-surface text-white">{cat}</option>
+                        ))}
+                    </select>
+
+                    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 ml-2">
+                        <button
+                            onClick={() => onQuizChange({ ...quiz, visibility: 'public' })}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'public' ? 'bg-primary text-white' : 'text-white/20 hover:text-white/40'}`}
+                        >
+                            PÚBLICO
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (!user?.is_premium && quiz?.visibility !== 'private') {
+                                    onOpenPremiumModal();
+                                    return;
+                                }
+                                onQuizChange({ ...quiz, visibility: 'private' });
+                            }}
+                            className={`px-4 py-2 rounded-lg text-[9px] font-black tracking-widest transition-all ${quiz?.visibility === 'private' ? 'bg-amber-500 text-black' : 'text-white/20 hover:text-white/40'} flex items-center gap-2`}
+                        >
+                            {(!user?.is_premium && quiz?.visibility !== 'private') && <Crown size={10} />}
+                            PRIVADO
+                        </button>
+                    </div>
                 </div>
             </div>
 
