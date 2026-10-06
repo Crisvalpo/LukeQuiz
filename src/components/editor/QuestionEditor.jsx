@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Mic2, RefreshCcw, Volume2, Play, CheckCircle2,
-    Crown, ImageIcon, Layout, Search, Link as LinkIcon, Trash2, Loader2, X
+    Crown, ImageIcon, Layout, Search, Link as LinkIcon, Trash2, Loader2, X, Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
@@ -39,6 +39,27 @@ const QuestionEditor = ({
         } finally {
             setSearching(false);
         }
+    };
+
+    const handleGoogleSearch = () => {
+        const cleanQ = (q?.text && q.text.trim() !== '¿  ?') ? q.text.trim() : '';
+        const cleanQuiz = quiz?.title?.trim() || '';
+
+        let query = '';
+        if (cleanQuiz && cleanQ) {
+            query = cleanQ.toLowerCase().includes(cleanQuiz.toLowerCase())
+                ? cleanQ
+                : `${cleanQuiz} ${cleanQ}`;
+        } else {
+            query = cleanQ || cleanQuiz;
+        }
+
+        if (!query) {
+            return toast.error('Escribe la pregunta primero para buscar en Google');
+        }
+
+        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`;
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     if (!q) return null;
@@ -208,14 +229,25 @@ const QuestionEditor = ({
                             placeholder="Introduce URL de imagen..."
                         />
                     </div>
-                    <div className="grid grid-cols-3 gap-[1vh] md:gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-[1vh] md:gap-2">
                         <button
+                            type="button"
                             onClick={searchImages}
                             disabled={searching}
-                            className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-cyan-500/10 text-cyan-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20 disabled:opacity-50"
+                            title="Buscar fotos libres de derechos (Wikimedia/Wikipedia)"
+                            className="flex items-center justify-center gap-[0.8vh] md:gap-1.5 py-[1.2vh] md:py-2.5 bg-cyan-500/10 text-cyan-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-cyan-500/20 active:scale-95 transition-all uppercase tracking-widest border border-cyan-500/20 disabled:opacity-50"
                         >
-                            {searching ? <Loader2 size={14} className="animate-spin w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" /> : <Search size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />}
-                            Buscar
+                            {searching ? <Loader2 size={13} className="animate-spin w-[1.4vh] h-[1.4vh] md:w-3.5 md:h-3.5" /> : <Search size={13} className="w-[1.4vh] h-[1.4vh] md:w-3.5 md:h-3.5" />}
+                            Libres
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleGoogleSearch}
+                            title="Abrir búsqueda en Google Imágenes con el contexto de la trivia y pregunta"
+                            className="flex items-center justify-center gap-[0.8vh] md:gap-1.5 py-[1.2vh] md:py-2.5 bg-blue-500/10 text-blue-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-blue-500/20 active:scale-95 transition-all uppercase tracking-widest border border-blue-500/20"
+                        >
+                            <Globe size={13} className="w-[1.4vh] h-[1.4vh] md:w-3.5 md:h-3.5" />
+                            Google
                         </button>
                         <button
                             type="button"
@@ -243,11 +275,21 @@ const QuestionEditor = ({
                                     toast.error('Bloqueado por el navegador. Usa Ctrl+V');
                                 }
                             }}
-                            className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-cyan-500/10 text-cyan-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-cyan-500/20 transition-all uppercase tracking-widest border border-cyan-500/20"
+                            title="Pegar enlace copiado"
+                            className="flex items-center justify-center gap-[0.8vh] md:gap-1.5 py-[1.2vh] md:py-2.5 bg-cyan-500/10 text-cyan-400 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-cyan-500/20 active:scale-95 transition-all uppercase tracking-widest border border-cyan-500/20"
                         >
-                            <LinkIcon size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />Pegar
+                            <LinkIcon size={13} className="w-[1.4vh] h-[1.4vh] md:w-3.5 md:h-3.5" />
+                            Pegar
                         </button>
-                        <button onClick={() => onUpdateQuestion(currentIdx, { image_url: '', media_type: 'none' })} className="flex items-center justify-center gap-[1vh] md:gap-2 py-[1.2vh] md:py-2.5 bg-red-500/10 text-red-500 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-red-500/20 transition-all uppercase tracking-widest border border-red-500/10"><Trash2 size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />Limpiar</button>
+                        <button
+                            type="button"
+                            onClick={() => onUpdateQuestion(currentIdx, { image_url: '', media_type: 'none' })}
+                            title="Quitar imagen actual"
+                            className="flex items-center justify-center gap-[0.8vh] md:gap-1.5 py-[1.2vh] md:py-2.5 bg-red-500/10 text-red-500 rounded-[1.2vh] md:rounded-xl text-[0.9vh] md:text-[9px] font-black hover:bg-red-500/20 active:scale-95 transition-all uppercase tracking-widest border border-red-500/20"
+                        >
+                            <Trash2 size={13} className="w-[1.4vh] h-[1.4vh] md:w-3.5 md:h-3.5" />
+                            Limpiar
+                        </button>
                     </div>
                 </div>
             </div>
