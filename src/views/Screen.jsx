@@ -7,10 +7,11 @@ import confetti from 'canvas-confetti'
 import { useGameRoom } from '../hooks/useGameRoom'
 import LogoLukeQuiz from '../components/LogoLukeQuiz'
 import { audioDirector } from '../lib/audioDirector'
+import { toast } from 'sonner'
 
 export default function Screen() {
     const { gameId } = useParams()
-    const { game, players, loading } = useGameRoom(gameId)
+    const { game, setGame, players, loading } = useGameRoom(gameId)
 
     useEffect(() => {
         const lockOrientation = async () => {
@@ -129,23 +130,41 @@ export default function Screen() {
         const claimMaster = async () => {
             // Si no hay master, intentamos ser nosotros
             if (!game.master_screen_id) {
-                await supabase
+                const { error } = await supabase
                     .from('games')
                     .update({ master_screen_id: screenSessionId.current })
                     .eq('id', gameId)
                     .is('master_screen_id', null)
+                if (!error) {
+                    setIsMaster(true)
+                    setGame(prev => prev ? ({ ...prev, master_screen_id: screenSessionId.current }) : prev)
+                }
             }
         }
 
         claimMaster()
-        setIsMaster(game.master_screen_id === screenSessionId.current)
+        if (game.master_screen_id) {
+            setIsMaster(game.master_screen_id === screenSessionId.current)
+        }
     }, [game?.master_screen_id, gameId])
 
     const reclaimMaster = async () => {
-        await supabase
-            .from('games')
-            .update({ master_screen_id: screenSessionId.current })
-            .eq('id', gameId)
+        setIsUpdating(true)
+        setIsMaster(true)
+        setGame(prev => prev ? ({ ...prev, master_screen_id: screenSessionId.current }) : prev)
+        try {
+            const { error } = await supabase
+                .from('games')
+                .update({ master_screen_id: screenSessionId.current })
+                .eq('id', gameId)
+            if (error) throw error
+            toast.success('¡Control maestro activado en esta pantalla!')
+        } catch (err) {
+            console.error('Error al reclamar control:', err)
+            toast.error('No se pudo tomar el control maestro')
+        } finally {
+            setIsUpdating(false)
+        }
     }
 
     // 1. Gestión de Datos y Efectos de Estado (Consolidado)

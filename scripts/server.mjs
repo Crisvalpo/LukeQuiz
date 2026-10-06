@@ -25,13 +25,151 @@ const MIME_TYPES = {
   '.ttf': 'font/ttf'
 };
 
+function getGeminiApiKey() {
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  const envPaths = [
+    path.resolve(__dirname, '../.env'),
+    '/home/ubuntu/luke-quiz/.env',
+    '/home/ubuntu/luke-tiktok-live/.env'
+  ];
+  for (const envPath of envPaths) {
+    try {
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        const match = content.match(/^GEMINI_API_KEY=(.+)$/m);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+    } catch {
+      // Ignorar error al leer ruta alternativa
+    }
+  }
+  return null;
+}
+
+async function handleGenerateQuiz(req, res) {
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', async () => {
+    try {
+      const { topic, description, count } = JSON.parse(body || '{}');
+      const apiKey = getGeminiApiKey();
+
+      if (!apiKey) {
+        console.error('[API /api/generate-quiz] GEMINI_API_KEY no encontrada');
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Configuración incompleta: GEMINI_API_KEY no encontrada en el servidor' }));
+      }
+
+      const safeCount = Math.min(Math.max(parseInt(count, 10) || 5, 1), 20);
+      const safeTopic = String(topic || '').slice(0, 200);
+      const safeDescription = String(description || '').slice(0, 500);
+
+      const prompt = `ACTÚA COMO UN API DE DATOS.
+TEMA PRINCIPAL: "${safeTopic}".
+CONTEXTO ADICIONAL: "${safeDescription || 'No se proporcionó contexto extra'}".
+CANTIDAD DE PREGUNTAS: ${safeCount}.
+IDIOMA: ESPAÑOL.
+REGLA CRÍTICA 1: RESPONDE ÚNICAMENTE CON UN ARRAY JSON. SIN SALUDOS, SIN COMENTARIOS, SIN BLOQUES DE MARKDOWN.
+REGLA CRÍTICA 2: Las preguntas deben ser EXTREMADAMENTE CORTAS (MÁXIMO 14 PALABRAS).
+REGLA CRÍTICA 3: Las opciones DEBEN ser de una o dos palabras máximo.
+REGLA CRÍTICA 4: La correcta DEBE ser una letra mayúscula: "A", "B", "C" o "D".
+REGLA CRÍTICA 5: "keyword" debe ser 1 a 3 palabras visuales sobre la pregunta para buscar una fotografía real.
+FORMATO JSON: [{"text": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "correct_option": "A", "image_url": "", "keyword": "..."}]`;
+
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      let lastError = '';
+      let generatedJson = null;
+
+      for (const model of models) {
+        try {
+          console.log(`[API /api/generate-quiz] Consultando Gemini modelo ${model}...`);
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  response_mime_type: 'application/json'
+                }
+              })
+            }
+          );
+
+          const result = await resp.json();
+          if (!resp.ok) {
+            console.warn(`[API /api/generate-quiz] Error con ${model}:`, result.error?.message || resp.statusText);
+            lastError = result.error?.message || `HTTP ${resp.status}`;
+            continue;
+          }
+
+          const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const match = rawText.match(/\[[\s\S]*\]/);
+            if (match) {
+              generatedJson = JSON.parse(match[0]);
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn(`[API /api/generate-quiz] Excepción con ${model}:`, err.message);
+          lastError = err.message;
+        }
+      }
+
+      if (!generatedJson || !Array.isArray(generatedJson)) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: `Fallo al generar preguntas con IA: ${lastError}` }));
+      }
+
+      console.log(`[API /api/generate-quiz] ${generatedJson.length} preguntas generadas exitosamente`);
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      });
+      res.end(JSON.stringify(generatedJson));
+    } catch (err) {
+      console.error('[API /api/generate-quiz] Error general:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
+  const urlPath = req.url.split('?')[0];
+
+  // CORS y cabeceras de seguridad
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Ruta API para generación de trivias con Gemini
+  if (urlPath === '/api/generate-quiz' || urlPath === '/api/generate-quiz/') {
+    if (req.method === 'POST') {
+      return handleGenerateQuiz(req, res);
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      });
+      return res.end();
+    }
+    res.writeHead(405);
+    return res.end();
+  }
+
+  // Rutas estáticas normales
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405);
     return res.end();
   }
 
-  const urlPath = req.url.split('?')[0];
   let filePath = path.join(DIST_DIR, urlPath);
 
   // Seguridad: evitar path traversal
@@ -39,11 +177,6 @@ const server = http.createServer((req, res) => {
     res.writeHead(403);
     return res.end('Forbidden');
   }
-
-  // Encabezados de seguridad estándar
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Comprobar existencia del archivo solicitado
   let stat;

@@ -341,20 +341,45 @@ export default function EditQuiz() {
                 // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
             }
 
-            const { data: { session } } = await supabase.auth.getSession();
-            console.log('Invocando generate-quiz con sesión:', !!session);
+            let data = null;
+            try {
+                const apiRes = await fetch('/api/generate-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+                    },
+                    body: JSON.stringify({
+                        topic: topic,
+                        description: description,
+                        count: count
+                    })
+                });
 
-            const { data, error } = await supabase.functions.invoke('generate-quiz', {
-                body: {
-                    topic: topic,
-                    description: description,
-                    count: count
-                },
-                headers: {
-                    Authorization: `Bearer ${session?.access_token}`
+                if (apiRes.ok) {
+                    data = await apiRes.json();
+                } else {
+                    const errPayload = await apiRes.json().catch(() => ({}));
+                    console.warn('Fallo /api/generate-quiz, probando Edge Function fallback:', errPayload);
                 }
-            })
-            if (error) throw error
+            } catch (errApi) {
+                console.warn('Excepción al conectar con /api/generate-quiz:', errApi);
+            }
+
+            if (!data) {
+                const { data: edgeData, error: edgeError } = await supabase.functions.invoke('generate-quiz', {
+                    body: {
+                        topic: topic,
+                        description: description,
+                        count: count
+                    },
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`
+                    }
+                });
+                if (edgeError) throw edgeError;
+                data = edgeData;
+            }
 
             // Limpiar marcador de posición si es el único y está vacío
             const baseQuestions = (questions.length === 1 && (questions[0].text === '¿  ?' || !questions[0].text.trim())) ? [] : questions;
