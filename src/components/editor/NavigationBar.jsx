@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Save, Plus, Trash2, FileText, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Plus, Trash2, FileText, Sparkles, Loader2 } from 'lucide-react';
 
 const NavigationBar = ({
     currentIdx,
@@ -11,7 +11,8 @@ const NavigationBar = ({
     onOpenBulkPanel,
     onOpenAiPanel,
     onDelete,
-    onSave
+    onSave,
+    loading = false
 }) => {
     return (
         <footer className="fixed bottom-0 left-0 right-0 h-[10vh] md:h-20 bg-[#180830]/60 backdrop-blur-xl border-t border-white/10 z-50 shadow-2xl transition-all">
@@ -85,11 +86,13 @@ const NavigationBar = ({
                             </button>
                         )}
                         <button
+                            type="button"
                             onClick={onSave}
-                            className="h-11 md:h-12 px-6 md:px-10 rounded-xl font-black text-[1.4vh] md:text-xs tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg active:scale-95 bg-primary text-white shadow-primary/20 hover:bg-primary-hover border-none"
+                            disabled={loading}
+                            className={`h-11 md:h-12 px-6 md:px-10 rounded-xl font-black text-[1.4vh] md:text-xs tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg border-none ${loading ? 'opacity-60 cursor-not-allowed bg-primary/70 text-white' : 'bg-primary text-white shadow-primary/20 hover:bg-primary-hover active:scale-95'}`}
                         >
-                            <Save size={18} />
-                            <span className="hidden xs:inline">GUARDAR TRIVIA</span>
+                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            <span className="hidden xs:inline">{loading ? 'GUARDANDO...' : 'GUARDAR TRIVIA'}</span>
                         </button>
                     </div>
                 </div>

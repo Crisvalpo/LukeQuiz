@@ -16,6 +16,7 @@ const QuestionEditor = ({
     quiz,
     onUpdateQuestion,
     onSetQuestions,
+    onSetCover,
     onHandleIndividualTTS,
     questionInputRef
 }) => {
@@ -161,14 +162,19 @@ const QuestionEditor = ({
                     </div>
                     <div className="absolute top-[2vh] right-[2vh] md:top-4 md:right-4 z-20">
                         <button
+                            type="button"
                             onClick={() => {
-                                const newQs = questions.map((item, i) => ({ ...item, is_cover: i === currentIdx }))
-                                onSetQuestions(newQs)
-                                onUpdateQuestion(currentIdx, { is_cover: true })
-                                toast.success('Portada seleccionada. Recuerda pulsar GUARDAR TRIVIA.')
+                                if (onSetCover) {
+                                    onSetCover(currentIdx);
+                                } else {
+                                    const newQs = questions.map((item, i) => ({ ...item, is_cover: i === currentIdx }));
+                                    onSetQuestions(newQs);
+                                    onUpdateQuestion(currentIdx, { is_cover: true });
+                                    toast.success('Portada asignada');
+                                }
                             }}
                             className={`flex items-center gap-[1vh] md:gap-2 px-[1.5vh] md:px-3 py-[0.8vh] md:py-1.5 rounded-full border-2 transition-all backdrop-blur-md ${q.is_cover ? 'bg-pink-500/90 text-white border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.3)]' : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/30'}`}
-                            title="Usar como portada del quiz"
+                            title="Usar como portada oficial del quiz"
                         >
                             <Layout size={14} className="w-[1.5vh] h-[1.5vh] md:w-3.5 md:h-3.5" />
                             <span className="text-[0.9vh] md:text-[9px] font-black uppercase tracking-widest">{q.is_cover ? 'PORTADA ACTIVA' : 'USAR COMO PORTADA'}</span>
@@ -191,6 +197,9 @@ const QuestionEditor = ({
                                             onUpdateQuestion(currentIdx, { image_url: img.url, media_type: 'image' });
                                             setPickerImages(null);
                                             toast.success('Imagen asignada');
+                                            if (q.is_cover && onSetCover) {
+                                                onSetCover(currentIdx, img.url);
+                                            }
                                         }}
                                         className="relative rounded-[1vh] md:rounded-lg overflow-hidden border-2 border-white/10 hover:border-cyan-400 transition-all aspect-video group/img"
                                         title={img.alt || ''}
@@ -267,6 +276,9 @@ const QuestionEditor = ({
                                     if (cleanText) {
                                         onUpdateQuestion(currentIdx, { image_url: cleanText, media_type: 'image' });
                                         toast.success('¡Contenido pegado!');
+                                        if (q.is_cover && onSetCover) {
+                                            onSetCover(currentIdx, cleanText);
+                                        }
                                     } else {
                                         toast.error('El portapapeles está vacío');
                                     }
