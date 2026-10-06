@@ -9,7 +9,8 @@ const EditorHeader = ({
     onAddNewQuestion,
     onOpenBulkPanel,
     onOpenAiPanel,
-    onOpenPremiumModal
+    onOpenPremiumModal,
+    titleInputRef
 }) => {
     return (
         <header className="fixed top-0 left-0 right-0 h-[10vh] md:h-24 bg-[#180830]/60 backdrop-blur-xl border-b border-white/10 px-[4vw] md:px-20 flex items-center justify-between z-50 shadow-2xl transition-all">
@@ -22,17 +23,25 @@ const EditorHeader = ({
                 </button>
                 <div className="flex flex-col flex-1 min-w-0 group/meta">
                     <div className="flex flex-col border-l-2 border-white/5 pl-[2vw] md:pl-6 mt-1 hover:border-white/20 transition-all overflow-hidden">
-                        <input
-                            value={quiz?.title || ''}
-                            onChange={(e) => onQuizChange({ ...quiz, title: e.target.value })}
-                            className={`bg-transparent border-none text-[2.2vh] md:text-3xl font-display font-black text-white italic tracking-tight leading-none outline-none placeholder:text-white/20 w-full truncate ${!quiz?.title?.trim() ? 'animate-pulse-input' : ''}`}
-                            placeholder="Título de la trivia"
-                        />
+                        <div className="flex items-center gap-2">
+                            <input
+                                ref={titleInputRef}
+                                value={quiz?.title || ''}
+                                onChange={(e) => onQuizChange({ ...quiz, title: e.target.value })}
+                                className={`bg-transparent border-none text-[2.2vh] md:text-3xl font-display font-black text-white italic tracking-tight leading-none outline-none placeholder:text-white/20 w-full truncate transition-all ${!quiz?.title?.trim() ? 'animate-pulse-input ring-2 ring-amber-500/70 bg-amber-500/10 rounded-lg px-2.5 py-1 text-amber-200 placeholder:text-amber-300/40' : ''}`}
+                                placeholder="Título de la trivia (Requerido)..."
+                            />
+                            {!quiz?.title?.trim() && (
+                                <span className="hidden sm:inline-flex shrink-0 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-md animate-pulse">
+                                    Requerido
+                                </span>
+                            )}
+                        </div>
                         <input
                             value={quiz?.description || ''}
                             onChange={(e) => onQuizChange({ ...quiz, description: e.target.value })}
-                            className={`bg-transparent border-none text-[1.2vh] md:text-sm font-bold text-white/40 tracking-[0.2em] outline-none placeholder:text-white/10 w-full mt-1 md:mt-2 truncate ${!quiz?.description?.trim() ? 'animate-pulse-input' : ''}`}
-                            placeholder="Añade una descripción..."
+                            className="bg-transparent border-none text-[1.2vh] md:text-sm font-medium text-white/40 tracking-wider outline-none placeholder:text-white/20 w-full mt-1 md:mt-2 truncate"
+                            placeholder="(Opcional) Contexto o descripción adicional..."
                         />
                     </div>
                 </div>

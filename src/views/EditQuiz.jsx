@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { searchImages } from '../lib/imageSearch'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAudioSync } from '../hooks/useAudioSync'
 import { useAuth } from '../lib/AuthContext'
@@ -14,6 +14,35 @@ import QuestionMethodPicker from '../components/editor/QuestionMethodPicker'
 import AiPanel from '../components/editor/AiPanel'
 import BulkImportPanel from '../components/editor/BulkImportPanel'
 
+// Tiempo de inactividad tras el último cambio antes de autoguardar
+const AUTOSAVE_DELAY_MS = 1200
+
+const isPlaceholderText = (t) => !t || t.trim() === '¿  ?' || t.trim() === '¿ ?' || !t.trim()
+
+const newBlankQuestion = (orderIndex, isCover = false) => ({
+    // UUID real desde el inicio: el mismo id vive en local y en la BD
+    id: crypto.randomUUID(),
+    text: '¿  ?',
+    option_a: '',
+    option_b: '',
+    option_c: '',
+    option_d: '',
+    correct_option: 'A',
+    image_url: '',
+    media_type: 'none',
+    audio_url: '',
+    last_tts_text: '',
+    order_index: orderIndex,
+    is_cover: isCover
+})
+
+// Normaliza ids heredados con prefijo "temp-" (versiones anteriores)
+const normalizeId = (id) => {
+    if (!id) return crypto.randomUUID()
+    const s = String(id)
+    return s.startsWith('temp-') ? s.slice(5) : s
+}
+
 export default function EditQuiz() {
     const { user } = useAuth()
     const { quizId } = useParams()
@@ -23,137 +52,345 @@ export default function EditQuiz() {
     const [questions, setQuestions] = useState([])
     const [currentIdx, setCurrentIdx] = useState(0)
     const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false)
-    const [loading, setLoading] = useState(true)
-    const touchStartRef = React.useRef(0)
-    const touchEndRef = React.useRef(0)
+    const [loading, setLoading] = useState(true)          // carga inicial + IA
+    const [saving, setSaving] = useState(false)           // guardado en curso
+    const [saveError, setSaveError] = useState(null)      // último error de guardado
+    const [ttsBusy, setTtsBusy] = useState(false)         // generación de voz en curso
+    const touchStartRef = useRef(0)
+    const touchEndRef = useRef(0)
     const [showAiPanel, setShowAiPanel] = useState(false)
     const [showBulk, setShowBulk] = useState(false)
     const [isDirty, setIsDirty] = useState(false)
 
-    // Hook unificado de Audio (TTS Engine 2.0)
-    const { isGenerating: isSyncing, generateAudio, generateBatch, removeAudio } = useAudioSync(quizId)
-    const questionInputRef = React.useRef(null)
-    const [showMediaSearch, setShowMediaSearch] = useState(false)
+    // ── Refs: siempre el estado MÁS RECIENTE (evita closures obsoletos en async) ──
+    const quizRef = useRef(quiz)
+    const questionsRef = useRef(questions)
+    const activeQuizIdRef = useRef(activeQuizId)
+    const isDirtyRef = useRef(false)
+    const versionRef = useRef(0)                 // +1 por cada cambio local
+    const saveInFlightRef = useRef(null)         // promesa del guardado en curso
+    const autosaveTimerRef = useRef(null)
+    const deletedIdsRef = useRef(new Set())      // preguntas a borrar en la BD
+    const justCreatedIdRef = useRef(null)        // evita recargar al crear un quiz nuevo
+
+    quizRef.current = quiz
+    questionsRef.current = questions
+    activeQuizIdRef.current = activeQuizId
+    isDirtyRef.current = isDirty
+
+    // Hook unificado de Audio (TTS Engine 2.0) — usa el id REAL, nunca "new"
+    const { generateAudio } = useAudioSync(activeQuizId)
+    const questionInputRef = useRef(null)
+    const titleInputRef = useRef(null)
+
+    // Setters que actualizan estado y ref a la vez (para usar el valor nuevo de inmediato)
+    const commitQuestions = (updater) => {
+        const next = typeof updater === 'function' ? updater(questionsRef.current) : updater
+        questionsRef.current = next
+        setQuestions(next)
+        return next
+    }
+    const commitQuiz = (updater) => {
+        const next = typeof updater === 'function' ? updater(quizRef.current) : updater
+        quizRef.current = next
+        setQuiz(next)
+        return next
+    }
+
+    // ═══════════════════════════ GUARDADO ═══════════════════════════
+
+    const buildQuestionRows = (qs, workingQuizId) => qs.map((q, i) => ({
+        id: normalizeId(q.id),
+        quiz_id: workingQuizId,
+        text: q.text || '',
+        question: q.text || '',
+        option_a: q.option_a || '',
+        option_b: q.option_b || '',
+        option_c: q.option_c || '',
+        option_d: q.option_d || '',
+        correct_option: q.correct_option || 'A',
+        time_limit: q.time_limit || 10,
+        order_index: i,
+        image_url: q.image_url || '',
+        audio_url: q.audio_url || '',
+        last_tts_text: q.last_tts_text || '',
+        is_cover: !!q.is_cover
+    }))
+
+    /**
+     * Única ruta de guardado. Serializada: si ya hay un guardado en curso,
+     * devuelve esa misma promesa y, al terminar, vuelve a guardar si hubo
+     * cambios mientras tanto. Nunca sobrescribe el estado local con la
+     * respuesta del servidor (así no se pierde lo que escribes mientras guarda).
+     */
+    const saveAll = async ({ silent = true } = {}) => {
+        if (!quizRef.current?.title?.trim()) {
+            if (!silent) checkTitleRequired()
+            return false
+        }
+        if (saveInFlightRef.current) return saveInFlightRef.current
+
+        clearTimeout(autosaveTimerRef.current)
+
+        const run = (async () => {
+            const versionAtStart = versionRef.current
+            const q = quizRef.current
+            const qs = questionsRef.current
+            setSaving(true)
+
+            try {
+                let workingQuizId = activeQuizIdRef.current
+                const coverQ = qs.find(x => x.is_cover && x.image_url) || qs.find(x => x.image_url)
+                const coverImage = coverQ?.image_url || q?.cover_image || ''
+
+                const quizPayload = {
+                    title: q.title.trim(),
+                    description: q?.description?.trim() || '',
+                    visibility: q?.visibility || 'public',
+                    is_public_for_live: q?.is_public_for_live ?? true,
+                    creator_handle: q?.creator_handle || user?.email?.split('@')[0] || '@comunidad',
+                    category: q?.category || 'General',
+                    cover_image: coverImage
+                }
+
+                // 1. Quiz: crear o actualizar
+                if (!workingQuizId) {
+                    const { data, error } = await supabase
+                        .from('quizzes')
+                        .insert({ ...quizPayload, user_id: user?.id })
+                        .select()
+                        .single()
+                    if (error) throw error
+                    workingQuizId = data.id
+                    activeQuizIdRef.current = data.id
+                    justCreatedIdRef.current = data.id
+                    setActiveQuizId(data.id)
+                    // Solo tomamos id/autor del servidor; lo demás sigue siendo lo local
+                    commitQuiz(prev => ({ ...prev, id: data.id, user_id: data.user_id }))
+                    navigate(`/edit/${data.id}`, { replace: true })
+                } else {
+                    const { error } = await supabase
+                        .from('quizzes')
+                        .update({ ...quizPayload, updated_at: new Date().toISOString() })
+                        .eq('id', workingQuizId)
+                    if (error) throw error
+                }
+
+                // 2. Preguntas: upsert completo (ids estables generados en cliente)
+                const rows = buildQuestionRows(qs, workingQuizId)
+                if (rows.length > 0) {
+                    const { error } = await supabase.from('questions').upsert(rows)
+                    if (error) throw error
+                }
+
+                // 3. Borrados pendientes (después del upsert para que nada "resucite")
+                const toDelete = [...deletedIdsRef.current]
+                if (toDelete.length > 0) {
+                    const { error } = await supabase.from('questions').delete().in('id', toDelete)
+                    if (error) throw error
+                    toDelete.forEach(id => deletedIdsRef.current.delete(id))
+                }
+
+                // Si no hubo cambios durante el guardado, quedamos limpios
+                if (versionRef.current === versionAtStart) {
+                    isDirtyRef.current = false
+                    setIsDirty(false)
+                }
+                setSaveError(null)
+                toast.dismiss('save-error')
+                if (!silent) toast.success('¡Trivia guardada!', { id: 'save-ok', duration: 1500 })
+                return true
+            } catch (e) {
+                console.error('Error al guardar:', e)
+                const msg = e?.message || 'Error de conexión'
+                setSaveError(msg)
+                toast.error('No se pudo guardar: ' + msg, {
+                    id: 'save-error',
+                    duration: 6000,
+                    action: { label: 'Reintentar', onClick: () => saveAll({ silent: false }) }
+                })
+                return false
+            } finally {
+                setSaving(false)
+                saveInFlightRef.current = null
+                // Hubo cambios mientras guardábamos → otra vuelta
+                if (versionRef.current !== versionAtStart) scheduleAutosave(300)
+            }
+        })()
+
+        saveInFlightRef.current = run
+        return run
+    }
+
+    const scheduleAutosave = (delay = AUTOSAVE_DELAY_MS) => {
+        clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = setTimeout(() => {
+            if (isDirtyRef.current) saveAll()
+        }, delay)
+    }
+
+    // Marca cambio local + programa autoguardado
+    const markDirty = () => {
+        versionRef.current += 1
+        isDirtyRef.current = true
+        setIsDirty(true)
+        scheduleAutosave()
+    }
+
+    // Guardar ya (sin esperar el debounce)
+    const flushSave = () => {
+        clearTimeout(autosaveTimerRef.current)
+        return isDirtyRef.current ? saveAll() : Promise.resolve(true)
+    }
+
+    // ═══════════════════════════ CICLO DE VIDA ═══════════════════════════
 
     useEffect(() => {
-        console.log('EditQuiz Loaded - Version 1.2');
+        // Si acabamos de crear este quiz, el estado local ya es el correcto: no recargar
+        if (quizId !== 'new' && quizId === justCreatedIdRef.current) return
         fetchQuizData()
-        if (quizId !== 'new') setActiveQuizId(quizId);
+        if (quizId !== 'new') setActiveQuizId(quizId)
     }, [quizId])
 
-    // Protección contra pérdida de datos
+    // Aviso al cerrar/recargar si hay cambios sin guardar
     useEffect(() => {
         const handleBeforeUnload = (e) => {
-            if (isDirty) {
-                e.preventDefault();
-                e.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
-                return e.returnValue;
+            if (isDirtyRef.current || saveInFlightRef.current) {
+                flushSave()
+                e.preventDefault()
+                e.returnValue = 'Tienes cambios sin guardar.'
+                return e.returnValue
             }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [isDirty]);
+        }
+        // Al ocultar la pestaña, guardar de inmediato
+        const handleVisibility = () => {
+            if (document.visibilityState === 'hidden') flushSave()
+        }
+        window.addEventListener('beforeunload', handleBeforeUnload)
+        document.addEventListener('visibilitychange', handleVisibility)
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload)
+            document.removeEventListener('visibilitychange', handleVisibility)
+            clearTimeout(autosaveTimerRef.current)
+        }
+    }, [])
+
+    // Al cambiar de pregunta: guardar al instante y enfocar
+    useEffect(() => {
+        flushSave()
+        if (questionInputRef.current && quizRef.current?.title?.trim()) {
+            questionInputRef.current.focus()
+        }
+    }, [currentIdx])
 
     const handleSafeNavigate = async (to) => {
-        if (isDirty && activeQuizId) {
-            const tid = toast.loading('Sincronizando cambios antes de salir...')
-            try {
-                await saveAll(true)
-            } catch (err) {
-                console.warn('Aviso sincronizando al salir:', err)
-            } finally {
-                toast.dismiss(tid)
+        if (isDirtyRef.current || saveInFlightRef.current) {
+            const tid = toast.loading('Guardando cambios...')
+            const ok = await (saveInFlightRef.current || saveAll())
+            // Si el guardado en curso terminó pero quedaron cambios, una vuelta más
+            const ok2 = isDirtyRef.current ? await saveAll() : ok
+            toast.dismiss(tid)
+            if (!ok2 && quizRef.current?.title?.trim()) {
+                if (!window.confirm('No se pudieron guardar los últimos cambios. ¿Salir de todas formas?')) return
             }
         }
         navigate(to)
     }
 
-    // Auto-foco al cambiar de pregunta
-    useEffect(() => {
-        if (questionInputRef.current) {
-            questionInputRef.current.focus();
+    const checkTitleRequired = () => {
+        if (!quizRef.current?.title?.trim()) {
+            toast.error('Define el título del quiz antes de continuar', {
+                id: 'title-required',
+                icon: '⚠️',
+                duration: 3500,
+                style: {
+                    background: '#1e1136',
+                    color: '#f59e0b',
+                    border: '1px solid #f59e0b',
+                    fontWeight: 'bold',
+                    fontSize: '13px'
+                }
+            })
+            if (titleInputRef.current) {
+                titleInputRef.current.focus()
+                titleInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+            return false
         }
-    }, [currentIdx])
+        return true
+    }
 
     const fetchQuizData = async () => {
         if (quizId === 'new') {
-            setQuiz({ title: '', description: '', visibility: 'public' })
-            setQuestions([{
-                id: crypto.randomUUID(),
-                quiz_id: null,
-                text: '¿  ?',
-                option_a: '',
-                option_b: '',
-                option_c: '',
-                option_d: '',
-                correct_option: 'A',
-                image_url: '',
-                media_type: 'none',
-                order_index: 0,
-                is_cover: true
-            }])
+            commitQuiz({ title: '', description: '', visibility: 'public' })
+            commitQuestions([newBlankQuestion(0, true)])
+            setActiveQuizId(null)
+            setIsDirty(false)
             setLoading(false)
-            setTimeout(() => {
-                if (questionInputRef.current) {
-                    questionInputRef.current.focus()
-                    questionInputRef.current.setSelectionRange(2, 2)
-                }
-            }, 100)
+            setTimeout(() => titleInputRef.current?.focus(), 100)
             return
         }
 
+        setLoading(true)
         try {
-            const { data: qData } = await supabase.from('quizzes').select('*').eq('id', quizId).single()
+            const { data: qData, error: qErr } = await supabase.from('quizzes').select('*').eq('id', quizId).single()
+            if (qErr || !qData) throw qErr || new Error('Trivia no encontrada')
 
             // Verificación de Autoría (Seguridad Crítica)
-            const isAdmin = user?.email === 'cristianluke@gmail.com';
-            if (qData && user && qData.user_id !== user.id && !isAdmin) {
-                toast.error('No tienes permiso para editar esta trivia');
-                navigate('/');
-                return;
+            const isAdmin = user?.email === 'cristianluke@gmail.com'
+            if (user && qData.user_id !== user.id && !isAdmin) {
+                toast.error('No tienes permiso para editar esta trivia')
+                navigate('/')
+                return
             }
 
             const { data: qsData } = await supabase.from('questions').select('*').eq('quiz_id', quizId).order('order_index')
-            setQuiz(qData)
+            commitQuiz(qData)
             if (qsData && qsData.length > 0) {
-                setQuestions(qsData.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
+                commitQuestions(qsData.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
             } else {
-                addNewQuestion()
+                commitQuestions([newBlankQuestion(0, true)])
             }
+            setIsDirty(false)
         } catch (e) {
-            toast.error('Error al cargar datos')
+            console.error('Error al cargar trivia:', e)
+            toast.error('Error al cargar datos', {
+                action: { label: 'Reintentar', onClick: () => fetchQuizData() }
+            })
         } finally {
             setLoading(false)
         }
     }
 
+    // ═══════════════════════════ EDICIÓN ═══════════════════════════
+
     const updateQuestion = (idx, updates) => {
-        setIsDirty(true)
-        setQuestions(prev => {
-            const newQs = [...prev]
-            newQs[idx] = { ...newQs[idx], ...updates }
-            return newQs
+        commitQuestions(prev => {
+            const next = [...prev]
+            if (!next[idx]) return prev
+            next[idx] = { ...next[idx], ...updates }
+            return next
         })
+        markDirty()
+    }
+
+    // Actualización por id (segura tras operaciones async: el índice pudo cambiar)
+    const updateQuestionById = (id, updates) => {
+        commitQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updates } : q))
+        markDirty()
+    }
+
+    const handleQuizChange = (updatedQuiz) => {
+        commitQuiz(updatedQuiz)
+        markDirty()
     }
 
     const addNewQuestion = () => {
-        setIsDirty(true)
-        const newQ = {
-            id: 'temp-' + crypto.randomUUID(),
-            quiz_id: activeQuizId,
-            text: '¿  ?',
-            option_a: '',
-            option_b: '',
-            option_c: '',
-            option_d: '',
-            correct_option: 'A',
-            image_url: '',
-            media_type: 'none',
-            order_index: questions.length,
-            is_cover: false
-        }
-        setQuestions([...questions, newQ])
-        setCurrentIdx(questions.length)
+        if (!checkTitleRequired()) return
+        const len = questionsRef.current.length
+        commitQuestions(prev => [...prev, newBlankQuestion(prev.length)])
+        markDirty()
+        setCurrentIdx(len)
 
         setTimeout(() => {
             if (questionInputRef.current) {
@@ -164,339 +401,99 @@ export default function EditQuiz() {
     }
 
     const deleteCurrent = async () => {
-        if (questions.length <= 1) return toast.error('No puedes eliminar la única pregunta')
-        const q = questions[currentIdx]
+        const qs = questionsRef.current
+        if (qs.length <= 1) return toast.error('No puedes eliminar la única pregunta')
+        const q = qs[currentIdx]
         if (!q) return
 
         if (!window.confirm(`¿Eliminar la pregunta ${currentIdx + 1}?`)) return
 
-        setIsDirty(true)
-        const delTid = toast.loading('Eliminando pregunta...')
+        // El borrado en BD se hace dentro de saveAll (después del upsert)
+        deletedIdsRef.current.add(normalizeId(q.id))
 
-        try {
-            // Si la pregunta existe en la base de datos, la eliminamos directamente con timeout seguro
-            if (activeQuizId && q.id && !String(q.id).startsWith('temp-')) {
-                const deletePromise = supabase.from('questions').delete().eq('id', q.id)
-                await withTimeout(deletePromise, 5000, 'Tiempo de espera agotado al eliminar').catch(err => {
-                    console.warn('Aviso al eliminar pregunta en BD:', err)
-                })
-            }
+        let reindexed = qs.filter((_, i) => i !== currentIdx).map((item, idx) => ({ ...item, order_index: idx }))
 
-            // Filtrar pregunta y reindexar order_index
-            const remaining = questions.filter((_, i) => i !== currentIdx)
-            const reindexed = remaining.map((item, idx) => ({ ...item, order_index: idx }))
-
-            // Si la eliminada era la portada, transferir portada a la primera con imagen
-            if (q.is_cover && reindexed.length > 0) {
-                const newCover = reindexed.find(item => item.image_url) || reindexed[0]
-                newCover.is_cover = true
-                setQuiz(prev => ({ ...prev, cover_image: newCover.image_url || '' }))
-            }
-
-            setQuestions(reindexed)
-            setCurrentIdx(prev => Math.max(0, Math.min(prev, reindexed.length - 1)))
-            toast.success('Pregunta eliminada', { id: delTid })
-        } catch (err) {
-            console.error('Error al eliminar pregunta:', err)
-            toast.error('Error al eliminar: ' + (err?.message || 'Error desconocido'), { id: delTid })
+        // Si la eliminada era la portada, transferir portada a la primera con imagen
+        if (q.is_cover && reindexed.length > 0) {
+            const coverIdx = Math.max(0, reindexed.findIndex(item => item.image_url))
+            reindexed = reindexed.map((item, i) => ({ ...item, is_cover: i === coverIdx }))
+            commitQuiz(prev => ({ ...prev, cover_image: reindexed[coverIdx].image_url || '' }))
         }
+
+        commitQuestions(reindexed)
+        setCurrentIdx(prev => Math.max(0, Math.min(prev, reindexed.length - 1)))
+        markDirty()
+        const ok = await flushSave()
+        if (ok) toast.success('Pregunta eliminada', { duration: 1500 })
     }
 
-    const handleQuizChange = (updatedQuiz) => {
-        setQuiz(updatedQuiz);
-        setIsDirty(true);
-    };
-
-    const handleGenerateTTS = async (question) => {
-        if (!question.id || String(question.id).startsWith('temp-')) return toast.error('Guarda la pregunta antes de generar el audio')
-        const url = await generateAudio(question)
-        if (url) {
-            updateQuestion(currentIdx, { audio_url: url, last_tts_text: question.text })
-        }
-    }
-
-    const handleGenerateAllTTS = async () => {
-        const toProcess = questions.filter(q =>
-            q.id &&
-            !String(q.id).startsWith('temp-') &&
-            q.text &&
-            q.text.trim() !== '¿  ?' &&
-            (!q.audio_url || q.text !== q.last_tts_text)
-        )
-        if (toProcess.length === 0) return toast.success('Todo el contenido válido ya tiene audio')
-
-        const results = await generateBatch(toProcess)
-        if (results.length > 0) {
-            setQuestions(prev => prev.map(q => {
-                const match = results.find(r => r.id === q.id)
-                return match ? { ...q, ...match } : q
-            }))
-        }
-    }
-
-    // Función utilitaria con timeout para evitar que Supabase/red se quede colgado indefinidamente
-    const withTimeout = (promise, ms = 8000, errorMsg = 'Tiempo de espera agotado') => {
-        return Promise.race([
-            promise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
-        ])
-    }
-
-    // Auto-guardado de Portada Oficial
+    // Portada: actualización local + guardado inmediato
     const handleSetCover = async (idx, explicitImageUrl = null) => {
-        const targetQ = questions[idx]
+        const targetQ = questionsRef.current[idx]
         if (!targetQ) return
 
         const imageUrl = explicitImageUrl || targetQ.image_url
         if (!imageUrl) {
-            toast.error('Asigna primero una imagen a esta pregunta para usarla como portada', {
-                icon: '🖼️'
-            })
+            toast.error('Asigna primero una imagen a esta pregunta para usarla como portada', { icon: '🖼️' })
             return
         }
 
-        // 1. Actualizar estado reactivo local inmediatamente
-        const newQs = questions.map((item, i) => ({
+        commitQuestions(prev => prev.map((item, i) => ({
             ...item,
             is_cover: i === idx,
             image_url: (i === idx && explicitImageUrl) ? explicitImageUrl : item.image_url
-        }))
-        setQuestions(newQs)
-        setQuiz(prev => ({ ...prev, cover_image: imageUrl }))
-        setIsDirty(true)
+        })))
+        commitQuiz(prev => ({ ...prev, cover_image: imageUrl }))
+        markDirty()
 
-        // 2. Si la trivia ya existe en la base de datos, auto-guardar en segundo plano
-        if (activeQuizId) {
-            const coverTid = toast.loading('Guardando portada...')
-            const safetyCoverTimer = setTimeout(() => toast.dismiss(coverTid), 8000)
-
-            try {
-                const realTargetId = targetQ.id && !String(targetQ.id).startsWith('temp-') ? targetQ.id : null
-
-                await withTimeout(
-                    Promise.all([
-                        // Guardar cover_image en la tabla quizzes
-                        supabase
-                            .from('quizzes')
-                            .update({
-                                cover_image: imageUrl,
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('id', activeQuizId),
-                        // Resetear is_cover en todas las preguntas de esta trivia
-                        supabase
-                            .from('questions')
-                            .update({ is_cover: false })
-                            .eq('quiz_id', activeQuizId),
-                        // Si la pregunta actual ya tiene ID en la BD, asignarle is_cover = true
-                        ...(realTargetId
-                            ? [supabase.from('questions').update({ is_cover: true, image_url: imageUrl }).eq('id', realTargetId)]
-                            : [])
-                    ]),
-                    7000,
-                    'Tiempo de espera agotado al guardar la portada'
-                )
-                clearTimeout(safetyCoverTimer)
-                toast.success('¡Portada guardada automáticamente!', { id: coverTid })
-            } catch (err) {
-                clearTimeout(safetyCoverTimer)
-                console.error('Error al auto-guardar portada:', err)
-                toast.error('Error al guardar portada: ' + (err?.message || 'Error de conexión'), { id: coverTid })
-            }
-        } else {
-            toast.success('Portada asignada (se guardará junto a la trivia)')
-        }
+        const ok = await flushSave()
+        if (ok) toast.success('Portada guardada', { id: 'cover-ok', duration: 1500 })
     }
 
-    // Auto-guardado instantáneo de imagen individual (Cero Fricción al pasar de pregunta en pregunta)
-    const handleUpdateQuestionImage = async (idx, imageUrl) => {
+    // Imagen de pregunta: actualización local + guardado inmediato
+    const handleUpdateQuestionImage = (idx, imageUrl) => {
         const cleanUrl = imageUrl?.trim() || ''
-
-        // 1. Feedback visual inmediato en React
         updateQuestion(idx, { image_url: cleanUrl, media_type: cleanUrl ? 'image' : 'none' })
-
-        const targetQ = questions[idx]
-        if (!targetQ) return
-
-        // 2. Si la trivia ya existe en la BD, auto-guardar en segundo plano al instante
-        if (activeQuizId) {
-            const realId = targetQ.id && !String(targetQ.id).startsWith('temp-') ? targetQ.id : null
-
-            if (realId) {
-                try {
-                    const promises = [
-                        supabase
-                            .from('questions')
-                            .update({ image_url: cleanUrl, media_type: cleanUrl ? 'image' : 'none' })
-                            .eq('id', realId)
-                    ]
-
-                    // Si es portada, mantener cover_image en quizzes sincronizado
-                    if (targetQ.is_cover) {
-                        promises.push(
-                            supabase
-                                .from('quizzes')
-                                .update({ cover_image: cleanUrl, updated_at: new Date().toISOString() })
-                                .eq('id', activeQuizId)
-                        )
-                    }
-
-                    await Promise.all(promises)
-                    setIsDirty(false)
-                    toast.success('⚡ Imagen guardada automáticamente', { duration: 1500 })
-                } catch (err) {
-                    console.warn('Aviso al auto-guardar imagen:', err)
-                }
-            } else {
-                setIsDirty(true)
-            }
-        }
+        flushSave()
     }
 
-    const saveAll = async (isSilent = false) => {
-        if (loading) return // Evita peticiones duplicadas
-        setLoading(true)
-        const tid = !isSilent ? toast.loading('Guardando trivia...') : null
-
-        // Temporizador de seguridad de 12s para garantizar que el toast NUNCA quede colgado
-        const safetyTimer = !isSilent ? setTimeout(() => {
-            toast.dismiss(tid)
-        }, 12000) : null
-
-        try {
-            let workingQuizId = activeQuizId
-
-            // Determinar la imagen de portada oficial
-            const coverQ = questions.find(q => q.is_cover && q.image_url) || questions.find(q => q.image_url)
-            const coverImage = coverQ?.image_url || quiz?.cover_image || ''
-
-            // 1. Guardar o Actualizar Quiz
-            let quizPromise = null
-            if (!workingQuizId) {
-                const quizPayload = {
-                    title: quiz?.title?.trim() || 'Sin título',
-                    description: quiz?.description?.trim() || '',
-                    user_id: user?.id,
-                    visibility: quiz?.visibility || 'public',
-                    is_public_for_live: quiz?.is_public_for_live ?? true,
-                    creator_handle: quiz?.creator_handle || user?.email?.split('@')[0] || '@comunidad',
-                    category: quiz?.category || 'General',
-                    cover_image: coverImage
-                }
-
-                const { data, error } = await withTimeout(
-                    supabase.from('quizzes').insert(quizPayload).select().single(),
-                    8000,
-                    'Tiempo de espera agotado al crear la trivia'
-                )
-
-                if (error) throw error
-                if (!data) throw new Error('No se recibió confirmación al crear la trivia')
-
-                workingQuizId = data.id
-                setActiveQuizId(data.id)
-                setQuiz(data)
-                window.history.replaceState(null, '', `/edit/${data.id}`)
-            } else {
-                const quizUpdatePayload = {
-                    title: quiz?.title?.trim() || 'Sin título',
-                    description: quiz?.description?.trim() || '',
-                    visibility: quiz?.visibility || 'public',
-                    is_public_for_live: quiz?.is_public_for_live ?? true,
-                    creator_handle: quiz?.creator_handle || user?.email?.split('@')[0] || '@comunidad',
-                    category: quiz?.category || 'General',
-                    cover_image: coverImage,
-                    updated_at: new Date().toISOString()
-                }
-
-                quizPromise = supabase.from('quizzes').update(quizUpdatePayload).eq('id', workingQuizId)
-            }
-
-            // 2. Guardar Preguntas (Bulk Upsert con UUIDs válidos garantizados)
-            const questionsToUpsert = questions.map((q, i) => {
-                const realId = (q.id && !String(q.id).startsWith('temp-'))
-                    ? q.id
-                    : (String(q.id).startsWith('temp-') ? q.id.replace('temp-', '') : crypto.randomUUID())
-
-                return {
-                    id: realId,
-                    quiz_id: workingQuizId,
-                    text: q.text || '',
-                    question: q.text || '',
-                    option_a: q.option_a || '',
-                    option_b: q.option_b || '',
-                    option_c: q.option_c || '',
-                    option_d: q.option_d || '',
-                    correct_option: q.correct_option || 'A',
-                    time_limit: q.time_limit || 10,
-                    order_index: i,
-                    image_url: q.image_url || '',
-                    audio_url: q.audio_url || '',
-                    last_tts_text: q.last_tts_text || '',
-                    is_cover: !!q.is_cover
-                }
-            })
-
-            // Paralelizar guardado de quiz y preguntas para máxima velocidad
-            const upsertPromise = supabase
-                .from('questions')
-                .upsert(questionsToUpsert)
-                .select()
-
-            const parallelOps = quizPromise ? [quizPromise, upsertPromise] : [upsertPromise]
-            const results = await withTimeout(
-                Promise.all(parallelOps),
-                9000,
-                'Tiempo de espera agotado al guardar'
-            )
-
-            const upsertData = quizPromise ? results[1]?.data : results[0]?.data
-            const upsertError = quizPromise ? results[1]?.error : results[0]?.error
-            if (upsertError) throw upsertError
-
-            if (upsertData && upsertData.length > 0) {
-                const sortedQuestions = [...upsertData].sort((a, b) => a.order_index - b.order_index)
-                setQuestions(sortedQuestions.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
-            }
-
-            setIsDirty(false)
-            if (safetyTimer) clearTimeout(safetyTimer)
-            if (!isSilent && tid) {
-                toast.success('¡Trivia guardada exitosamente!', { id: tid })
-            }
-
-            // Redirigir si era nuevo en la URL original
-            if (quizId === 'new' && !isSilent) {
-                navigate(`/edit/${workingQuizId}`, { replace: true })
-            }
-        } catch (e) {
-            if (safetyTimer) clearTimeout(safetyTimer)
-            console.error('Error en saveAll:', e)
-            if (!isSilent && tid) {
-                toast.error('Error al guardar: ' + (e?.message || 'Error de conexión'), { id: tid })
-            }
-        } finally {
-            if (safetyTimer) clearTimeout(safetyTimer)
-            setLoading(false)
-        }
-    }
-
+    // Voz individual: ya NO exige guardar antes; si el quiz no existe aún, lo crea
     const handleIndividualTTS = async (idx) => {
         if (!user?.is_premium) {
             setIsPremiumModalOpen(true)
             return
         }
-        const q = questions[idx];
-        if (!q.text || q.text === '¿  ?') return toast.error('Ingresa texto válido');
-        if (String(q.id).startsWith('temp-')) return toast.error('Guarda la pregunta antes de generar el audio');
+        const q = questionsRef.current[idx]
+        if (!q || isPlaceholderText(q.text)) return toast.error('Ingresa texto válido')
 
-        setLoading(true);
-        const url = await generateAudio(q);
-        if (url) {
-            updateQuestion(idx, { audio_url: url, last_tts_text: q.text });
+        setTtsBusy(true)
+        const tid = toast.loading('Generando voz...')
+        try {
+            // Necesitamos un quiz real para la carpeta del audio
+            if (!activeQuizIdRef.current) {
+                const ok = await saveAll()
+                if (!ok) throw new Error('No se pudo crear la trivia')
+            }
+            const qid = normalizeId(q.id)
+            const url = await generateAudio({ ...q, id: qid }, activeQuizIdRef.current)
+            if (!url) throw new Error('El generador de voz no respondió')
+
+            // Cache-buster: el archivo se sobrescribe con el mismo nombre al re-vincular
+            const freshUrl = `${url.split('?')[0]}?v=${Date.now()}`
+            updateQuestionById(q.id, { audio_url: freshUrl, last_tts_text: q.text })
+            await flushSave()
+            toast.success('Voz vinculada y guardada', { id: tid, duration: 1500 })
+        } catch (e) {
+            toast.error('Error de voz: ' + (e?.message || 'desconocido'), { id: tid })
+        } finally {
+            setTtsBusy(false)
         }
-        setLoading(false);
-    };
+    }
+
+    // ═══════════════════════════ IA / CARGA MASIVA ═══════════════════════════
+
+    const stripPlaceholder = (qs) =>
+        (qs.length === 1 && isPlaceholderText(qs[0].text) && !qs[0].image_url) ? [] : qs
 
     const handleAiGenerate = async ({ topic, count, ttsEnabled, description }) => {
         if (!topic.trim()) return toast.error('Ingresa un tema para la IA')
@@ -504,28 +501,11 @@ export default function EditQuiz() {
         setLoading(true)
         const tid = toast.loading('Consultando oráculo de la IA...')
         try {
-            // 1. Si es un quiz nuevo, necesitamos un ID real PARA EL AUDIO (evitar carpeta /new/)
-            let workingQuizId = activeQuizId;
-            if (!workingQuizId) {
-                const { data: nQuiz, error: nErr } = await supabase.from('quizzes').insert({
-                    title: quiz.title || 'Nuevo Quiz IA',
-                    description: quiz.description || '',
-                    user_id: user?.id,
-                    visibility: quiz.visibility || 'public'
-                }).select().single();
-                if (nErr) throw nErr;
-                workingQuizId = nQuiz.id;
-                setActiveQuizId(nQuiz.id);
-                setQuiz(nQuiz);
-                window.history.replaceState(null, '', `/edit/${nQuiz.id}`);
-                // No navegamos formalmente para no perder el estado local, pero actualizamos la ruta
-            }
+            const { data: sessionData } = await supabase.auth.getSession()
+            const session = sessionData?.session
 
-            const { data: sessionData } = await supabase.auth.getSession();
-            const session = sessionData?.session;
-
-            let data = null;
-            let lastApiError = null;
+            let data = null
+            let lastApiError = null
             try {
                 const apiRes = await fetch('/api/generate-quiz', {
                     method: 'POST',
@@ -533,58 +513,41 @@ export default function EditQuiz() {
                         'Content-Type': 'application/json',
                         ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
                     },
-                    body: JSON.stringify({
-                        topic: topic,
-                        description: description,
-                        count: count
-                    })
-                });
-
+                    body: JSON.stringify({ topic, description, count })
+                })
                 if (apiRes.ok) {
-                    data = await apiRes.json();
+                    data = await apiRes.json()
                 } else {
-                    const errPayload = await apiRes.json().catch(() => ({}));
-                    lastApiError = errPayload.error || `Error HTTP ${apiRes.status}`;
-                    console.warn('Fallo /api/generate-quiz, probando Edge Function fallback:', lastApiError);
+                    const errPayload = await apiRes.json().catch(() => ({}))
+                    lastApiError = errPayload.error || `Error HTTP ${apiRes.status}`
+                    console.warn('Fallo /api/generate-quiz, probando Edge Function fallback:', lastApiError)
                 }
             } catch (errApi) {
-                lastApiError = errApi.message;
-                console.warn('Excepción al conectar con /api/generate-quiz:', errApi);
+                lastApiError = errApi.message
+                console.warn('Excepción al conectar con /api/generate-quiz:', errApi)
             }
 
             if (!data) {
                 const { data: edgeData, error: edgeError } = await supabase.functions.invoke('generate-quiz', {
-                    body: {
-                        topic: topic,
-                        description: description,
-                        count: count
-                    },
-                    headers: {
-                        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
-                    }
-                });
-                if (edgeError) {
-                    throw new Error(lastApiError || edgeError.message || 'Error al generar preguntas con IA');
-                }
-                data = edgeData;
+                    body: { topic, description, count },
+                    headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+                })
+                if (edgeError) throw new Error(lastApiError || edgeError.message || 'Error al generar preguntas con IA')
+                data = edgeData
             }
+            if (!Array.isArray(data) || data.length === 0) throw new Error('La IA no devolvió preguntas')
 
-            // Limpiar marcador de posición si es el único y está vacío
-            const baseQuestions = (questions.length === 1 && (questions[0].text === '¿  ?' || !questions[0].text.trim())) ? [] : questions;
+            const baseQuestions = stripPlaceholder(questionsRef.current)
+            const hasCover = baseQuestions.some(q => q.is_cover)
 
             const newQuestions = data.map((q, i) => ({
+                ...newBlankQuestion(baseQuestions.length + i, !hasCover && i === 0),
                 text: q.text || 'Sin título',
                 option_a: q.option_a || '',
                 option_b: q.option_b || '',
                 option_c: q.option_c || '',
                 option_d: q.option_d || '',
-                correct_option: q.correct_option || 'A',
-                image_url: '', // Las URLs que inventa la IA suelen ser 404: se reemplazan con Pexels abajo
-                id: 'temp-' + crypto.randomUUID(),
-                quiz_id: workingQuizId,
-                order_index: baseQuestions.length + i,
-                audio_url: '',
-                last_tts_text: q.text
+                correct_option: q.correct_option || 'A'
             }))
 
             // Imágenes REALES por keyword vía Wikimedia / Wikipedia
@@ -602,70 +565,34 @@ export default function EditQuiz() {
                 }
             }))
 
+            // Insertar en el estado y guardar (crea el quiz si no existía)
+            commitQuestions([...baseQuestions, ...newQuestions])
+            markDirty()
+            setShowAiPanel(false)
+            setCurrentIdx(baseQuestions.length)
+            toast.loading('Guardando preguntas...', { id: tid })
+            const ok = await saveAll()
+            if (!ok) throw new Error('Las preguntas se generaron pero no se pudieron guardar')
+
             if (ttsEnabled) {
-                toast.loading('Generando voces neuronales...', { id: tid })
                 for (let i = 0; i < newQuestions.length; i++) {
+                    toast.loading(`Generando voces ${i + 1}/${newQuestions.length}...`, { id: tid })
                     try {
-                        const url = await generateAudio(newQuestions[i], workingQuizId)
-                        newQuestions[i].audio_url = url
+                        const url = await generateAudio(newQuestions[i], activeQuizIdRef.current)
+                        if (url) {
+                            updateQuestionById(newQuestions[i].id, {
+                                audio_url: `${url.split('?')[0]}?v=${Date.now()}`,
+                                last_tts_text: newQuestions[i].text
+                            })
+                        }
                     } catch (e) {
                         console.error(`Error TTS en pregunta ${i}:`, e)
                     }
                 }
+                await flushSave()
             }
 
-            // Auto-guardar las preguntas en BD de inmediato para que tengan UUIDs reales y persistencia
-            const allToUpsert = [...baseQuestions, ...newQuestions].map((q, idx) => {
-                const realId = (q.id && !String(q.id).startsWith('temp-'))
-                    ? q.id
-                    : (String(q.id).startsWith('temp-') ? q.id.replace('temp-', '') : crypto.randomUUID())
-
-                return {
-                    id: realId,
-                    quiz_id: workingQuizId,
-                    text: q.text || '',
-                    question: q.text || '',
-                    option_a: q.option_a || '',
-                    option_b: q.option_b || '',
-                    option_c: q.option_c || '',
-                    option_d: q.option_d || '',
-                    correct_option: q.correct_option || 'A',
-                    time_limit: q.time_limit || 10,
-                    order_index: idx,
-                    image_url: q.image_url || '',
-                    audio_url: q.audio_url || '',
-                    last_tts_text: q.last_tts_text || '',
-                    is_cover: idx === 0 ? true : !!q.is_cover
-                }
-            })
-
-            // Si la primera pregunta tiene imagen, asegurar cover_image en quizzes
-            const firstCover = allToUpsert.find(q => q.is_cover && q.image_url) || allToUpsert.find(q => q.image_url)
-            if (firstCover?.image_url) {
-                await supabase
-                    .from('quizzes')
-                    .update({ cover_image: firstCover.image_url, updated_at: new Date().toISOString() })
-                    .eq('id', workingQuizId)
-                    .catch(e => console.warn('Aviso portada IA:', e))
-            }
-
-            const { data: upsertData } = await supabase
-                .from('questions')
-                .upsert(allToUpsert)
-                .select()
-
-            if (upsertData && upsertData.length > 0) {
-                const sorted = [...upsertData].sort((a, b) => a.order_index - b.order_index)
-                setQuestions(sorted.map(q => ({ ...q, last_tts_text: q.last_tts_text || '' })))
-                setIsDirty(false)
-            } else {
-                setQuestions(allToUpsert)
-                setIsDirty(false)
-            }
-
-            setShowAiPanel(false)
-            setCurrentIdx(baseQuestions.length) // Ir a la primera pregunta generada
-            toast.success(`¡Trivia generada y guardada con éxito! (${newQuestions.length} preguntas)`, { id: tid })
+            toast.success(`¡Trivia generada y guardada! (${newQuestions.length} preguntas)`, { id: tid })
         } catch (e) {
             toast.error('Error IA: ' + e.message, { id: tid })
         } finally {
@@ -674,74 +601,65 @@ export default function EditQuiz() {
     }
 
     const handleOpenAiPanel = () => {
+        if (!checkTitleRequired()) return
         if (!user?.is_premium) {
             setIsPremiumModalOpen(true)
-            return;
+            return
         }
-        if (!quiz?.title?.trim() || !quiz?.description?.trim()) {
-            toast.error('Ingresa un Título y Descripción para darle contexto a la IA', {
-                style: { background: '#ec4899', color: '#fff', border: 'none' }
-            });
-            return;
-        }
-        setShowAiPanel(true);
-        setShowBulk(false);
+        setShowAiPanel(true)
+        setShowBulk(false)
     }
 
     const handleBulkImport = async (newParsedQuestions) => {
-        // Limpiar marcador de posición si es el único y está vacío
-        const baseQuestions = (questions.length === 1 && (questions[0].text === '¿  ?' || !questions[0].text.trim())) ? [] : questions;
+        const baseQuestions = stripPlaceholder(questionsRef.current)
+        const hasCover = baseQuestions.some(q => q.is_cover)
 
-        const questionsWithMetadata = newParsedQuestions.map((q, i) => ({
+        const imported = newParsedQuestions.map((q, i) => ({
+            ...newBlankQuestion(baseQuestions.length + i, !hasCover && i === 0),
             ...q,
-            id: 'temp-' + crypto.randomUUID(),
-            quiz_id: activeQuizId,
+            id: crypto.randomUUID(),
             order_index: baseQuestions.length + i
-        }));
+        }))
 
-        setQuestions([...baseQuestions, ...questionsWithMetadata]);
-        setShowBulk(false);
-        setCurrentIdx(baseQuestions.length); // Ir a la primera de las nuevas
-        setIsDirty(true);
+        commitQuestions([...baseQuestions, ...imported])
+        markDirty()
+        setShowBulk(false)
+        setCurrentIdx(baseQuestions.length)
 
         // Resolver palabras clave → fotos reales (Wikimedia / Wikipedia).
-        const conKeyword = questionsWithMetadata.filter(q => q.image_keyword && !q.image_url)
+        const conKeyword = imported.filter(q => q.image_keyword && !q.image_url)
         if (conKeyword.length > 0) {
             const tid = toast.loading(`Buscando ${conKeyword.length} imágenes...`)
-            let found = 0
+            const found = {}
             await Promise.all(conKeyword.map(async (q) => {
                 try {
                     const imgData = await searchImages(q.image_keyword, 1)
-                    if (imgData?.results?.[0]?.url) {
-                        q.image_url = imgData.results[0].url
-                        q.media_type = 'image'
-                        found++
-                    }
+                    if (imgData?.results?.[0]?.url) found[q.id] = imgData.results[0].url
                 } catch (e) {
                     console.error(`Sin imagen para "${q.image_keyword}":`, e)
                 }
             }))
-            // Refrescar estado con las imágenes resueltas (mismo array de objetos, nuevo render)
-            setQuestions(prev => prev.map(p => {
-                const match = questionsWithMetadata.find(m => m.id === p.id)
-                return match ? { ...match } : p
-            }))
-            if (found > 0) toast.success(`${questionsWithMetadata.length} preguntas importadas · ${found} con imagen`, { id: tid })
-            else toast.warning('Preguntas importadas (no se encontraron imágenes)', { id: tid })
+            const n = Object.keys(found).length
+            if (n > 0) {
+                // Merge por id: respeta cualquier edición hecha mientras se buscaban
+                commitQuestions(prev => prev.map(p => found[p.id] && !p.image_url
+                    ? { ...p, image_url: found[p.id], media_type: 'image' }
+                    : p))
+                markDirty()
+                toast.success(`${imported.length} preguntas importadas · ${n} con imagen`, { id: tid })
+            } else {
+                toast.warning('Preguntas importadas (no se encontraron imágenes)', { id: tid })
+            }
         } else {
-            toast.success(`${questionsWithMetadata.length} preguntas importadas con éxito`)
+            toast.success(`${imported.length} preguntas importadas con éxito`)
         }
-    };
+        flushSave()
+    }
 
     const handleOpenBulkPanel = () => {
-        if (!quiz?.title?.trim() || !quiz?.description?.trim()) {
-            toast.error('Ingresa un Título y Descripción para el contexto de la carga masiva', {
-                style: { background: '#ec4899', color: '#fff', border: 'none' }
-            });
-            return;
-        }
-        setShowBulk(true);
-        setShowAiPanel(false);
+        if (!checkTitleRequired()) return
+        setShowBulk(true)
+        setShowAiPanel(false)
     }
 
     if (loading && !quiz) return <div className="h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-pink-500" size={48} /></div>
@@ -749,17 +667,17 @@ export default function EditQuiz() {
     const q = questions[currentIdx]
 
     const handleTouchStart = (e) => {
-        touchStartRef.current = e.targetTouches[0].clientX;
+        touchStartRef.current = e.targetTouches[0].clientX
     }
 
     const handleTouchEnd = (e) => {
-        touchEndRef.current = e.changedTouches[0].clientX;
-        const diff = touchStartRef.current - touchEndRef.current;
+        touchEndRef.current = e.changedTouches[0].clientX
+        const diff = touchStartRef.current - touchEndRef.current
         if (Math.abs(diff) > 50) {
             if (diff > 0) { // Swipe Left -> Next
-                if (currentIdx < questions.length - 1) setCurrentIdx(currentIdx + 1);
+                if (currentIdx < questions.length - 1) setCurrentIdx(currentIdx + 1)
             } else { // Swipe Right -> Prev
-                if (currentIdx > 0) setCurrentIdx(currentIdx - 1);
+                if (currentIdx > 0) setCurrentIdx(currentIdx - 1)
             }
         }
     }
@@ -787,10 +705,11 @@ export default function EditQuiz() {
                 user={user}
                 onQuizChange={handleQuizChange}
                 onSafeNavigate={handleSafeNavigate}
-                onAddNewQuestion={addNewQuestion}
+                onAddNewQuestion={() => addNewQuestion()}
                 onOpenBulkPanel={handleOpenBulkPanel}
                 onOpenAiPanel={handleOpenAiPanel}
                 onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
+                titleInputRef={titleInputRef}
             />
 
             <AiPanel
@@ -813,50 +732,88 @@ export default function EditQuiz() {
             />
 
             <main className="flex-1 relative z-10 overflow-hidden flex flex-col pt-0 pb-[10vh] md:pb-24">
+                {/* Interceptor visual amigable si aún no se ha definido el título */}
+                {!quiz?.title?.trim() && (
+                    <div
+                        onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            checkTitleRequired()
+                        }}
+                        className="absolute inset-0 z-40 bg-[#0d0417]/75 backdrop-blur-[4px] flex flex-col items-center justify-center p-6 text-center cursor-pointer select-none transition-all animate-in fade-in duration-300"
+                    >
+                        <div className="bg-[#180830]/95 border-2 border-amber-500/50 p-6 md:p-8 rounded-3xl shadow-2xl max-w-lg flex flex-col items-center animate-in zoom-in-95 duration-300 pointer-events-auto">
+                            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-4 ring-4 ring-amber-500/10">
+                                <Sparkles size={28} className="animate-pulse" />
+                            </div>
+                            <span className="text-[10px] font-black tracking-[0.25em] text-amber-400 uppercase mb-1">
+                                Paso 1 Obligatorio
+                            </span>
+                            <h3 className="text-xl md:text-2xl font-display font-black text-white italic tracking-tight mb-2">
+                                Define el título del quiz antes de continuar
+                            </h3>
+                            <p className="text-white/60 text-xs md:text-sm font-medium mb-6 max-w-sm">
+                                Escribe el nombre de tu trivia en la barra superior. Con solo el título podrás crear preguntas, usar la IA o cargar masivamente.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    checkTitleRequired()
+                                }}
+                                className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 flex items-center gap-2"
+                            >
+                                Escribir Título Arriba ✍️
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <div className="w-full max-w-[1700px] mx-auto flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500 overflow-hidden px-[4vw] md:px-12 lg:px-24">
                     {questions.length > 0 && q ? (
                         <QuestionEditor
                             question={q}
                             currentIdx={currentIdx}
                             questions={questions}
-                            loading={loading}
+                            loading={loading || ttsBusy}
                             user={user}
                             quiz={quiz}
                             onUpdateQuestion={updateQuestion}
                             onUpdateQuestionImage={handleUpdateQuestionImage}
-                            onSetQuestions={setQuestions}
+                            onSetQuestions={(qs) => { commitQuestions(qs); markDirty() }}
                             onSetCover={handleSetCover}
                             onHandleIndividualTTS={handleIndividualTTS}
                             questionInputRef={questionInputRef}
                         />
                     ) : (
                         <QuestionMethodPicker
-                            onAddNewManual={addNewQuestion}
+                            onAddNewManual={() => addNewQuestion()}
                             onOpenBulk={handleOpenBulkPanel}
                             onOpenAi={handleOpenAiPanel}
                         />
                     )}
                 </div>
-            </main >
+            </main>
 
             <NavigationBar
                 currentIdx={currentIdx}
                 totalQuestions={questions.length}
                 isDirty={isDirty}
+                saving={saving}
+                saveError={saveError}
                 loading={loading}
                 onPrev={() => setCurrentIdx(prev => Math.max(0, prev - 1))}
                 onNext={() => setCurrentIdx(prev => Math.min(questions.length - 1, prev + 1))}
-                onAddNewQuestion={addNewQuestion}
+                onAddNewQuestion={() => addNewQuestion()}
                 onOpenBulkPanel={handleOpenBulkPanel}
                 onOpenAiPanel={handleOpenAiPanel}
                 onDelete={deleteCurrent}
-                onSave={saveAll}
+                onSave={() => saveAll({ silent: false })}
             />
 
             <PremiumModal
                 isOpen={isPremiumModalOpen}
                 onClose={() => setIsPremiumModalOpen(false)}
             />
-        </div >
+        </div>
     )
 }

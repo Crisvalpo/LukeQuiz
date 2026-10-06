@@ -59,19 +59,29 @@ export const AuthProvider = ({ children }) => {
             } else {
                 setUser(null)
             }
-            setLoading(false)
-        })
+        }).catch(err => {
+            console.warn('getSession inicial:', err)
+        }).finally(() => setLoading(false))
 
         // Listen for auth state changes (login, logout, token refresh, OAuth callback)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        // IMPORTANTE: este callback DEBE ser síncrono. supabase-js lo ejecuta mientras
+        // retiene su lock interno de auth; si aquí se hace `await` de una consulta
+        // (que a su vez necesita el token → el mismo lock) se produce un DEADLOCK y
+        // todas las consultas posteriores quedan colgadas (skeleton infinito).
+        // Por eso diferimos fetchProfile con setTimeout(0), fuera del lock.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session)
             const currentUser = session?.user ?? null
             if (currentUser) {
-                await fetchProfile(currentUser)
+                setTimeout(() => {
+                    fetchProfile(currentUser)
+                        .catch(err => console.warn('fetchProfile (auth change):', err))
+                        .finally(() => setLoading(false))
+                }, 0)
             } else {
                 setUser(null)
+                setLoading(false)
             }
-            setLoading(false)
         })
 
         return () => {

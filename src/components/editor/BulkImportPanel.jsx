@@ -22,7 +22,7 @@ const BulkImportPanel = ({
     if (!isOpen) return null;
 
     const handleCopyPrompt = () => {
-        const prompt = `Actúa como un creador experto de trivias interactivas. Genera una lista de ${bulkCount} preguntas para un concurso titulado "${quizTitle || 'Mi Trivia'}" sobre "${quizDescription || 'temas variados'}".
+        const prompt = `Actúa como un creador experto de trivias interactivas. Genera una lista de ${bulkCount} preguntas para un concurso titulado "${quizTitle || 'Mi Trivia'}" sobre "${quizDescription || quizTitle || 'temas variados'}".
 
 Cada pregunta debe seguir este formato de texto plano, separando los campos con el carácter pipe (|):
 

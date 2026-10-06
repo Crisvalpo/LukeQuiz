@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Save, Plus, Trash2, FileText, Sparkles, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Plus, Trash2, FileText, Sparkles, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 const NavigationBar = ({
     currentIdx,
@@ -12,8 +12,18 @@ const NavigationBar = ({
     onOpenAiPanel,
     onDelete,
     onSave,
-    loading = false
+    loading = false,
+    saving = false,
+    saveError = null
 }) => {
+    // Estado de guardado unificado
+    const status = saving ? 'saving' : saveError ? 'error' : isDirty ? 'pending' : 'saved'
+    const statusUi = {
+        saving: { dot: 'bg-cyan-400 animate-pulse', text: 'GUARDANDO…', color: 'text-cyan-300' },
+        error: { dot: 'bg-red-500', text: 'ERROR AL GUARDAR', color: 'text-red-400' },
+        pending: { dot: 'bg-amber-500 animate-pulse', text: 'CAMBIOS PENDIENTES', color: 'text-amber-300/80' },
+        saved: { dot: 'bg-green-500', text: 'TODO GUARDADO', color: 'text-green-400/70' }
+    }[status]
     return (
         <footer className="fixed bottom-0 left-0 right-0 h-[10vh] md:h-20 bg-[#180830]/60 backdrop-blur-xl border-t border-white/10 z-50 shadow-2xl transition-all">
             <div className="h-full max-w-7xl mx-auto flex items-center justify-between px-4 md:px-20">
@@ -47,10 +57,10 @@ const NavigationBar = ({
 
                 {/* Acciones principales */}
                 <div className="flex items-center gap-4">
-                    <div className="hidden lg:flex items-center gap-4 mr-4 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase">
-                        <div className="flex items-center gap-2 border-r border-white/5 pr-4">
-                            <div className={`w-2 h-2 rounded-full ${isDirty ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`} />
-                            {isDirty ? 'MODIFICACIÓN' : 'SINCRO'}
+                    <div className={`hidden lg:flex items-center gap-4 mr-4 text-[10px] font-black tracking-[0.2em] uppercase ${statusUi.color}`}>
+                        <div className="flex items-center gap-2 border-r border-white/5 pr-4" title={saveError || ''}>
+                            <div className={`w-2 h-2 rounded-full ${statusUi.dot}`} />
+                            {statusUi.text}
                         </div>
                     </div>
 
@@ -90,11 +100,15 @@ const NavigationBar = ({
                         <button
                             type="button"
                             onClick={onSave}
-                            disabled={loading}
-                            className={`h-11 md:h-12 px-6 md:px-10 rounded-xl font-black text-[1.4vh] md:text-xs tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg border-none ${loading ? 'opacity-60 cursor-not-allowed bg-primary/70 text-white' : 'bg-primary text-white shadow-primary/20 hover:bg-primary-hover active:scale-95'}`}
+                            className={`h-11 md:h-12 px-6 md:px-10 rounded-xl font-black text-[1.4vh] md:text-xs tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg border-none active:scale-95 ${status === 'error' ? 'bg-red-500 text-white hover:bg-red-400' : status === 'saved' ? 'bg-white/10 text-green-300 hover:bg-white/15' : 'bg-primary text-white shadow-primary/20 hover:bg-primary-hover'}`}
                         >
-                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                            <span className="hidden xs:inline">{loading ? 'GUARDANDO...' : 'GUARDAR TRIVIA'}</span>
+                            {status === 'saving' ? <Loader2 size={18} className="animate-spin" />
+                                : status === 'error' ? <AlertTriangle size={18} />
+                                    : status === 'saved' ? <CheckCircle2 size={18} />
+                                        : <Save size={18} />}
+                            <span className="hidden xs:inline">
+                                {status === 'saving' ? 'GUARDANDO...' : status === 'error' ? 'REINTENTAR' : status === 'saved' ? 'GUARDADO' : 'GUARDAR'}
+                            </span>
                         </button>
                     </div>
                 </div>

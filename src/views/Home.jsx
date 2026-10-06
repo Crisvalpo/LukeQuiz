@@ -59,6 +59,15 @@ export default function Home() {
         fetchQuizzes()
     }, [view, debouncedSearch, user?.id, filterType, selectedCategory, page])
 
+    // Al volver a la pestaña, refrescar en segundo plano (recupera estados colgados)
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') fetchQuizzes()
+        }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
+    })
+
     const totalPages = useMemo(() => {
         return Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
     }, [totalCount])
@@ -146,7 +155,10 @@ export default function Home() {
 
             if (error) {
                 console.error('Error al cargar quizzes:', error)
-                toast.error('No se pudieron obtener las trivias')
+                toast.error('No se pudieron obtener las trivias', {
+                    id: 'quizzes-error',
+                    action: { label: 'Reintentar', onClick: () => fetchQuizzes() }
+                })
             } else {
                 const processed = (data || []).map(quiz => {
                     const coverQ = quiz.questions?.find(q => q.is_cover && q.image_url)
@@ -166,6 +178,12 @@ export default function Home() {
             }
         } catch (err) {
             console.error('Excepción al consultar quizzes:', err)
+            if (currentFetchId === fetchIdRef.current) {
+                toast.error('La conexión tardó demasiado', {
+                    id: 'quizzes-error',
+                    action: { label: 'Reintentar', onClick: () => fetchQuizzes() }
+                })
+            }
         } finally {
             if (currentFetchId === fetchIdRef.current) {
                 setLoading(false)
