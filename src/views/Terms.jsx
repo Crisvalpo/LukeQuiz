@@ -1,127 +1,145 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Shield, AlertTriangle, Copyright, Scale, Mail, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Shield, FileText, Mail, AlertCircle, ExternalLink } from 'lucide-react'
 
 export default function Terms() {
     return (
-        <div className="min-h-screen bg-[#0d0221] text-white selection:bg-pink-500 selection:text-white relative overflow-hidden flex flex-col">
-            {/* Fondo con brillo ambiental */}
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-[120px] pointer-events-none" />
-
-            {/* Barra superior de navegación */}
-            <header className="border-b border-white/10 bg-black/40 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
-                <Link
-                    to="/"
-                    className="flex items-center gap-2 text-white/70 hover:text-white text-xs md:text-sm font-black tracking-wider uppercase transition-colors"
-                >
-                    <ArrowLeft size={18} /> Volver a LukeQuiz
-                </Link>
-                <div className="flex items-center gap-2">
-                    <span className="font-display font-black text-lg tracking-tight bg-gradient-to-r from-pink-500 to-cyan-400 bg-clip-text text-transparent">
-                        LUKE QUIZ
-                    </span>
-                    <span className="text-[10px] bg-white/10 text-white/60 font-mono px-2 py-0.5 rounded-full">
-                        lukeapp.cl
-                    </span>
+        <div className="min-h-screen bg-slate-50 text-slate-800 selection:bg-slate-800 selection:text-white font-sans">
+            {/* Barra Superior Corporativa */}
+            <header className="border-b border-slate-200 bg-white sticky top-0 z-50 shadow-xs">
+                <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            to="/"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors py-1 px-2.5 rounded-md hover:bg-slate-100"
+                        >
+                            <ArrowLeft size={16} /> Volver a la plataforma
+                        </Link>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold tracking-tight text-slate-900">
+                            LUKEQUIZ
+                        </span>
+                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-mono">
+                            lukeapp.cl
+                        </span>
+                    </div>
                 </div>
             </header>
 
-            {/* Contenedor central */}
-            <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 md:py-16">
-                <div className="text-center mb-12">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-black uppercase tracking-widest mb-4">
-                        <Scale size={14} /> Legal & Condiciones
-                    </div>
-                    <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight text-white uppercase mb-3">
-                        Términos de Servicio
-                    </h1>
-                    <p className="text-white/60 text-sm md:text-base max-w-2xl mx-auto">
-                        Última actualización: Octubre 2026 · Conoce las condiciones de uso, políticas de contenido y derechos de autor en LukeQuiz.
-                    </p>
-                </div>
-
-                {/* Tarjeta destacada de AVISO SOBRE IMÁGENES Y DERECHOS DE AUTOR */}
-                <div className="mb-10 p-6 md:p-8 rounded-2xl bg-gradient-to-br from-amber-500/15 via-red-500/10 to-transparent border-2 border-amber-500/40 shadow-2xl relative overflow-hidden">
-                    <div className="flex items-start gap-4">
-                        <div className="p-3 bg-amber-500/20 text-amber-300 rounded-xl shrink-0 mt-1">
-                            <AlertTriangle size={28} />
+            {/* Documento Institucional */}
+            <main className="max-w-4xl mx-auto px-6 py-12 md:py-16">
+                <article className="bg-white border border-slate-200 rounded-xl shadow-xs p-8 md:p-14 space-y-8">
+                    {/* Encabezado del Documento */}
+                    <header className="border-b border-slate-200 pb-8 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <FileText size={16} /> Documento Legal Institucional
                         </div>
-                        <div className="space-y-3">
-                            <h2 className="text-lg md:text-xl font-black text-amber-200 uppercase tracking-wide flex items-center gap-2">
-                                <Copyright size={20} /> Aviso Crítico sobre Imágenes y Propiedad Intelectual
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                            Términos y Condiciones del Servicio
+                        </h1>
+                        <p className="text-xs text-slate-500">
+                            Última actualización: 7 de Octubre de 2026 · Versión 2.1 · Plataforma web: <a href="https://quiz.lukeapp.cl" className="text-slate-700 underline font-mono">https://quiz.lukeapp.cl</a>
+                        </p>
+                    </header>
+
+                    {/* Cláusula Destacada: Alojamiento de Imágenes y Derechos de Autor */}
+                    <section className="bg-slate-50 border-l-4 border-slate-800 p-6 rounded-r-lg space-y-3">
+                        <div className="flex items-center gap-2 text-slate-900 font-bold text-sm uppercase tracking-wide">
+                            <AlertCircle size={18} className="text-slate-700" />
+                            Declaración sobre Propiedad Intelectual e Imágenes de Terceros
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-700">
+                            <strong>Las imágenes, fotografías y recursos multimedia vinculados a las preguntas o trivias creadas por los usuarios NO se alojan ni almacenan en los servidores propios de LukeQuiz ni de <span className="font-mono">lukeapp.cl</span>.</strong>
+                        </p>
+                        <p className="text-xs md:text-sm leading-relaxed text-slate-600">
+                            La plataforma opera exclusivamente mediante hipervínculos referenciales a recursos disponibles públicamente en Internet. Dichos contenidos son propiedad exclusiva y legítima de sus respectivos autores o titulares de derechos de autor. LukeQuiz no reclama titularidad, patrocinio ni derechos comerciales sobre las imágenes vinculadas por terceros.
+                        </p>
+                        <div className="pt-1 text-xs text-slate-700 font-medium bg-white p-3 rounded border border-slate-200">
+                            <strong>Política de retiro inmediato:</strong> Cualquier titular de derechos que requiera la desvinculación o remoción de un enlace multimedia puede solicitarlo formalmente escribiendo a <a href="mailto:contacto@lukeapp.cl" className="font-semibold text-slate-900 underline">contacto@lukeapp.cl</a>, procediéndose al retiro expedito del contenido en un plazo no mayor a 24 horas hábiles.
+                        </div>
+                    </section>
+
+                    {/* Secciones Legales Numeradas */}
+                    <div className="space-y-6 text-sm text-slate-700 leading-relaxed">
+                        <section className="space-y-2">
+                            <h2 className="text-base font-bold text-slate-900">
+                                1. Objeto y Alcance del Servicio
                             </h2>
-                            <p className="text-white/90 text-sm md:text-base leading-relaxed">
-                                <strong>Las imágenes y recursos multimedia asociados a las preguntas o trivias creadas por los usuarios NO se alojan ni almacenan en los servidores propios de LukeQuiz (<span className="text-cyan-300 font-mono">lukeapp.cl</span>).</strong>
+                            <p>
+                                LukeQuiz es una plataforma web desarrollada en Chile, diseñada para la creación, proyección y participación interactiva en trivias y cuestionarios en tiempo real con fines recreativos, educativos y comunitarios. El acceso y uso del sitio implica la aceptación plena de los presentes Términos y Condiciones.
                             </p>
-                            <p className="text-white/80 text-xs md:text-sm leading-relaxed">
-                                Dichas imágenes corresponden a enlaces referenciales o externos y son propiedad exclusiva de sus respectivos autores o titulares de derechos de autor. LukeQuiz no reclama propiedad intelectual ni comercializa con las imágenes enlazadas por terceros.
+                        </section>
+
+                        <section className="space-y-2">
+                            <h2 className="text-base font-bold text-slate-900">
+                                2. Responsabilidad sobre el Contenido Generado por Usuarios
+                            </h2>
+                            <p>
+                                Cada usuario registrado o anfitrión es el único y exclusivo responsable del texto de las preguntas, opciones de respuesta, títulos y enlaces incorporados a sus trivias. Queda estrictamente prohibido el uso de la plataforma para difundir material ilícito, difamatorio, que vulnere la privacidad de terceros o que incite al odio o a la discriminación. La administración se reserva la facultad de suspender o remover cualquier cuestionario que contravenga estas disposiciones.
                             </p>
-                            <p className="text-amber-100 text-xs md:text-sm bg-amber-500/20 p-3 rounded-xl border border-amber-500/30 font-medium">
-                                <strong>Política de retiro inmediato:</strong> Si usted es el legítimo titular de los derechos de cualquier material enlazado y solicita su retiro o desvinculación, comuníquese con nosotros y el recurso será retirado de forma expedita e inmediata.
+                        </section>
+
+                        <section className="space-y-2">
+                            <h2 className="text-base font-bold text-slate-900">
+                                3. Servicios Premium y Pases Diarios
+                            </h2>
+                            <p>
+                                LukeQuiz pone a disposición de sus usuarios la opción de contratar un <strong>Pase Diario Premium</strong> con un valor de <strong>$1.000 CLP</strong> (mil pesos chilenos). Este servicio concede acceso durante un período continuo de 24 horas a utilidades complementarias, incluyendo síntesis de voz neuronal (TTS) y asistencia de inteligencia artificial para la formulación de cuestionarios.
                             </p>
-                        </div>
+                            <p className="text-xs text-slate-600">
+                                La activación del pase se efectúa mediante verificación automatizada de transferencias electrónicas a través de los canales bancarios oficiales habilitados.
+                            </p>
+                        </section>
+
+                        <section className="space-y-2">
+                            <h2 className="text-base font-bold text-slate-900">
+                                4. Limitación de Responsabilidad y Disponibilidad
+                            </h2>
+                            <p>
+                                El servicio se proporciona "tal cual" y conforme a su disponibilidad técnica. Si bien se implementan medidas de alta disponibilidad, seguridad y resguardo de datos, LukeQuiz no garantiza la ausencia total de interrupciones imprevistas derivadas de servicios de terceros, conectividad de red o mantenimientos programados.
+                            </p>
+                        </section>
+
+                        <section className="space-y-2">
+                            <h2 className="text-base font-bold text-slate-900">
+                                5. Procedimiento de Notificación y Contacto Oficial
+                            </h2>
+                            <p>
+                                Para cualquier requerimiento de carácter legal, consultas corporativas, solicitudes de retiro de contenido multimedia o soporte general, el único canal oficial autorizado es:
+                            </p>
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-1 font-mono text-xs text-slate-800">
+                                <div><span className="text-slate-500">Correo Electrónico Oficial:</span> <a href="mailto:contacto@lukeapp.cl" className="font-bold underline text-slate-900">contacto@lukeapp.cl</a></div>
+                                <div><span className="text-slate-500">Ecosistema Digital:</span> lukeapp.cl</div>
+                                <div><span className="text-slate-500">Jurisdicción:</span> República de Chile</div>
+                            </div>
+                        </section>
+
+                        <section className="space-y-2">
+                            <h2 className="text-base font-bold text-slate-900">
+                                6. Modificaciones a los Términos
+                            </h2>
+                            <p>
+                                LukeQuiz se reserva el derecho de actualizar o modificar los presentes Términos y Condiciones en cualquier momento para reflejar cambios legales o técnicos. La fecha de la última revisión se indicará siempre en el encabezado de este documento.
+                            </p>
+                        </section>
                     </div>
-                </div>
 
-                {/* Secciones detalladas */}
-                <div className="space-y-8 text-white/80 text-sm leading-relaxed">
-                    {/* Sección 1 */}
-                    <section className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-3">
-                        <div className="flex items-center gap-3 text-pink-400 font-black text-base uppercase tracking-wider">
-                            <Shield size={18} /> 1. Aceptación de los Términos
+                    {/* Pie del Documento */}
+                    <footer className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+                        <div>
+                            © 2026 LukeQuiz · Todos los derechos reservados · lukeapp.cl
                         </div>
-                        <p>
-                            Al acceder, navegar o utilizar <span className="text-white font-bold">LukeQuiz</span> en <span className="text-cyan-400 font-mono">https://quiz.lukeapp.cl</span>, declaras que tienes al menos 13 años de edad y aceptas cumplir íntegramente con estos Términos de Servicio. Si no estás de acuerdo con alguna disposición, debes abstenerte de utilizar la plataforma.
-                        </p>
-                    </section>
-
-                    {/* Sección 2 */}
-                    <section className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-3">
-                        <div className="flex items-center gap-3 text-cyan-400 font-black text-base uppercase tracking-wider">
-                            <CheckCircle size={18} /> 2. Uso de la Plataforma y Contenido de Usuarios
+                        <div className="flex items-center gap-4">
+                            <Link to="/about" className="hover:text-slate-800 underline">
+                                Acerca de
+                            </Link>
+                            <a href="mailto:contacto@lukeapp.cl" className="hover:text-slate-800 underline">
+                                contacto@lukeapp.cl
+                            </a>
                         </div>
-                        <p>
-                            LukeQuiz es un servicio interactivo de trivias para entretenimiento, educación y actividades grupales. Los usuarios son los únicos responsables de las preguntas, textos y enlaces que añadan a sus trivias.
-                        </p>
-                        <p>
-                            Queda expresamente prohibido publicar contenido que sea difamatorio, obsceno, discriminatorio, que incite al odio, viole la privacidad o infrinja derechos de terceros. Nos reservamos el derecho de suspender o eliminar cualquier trivia que viole estas directrices.
-                        </p>
-                    </section>
-
-                    {/* Sección 3 */}
-                    <section className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-3">
-                        <div className="flex items-center gap-3 text-amber-400 font-black text-base uppercase tracking-wider">
-                            <Scale size={18} /> 3. Pases Premium y Pagos
-                        </div>
-                        <p>
-                            LukeQuiz ofrece la posibilidad de adquirir un <strong>Pase Diario Premium</strong> por <strong>$1.000 CLP</strong> mediante transferencia electrónica bancaria en Chile. Este pase concede acceso a funcionalidades avanzadas (como generación ilimitada con Inteligencia Artificial y síntesis de voz neuronal TTS) durante una vigencia de 24 horas continuas desde el momento de su activación.
-                        </p>
-                        <p>
-                            La activación se realiza de manera automatizada al comprobar el número de operación bancario emitido por las entidades bancarias chilenas compatibles.
-                        </p>
-                    </section>
-
-                    {/* Sección 4 */}
-                    <section className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-3">
-                        <div className="flex items-center gap-3 text-purple-400 font-black text-base uppercase tracking-wider">
-                            <Mail size={18} /> 4. Procedimiento de Notificación y Contacto (DMCA / Retiro)
-                        </div>
-                        <p>
-                            Para enviar cualquier consulta legal, reclamo de derechos de autor o solicitud de retiro de enlaces a imágenes, puedes contactarnos directamente a través de:
-                        </p>
-                        <ul className="list-disc list-inside space-y-1 text-white pl-2">
-                            <li>Correo electrónico de contacto: <a href="mailto:cristianluke@gmail.com" className="text-cyan-400 underline font-mono">cristianluke@gmail.com</a></li>
-                            <li>Canal oficial: <a href="mailto:contacto@lukeapp.cl" className="text-cyan-400 underline font-mono">contacto@lukeapp.cl</a></li>
-                            <li>Dominio principal: <span className="text-pink-400 font-mono">quiz.lukeapp.cl</span></li>
-                        </ul>
-                    </section>
-                </div>
-
-                {/* Footer de la página */}
-                <div className="mt-12 text-center text-xs text-white/40">
-                    <p>© 2026 LukeQuiz · Todos los derechos reservados · lukeapp.cl</p>
-                </div>
+                    </footer>
+                </article>
             </main>
         </div>
     )

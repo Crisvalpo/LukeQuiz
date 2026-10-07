@@ -109,7 +109,7 @@ export default function About() {
                             Términos de Uso
                         </Link>
                         <a
-                            href="mailto:cristianluke@gmail.com"
+                            href="mailto:contacto@lukeapp.cl"
                             className="text-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-cyan-500 text-white text-xs font-black tracking-wider uppercase shadow-lg shadow-pink-500/20 hover:opacity-90 transition-opacity"
                         >
                             Contacto

@@ -446,26 +446,27 @@ export default function Screen() {
 
             <BackgroundView status={game?.status} imageUrl={currentQuestion?.image_url} />
 
-            <header className="flex-shrink-0 flex items-center justify-between p-[3vh] px-[5vw] relative z-10 border-b border-white/5 bg-surface/50 backdrop-blur-md">
+            <header className="flex-shrink-0 flex items-center justify-between py-1.5 sm:py-2 md:py-[2.5vh] px-3 sm:px-4 md:px-[4vw] relative z-10 border-b border-white/5 bg-surface/50 backdrop-blur-md">
                 <div className="flex items-center">
-                    <LogoLukeQuiz className="h-[6vh] w-auto" />
+                    {/* Oculto en pantallas pequeñas o teléfonos landscape para no solapar elementos */}
+                    <LogoLukeQuiz className="hidden sm:block h-6 sm:h-8 md:h-[5.5vh] max-h-[48px] w-auto" />
                 </div>
 
-                <div className="flex items-center gap-[4vw]">
+                <div className="flex items-center gap-2 sm:gap-4 md:gap-[3vw]">
                     <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-[1vh] opacity-50 mb-[0.5vh]">
-                            <Activity size={12} className="text-primary" />
-                            <span className="text-[1.2vh] font-black tracking-[0.3em] uppercase italic">Sincronización en Vivo</span>
+                        <div className="hidden sm:flex items-center gap-1 opacity-50 mb-0.5">
+                            <Activity size={10} className="text-primary" />
+                            <span className="text-[10px] md:text-[1.1vh] font-black tracking-widest uppercase italic">Sincronización en Vivo</span>
                         </div>
-                        <div className="flex items-center gap-[1.5vh] bg-black/40 px-[2.5vh] py-[1vh] rounded-[1.5vh] border border-white/10">
-                            <span className="text-[1.5vh] font-black text-white/40 tracking-widest uppercase">PIN DE ACCESO</span>
-                            <span className="text-[3.5vh] font-display font-black text-white tracking-widest leading-none drop-shadow-[0_0_1vh_rgba(255,255,255,0.3)]">{game?.join_code || '------'}</span>
+                        <div className="flex items-center gap-1 sm:gap-2 bg-black/50 px-2 sm:px-3 md:px-[2vh] py-0.5 md:py-[0.8vh] rounded-lg md:rounded-[1.2vh] border border-white/10">
+                            <span className="text-[9px] sm:text-xs md:text-[1.3vh] font-black text-white/40 tracking-wider uppercase">PIN</span>
+                            <span className="text-base sm:text-xl md:text-[3.2vh] font-display font-black text-white tracking-widest leading-none drop-shadow-[0_0_1vh_rgba(255,255,255,0.3)]">{game?.join_code || '------'}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-[1.5vh] bg-white/5 p-[1vh] px-[2.5vh] rounded-[1.5vh] border border-white/10 group animate-pulse-gentle">
-                        <Users size={20} className="text-secondary" />
-                        <span className="text-[3vh] font-display font-black text-white">{players.length}</span>
+                    <div className="flex items-center gap-1.5 bg-white/5 p-1 md:p-[0.8vh] px-2 md:px-[2vh] rounded-lg md:rounded-[1.2vh] border border-white/10 group animate-pulse-gentle">
+                        <Users size={16} className="text-secondary" />
+                        <span className="text-sm sm:text-base md:text-[2.6vh] font-display font-black text-white">{players.length}</span>
                     </div>
                 </div>
             </header>
@@ -473,27 +474,32 @@ export default function Screen() {
             <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
                 {game?.status === 'waiting' && (
                     <div className="flex-1 flex overflow-hidden">
-                        {/* Lado Izquierdo: QR y Acceso */}
-                        <div className="w-[35vw] flex flex-col items-center justify-center p-[5vh] bg-surface-lowest/40 backdrop-blur-md border-r border-white/5">
-                            <div className="mb-[4vh] text-center">
-                                <p className="text-[1.5vh] font-black text-white/40 tracking-[0.4em] uppercase mb-[2vh]">¡Escanea para Unirte!</p>
-                                <div className="p-[3vh] bg-white rounded-[3vh] shadow-[0_0_5vh_rgba(255,255,255,0.1)] hover:scale-105 transition-transform duration-500">
-                                    <QRCodeSVG value={joinUrl} size={window.innerHeight * 0.25} level="H" />
+                        {/* Lado Izquierdo: QR y Acceso Responsivo */}
+                        <div className="w-[38vw] max-w-[260px] sm:max-w-[300px] md:w-[32vw] flex flex-col items-center justify-center p-2 sm:p-3 md:p-[3vh] bg-surface-lowest/40 backdrop-blur-md border-r border-white/5 flex-shrink-0">
+                            <div className="mb-2 sm:mb-3 md:mb-[2vh] text-center flex flex-col items-center">
+                                <p className="text-[9px] sm:text-xs md:text-[1.3vh] font-black text-white/50 tracking-wider uppercase mb-1 sm:mb-2">¡Escanea para Unirte!</p>
+                                <div className="p-2 sm:p-2.5 md:p-3 bg-white rounded-xl sm:rounded-2xl md:rounded-[2.5vh] shadow-[0_0_3vh_rgba(255,255,255,0.15)] flex items-center justify-center max-w-[130px] sm:max-w-[160px] md:max-w-[210px] max-h-[38vh] aspect-square">
+                                    <QRCodeSVG
+                                        value={joinUrl}
+                                        className="w-full h-full object-contain"
+                                        style={{ width: '100%', height: '100%' }}
+                                        level="M"
+                                    />
                                 </div>
                             </div>
-                            <div className="space-y-[1vh] text-center">
-                                <p className="text-[2vh] font-display font-black text-white uppercase tracking-tight">O ingresa en:</p>
-                                <p className="text-[3vh] font-display font-black text-primary italic lowercase tracking-tighter">quiz.lukeapp.cl/join</p>
+                            <div className="space-y-0.5 text-center">
+                                <p className="text-[9px] sm:text-xs md:text-[1.4vh] font-display font-bold text-white/50 uppercase">O ingresa en:</p>
+                                <p className="text-xs sm:text-sm md:text-[2.2vh] font-display font-black text-primary italic lowercase tracking-tight">quiz.lukeapp.cl/join</p>
                             </div>
                         </div>
 
                         {/* Lado Derecho: Jugadores como Burbujas Flotantes a Color */}
-                        <div className="flex-1 flex flex-col items-center justify-center p-[4vh] relative overflow-hidden">
-                            <div className="mb-[3vh] text-center">
-                                <h2 className="text-[5vh] font-display font-black text-white tracking-widest uppercase items-center flex gap-[2vw]">
-                                    Esperando <span className="text-primary flex items-center gap-[1vw]">Jugadores <Activity size={32} className="animate-spin-slow" /></span>
+                        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-3 md:p-[3vh] relative overflow-hidden min-w-0">
+                            <div className="mb-1.5 sm:mb-2 md:mb-[2vh] text-center">
+                                <h2 className="text-sm sm:text-lg md:text-[3.8vh] font-display font-black text-white tracking-wider uppercase items-center flex gap-2">
+                                    Esperando <span className="text-primary flex items-center gap-1.5">Jugadores <Activity size={18} className="animate-spin-slow inline" /></span>
                                     {players.length > 0 && (
-                                        <span className="text-[2.2vh] font-mono font-black text-amber-300 bg-amber-500/20 px-[1.5vw] py-[0.5vh] rounded-full border border-amber-500/30 tabular-nums">
+                                        <span className="text-xs sm:text-sm md:text-[1.8vh] font-mono font-black text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30 tabular-nums">
                                             {players.length}
                                         </span>
                                     )}

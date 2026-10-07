@@ -5,7 +5,7 @@ import {
     Plus, Play, Settings, Trash2, PlusCircle,
     Search, Library, User, LogOut, Ticket,
     Crown, Monitor, HardDrive, Gamepad2,
-    ChevronLeft, ChevronRight, Loader2
+    ChevronLeft, ChevronRight, Loader2, Heart
 } from 'lucide-react'
 import { generateJoinCode } from '../utils/helpers'
 import { toast } from 'sonner'
@@ -16,6 +16,15 @@ import PremiumModal from '../components/PremiumModal'
 import { getRemainingPremiumTime } from '../lib/premiumUtils'
 
 const PAGE_SIZE = 12
+
+const getAuthorInitials = (nickname, handle) => {
+    const raw = String(nickname || handle || '').replace(/^@/, '').trim()
+    if (!raw) return 'CL'
+    if (/^cristianluke/i.test(raw)) return 'CL'
+    const parts = raw.split(/[\s_.-]+/).filter(Boolean)
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+    return raw.slice(0, 2).toUpperCase()
+}
 
 export default function Home() {
     const { user, refreshProfile } = useAuth()
@@ -42,7 +51,47 @@ export default function Home() {
     const [page, setPage] = useState(1)
     const [totalCount, setTotalCount] = useState(0)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [likedQuizIds, setLikedQuizIds] = useState(() => {
+        try {
+            const stored = localStorage.getItem('lukequiz_likes')
+            return new Set(stored ? JSON.parse(stored) : [])
+        } catch {
+            return new Set()
+        }
+    })
     const navigate = useNavigate()
+
+    const toggleLike = async (quizId) => {
+        const isLiked = likedQuizIds.has(quizId)
+        const nextLiked = new Set(likedQuizIds)
+        const increment = isLiked ? -1 : 1
+
+        if (isLiked) {
+            nextLiked.delete(quizId)
+        } else {
+            nextLiked.add(quizId)
+        }
+        setLikedQuizIds(nextLiked)
+        try {
+            localStorage.setItem('lukequiz_likes', JSON.stringify([...nextLiked]))
+        } catch {}
+
+        // Actualización optimista inmediata en el estado local de la UI
+        setQuizzes(prev => prev.map(q => q.id === quizId
+            ? { ...q, likes_count: Math.max(0, (q.likes_count || 0) + increment) }
+            : q
+        ))
+
+        // Persistencia atómica en Supabase vía RPC
+        try {
+            await supabase.rpc('toggle_quiz_like', {
+                target_quiz_id: quizId,
+                increment_val: increment
+            })
+        } catch (err) {
+            console.error('Error al registrar me gusta:', err)
+        }
+    }
 
     // Caché en memoria para transiciones instantáneas (SWR)
     const cacheRef = useRef(new Map())
@@ -574,12 +623,33 @@ export default function Home() {
                                                     </div>
                                                 )}
 
-                                                {/* Badge de Autor (Top Left) */}
-                                                <div className="absolute top-2 left-2">
-                                                    <span className="bg-white/95 text-slate-800 px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase shadow-sm border border-slate-200/60">
-                                                        @{q.profiles?.nickname || 'Autor'}
-                                                    </span>
+                                                {/* Badge de Autor (Top Left) - Avatar circular estilizado y liviano */}
+                                                <div
+                                                    className="absolute top-2.5 left-2.5 z-10 group/author"
+                                                    title={`Creado por @${q.profiles?.nickname || q.creator_handle || 'Autor'}`}
+                                                >
+                                                    <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-white/95 backdrop-blur-md text-slate-800 border border-slate-200/80 shadow-sm flex items-center justify-center text-[10px] md:text-[11px] font-black tracking-tighter uppercase transition-transform group-hover/author:scale-110">
+                                                        {getAuthorInitials(q.profiles?.nickname, q.creator_handle)}
+                                                    </div>
                                                 </div>
+
+                                                {/* Botón de Me Gusta (Top Right) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        toggleLike(q.id)
+                                                    }}
+                                                    className={`absolute top-2.5 right-2.5 z-10 p-1.5 px-2 rounded-full backdrop-blur-md transition-all duration-200 flex items-center gap-1 text-[10px] font-black shadow-sm active:scale-90 ${
+                                                        likedQuizIds.has(q.id)
+                                                            ? 'bg-rose-500 text-white shadow-rose-500/40 ring-2 ring-rose-400/50'
+                                                            : 'bg-black/45 hover:bg-black/65 text-white/90 hover:text-white border border-white/20'
+                                                    }`}
+                                                    title={likedQuizIds.has(q.id) ? 'Ya no me gusta' : 'Me gusta'}
+                                                >
+                                                    <Heart size={12} className={likedQuizIds.has(q.id) ? 'fill-current text-white scale-110' : 'text-white'} />
+                                                    {(q.likes_count || 0) > 0 && <span>{q.likes_count}</span>}
+                                                </button>
 
                                                 {/* Tags de Stats (Bottom Right - estilo Kahoot) */}
                                                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
@@ -730,7 +800,7 @@ export default function Home() {
                                 <Link to="/terms" className="hover:text-white transition-colors">
                                     Términos y Privacidad
                                 </Link>
-                                <a href="mailto:cristianluke@gmail.com" className="hover:text-pink-400 transition-colors">
+                                <a href="mailto:contacto@lukeapp.cl" className="hover:text-pink-400 transition-colors">
                                     Soporte
                                 </a>
                             </div>
